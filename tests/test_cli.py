@@ -109,6 +109,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("Toy model comparison", result.stdout)
         self.assertIn("tebd_run.jsonl", result.stdout)
         self.assertIn("chi-limited run", result.stdout)
+        self.assertIn("geometry", result.stdout)
 
     def test_search_finds_tagged_bond(self) -> None:
         result = subprocess.run(

@@ -70,7 +70,7 @@ def _parser() -> argparse.ArgumentParser:
 
     compare = subparsers.add_parser("compare", help="compare multiple JSONL telemetry replays")
     compare.add_argument("paths", nargs="+", help="JSONL replay files")
-    compare.add_argument("--width", type=int, default=120, help="render width in columns")
+    compare.add_argument("--width", type=int, default=160, help="render width in columns")
 
     search = subparsers.add_parser("search", help="search bonds by bond, site, tag, or status")
     search.add_argument("path", help="JSONL replay file")

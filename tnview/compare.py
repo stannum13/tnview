@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from tnview.drift import drift_diagnostics
+from tnview.geometry import geometry_diagnostics
 from tnview.state import RunState, diagnose_run
 
 
@@ -19,6 +21,8 @@ class RunSummary:
     saturated_bonds: int
     total_trunc_error: float
     bottleneck_bond: int | None
+    drift_risk: str
+    geometry_diagnosis: str
 
 
 def summarize_run(name: str, state: RunState) -> RunSummary:
@@ -29,6 +33,8 @@ def summarize_run(name: str, state: RunState) -> RunSummary:
     saturated_bonds = sum(1 for bond in bonds if bond.saturated)
     total_trunc_error = sum(bond.trunc_error for bond in bonds)
     bottleneck = max(bonds, key=lambda bond: (bond.trunc_error, bond.entropy), default=None)
+    drift = drift_diagnostics(state)
+    geometry = geometry_diagnostics(state)
 
     return RunSummary(
         name=Path(name).name,
@@ -40,10 +46,12 @@ def summarize_run(name: str, state: RunState) -> RunSummary:
         saturated_bonds=saturated_bonds,
         total_trunc_error=total_trunc_error,
         bottleneck_bond=bottleneck.bond if bottleneck is not None else None,
+        drift_risk=drift.risk,
+        geometry_diagnosis=geometry.mismatch.diagnosis,
     )
 
 
-def render_comparison(summaries: list[RunSummary], *, width: int = 120) -> str:
+def render_comparison(summaries: list[RunSummary], *, width: int = 160) -> str:
     columns = [
         ("model", 24),
         ("step", 6),
@@ -53,6 +61,8 @@ def render_comparison(summaries: list[RunSummary], *, width: int = 120) -> str:
         ("sat", 5),
         ("trunc err", 11),
         ("hot bond", 8),
+        ("drift", 8),
+        ("geometry", 28),
         ("diagnosis", 24),
     ]
     header = "  ".join(label.ljust(size) for label, size in columns)
@@ -68,6 +78,8 @@ def render_comparison(summaries: list[RunSummary], *, width: int = 120) -> str:
             str(summary.saturated_bonds).ljust(5),
             f"{summary.total_trunc_error:.2e}".ljust(11),
             _maybe_bond(summary.bottleneck_bond).ljust(8),
+            _clip(summary.drift_risk, 8).ljust(8),
+            _clip(summary.geometry_diagnosis, 28).ljust(28),
             _clip(summary.status, 24).ljust(24),
         ]
         lines.append(_fit("  ".join(row), width))
