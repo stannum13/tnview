@@ -146,6 +146,25 @@ class CliTests(unittest.TestCase):
         self.assertIn("Replay validation: valid", result.stdout)
         self.assertIn("checkpoints:       3", result.stdout)
 
+    def test_export_command_writes_manifest(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "export",
+                "examples/tebd_run.jsonl",
+                "--format",
+                "manifest",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn('"checkpoint_count":3', result.stdout)
+        self.assertIn('"bond_count":3', result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

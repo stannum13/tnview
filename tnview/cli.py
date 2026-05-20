@@ -9,6 +9,7 @@ from typing import Iterable, TextIO
 
 from tnview.compare import render_comparison, summarize_run
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
+from tnview.export import export_manifest_json, export_replay_jsonl
 from tnview.render import RenderOptions, render_run
 from tnview.search import render_search, search_bonds
 from tnview.snapshot import snapshot_json
@@ -31,6 +32,8 @@ def main(argv: list[str] | None = None) -> int:
             return _search(args)
         if args.command == "validate":
             return _validate(args)
+        if args.command == "export":
+            return _export(args)
     except EventParseError as exc:
         print(f"tnview: {exc}", file=sys.stderr)
         return 2
@@ -77,6 +80,16 @@ def _parser() -> argparse.ArgumentParser:
 
     validate = subparsers.add_parser("validate", help="validate a JSONL telemetry replay")
     validate.add_argument("path", help="JSONL replay file, or '-' for stdin")
+
+    export = subparsers.add_parser("export", help="export normalized replay JSONL or manifest JSON")
+    export.add_argument("path", help="JSONL replay file, or '-' for stdin")
+    export.add_argument(
+        "--format",
+        choices=["jsonl", "manifest"],
+        default="jsonl",
+        help="export format",
+    )
+    export.add_argument("--output", "-o", help="write exported output to a file")
 
     return parser
 
@@ -145,6 +158,16 @@ def _validate(args: argparse.Namespace) -> int:
     report = validate_lines(lines)
     print(render_validation(report))
     return 0 if report.valid else 2
+
+
+def _export(args: argparse.Namespace) -> int:
+    events = _read_events(_iter_lines(args.path))
+    if args.format == "manifest":
+        output = export_manifest_json(events)
+    else:
+        output = export_replay_jsonl(events).rstrip("\n")
+    _write_output(output, args.output)
+    return 0
 
 
 def _read_events(lines: Iterable[str]) -> list[TelemetryEvent]:
