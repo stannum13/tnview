@@ -91,6 +91,25 @@ class CliTests(unittest.TestCase):
             self.assertIn('"run_status": "chi-limited run"', exported)
             self.assertIn('"selected_bond"', exported)
 
+    def test_compare_renders_summary_table(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "compare",
+                "examples/tebd_run.jsonl",
+                "examples/tebd_run.jsonl",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Toy model comparison", result.stdout)
+        self.assertIn("tebd_run.jsonl", result.stdout)
+        self.assertIn("chi-limited run", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

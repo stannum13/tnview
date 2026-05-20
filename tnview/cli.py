@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 from typing import Iterable, TextIO
 
+from tnview.compare import render_comparison, summarize_run
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.render import RenderOptions, render_run
 from tnview.snapshot import snapshot_json
@@ -22,6 +23,8 @@ def main(argv: list[str] | None = None) -> int:
             return _replay(args)
         if args.command == "live":
             return _live(args)
+        if args.command == "compare":
+            return _compare(args)
     except EventParseError as exc:
         print(f"tnview: {exc}", file=sys.stderr)
         return 2
@@ -55,6 +58,10 @@ def _parser() -> argparse.ArgumentParser:
     live.add_argument("path", nargs="?", default="-", help="JSONL source, default stdin")
     live.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     _render_args(live)
+
+    compare = subparsers.add_parser("compare", help="compare multiple JSONL telemetry replays")
+    compare.add_argument("paths", nargs="+", help="JSONL replay files")
+    compare.add_argument("--width", type=int, default=120, help="render width in columns")
 
     return parser
 
@@ -97,6 +104,16 @@ def _live(args: argparse.Namespace) -> int:
 
     if not rendered:
         _print_frame(state, args)
+    return 0
+
+
+def _compare(args: argparse.Namespace) -> int:
+    summaries = []
+    for path in args.paths:
+        events = _read_events(_iter_lines(path))
+        state = _state_at_checkpoint(events, "latest")
+        summaries.append(summarize_run(path, state))
+    print(render_comparison(summaries, width=args.width))
     return 0
 
 
