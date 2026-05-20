@@ -34,6 +34,8 @@ class StateRenderingTests(unittest.TestCase):
         self.assertIn("Complexity rows", output)
         self.assertIn("Selected bond b1", output)
         self.assertIn("chi-limited", output)
+        self.assertIn("drift diagnosis", output)
+        self.assertIn("ansatz mismatch", output)
 
     def test_topology_rows_keep_bonds_between_sites(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())

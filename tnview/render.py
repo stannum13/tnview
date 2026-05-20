@@ -9,6 +9,8 @@ import textwrap
 
 from tnview.events import BondUpdated, TdvpSweep
 from tnview.compute import compute_cost
+from tnview.drift import drift_diagnostics
+from tnview.geometry import geometry_diagnostics
 from tnview.state import (
     BondState,
     RunState,
@@ -239,6 +241,8 @@ def _diagnostics(state: RunState, width: int) -> str:
         )
     warning = early_warning(state)
     cost = compute_cost(state)
+    drift = drift_diagnostics(state)
+    geometry = geometry_diagnostics(state)
     lines.extend(
         [
             f"chi trend:           {warning.chi_saturation_trend}",
@@ -255,6 +259,16 @@ def _diagnostics(state: RunState, width: int) -> str:
             f"largest tensor:      {cost.estimated_largest_tensor or 'n/a'}",
             f"estimated memory:    {_maybe_float(cost.estimated_memory_mb)} MB",
             f"compute diagnosis:   {cost.diagnosis}",
+        ]
+    )
+    lines.extend(
+        [
+            f"energy drift:        {_maybe_float(drift.energy.latest, scientific=True)} ({drift.energy.severity})",
+            f"norm drift:          {_maybe_float(drift.norm.latest, scientific=True)} ({drift.norm.severity})",
+            f"drift diagnosis:     {drift.diagnosis}",
+            f"geometry stress:     {geometry.flattening.diagnosis}",
+            f"long-range edges:    {geometry.flattening.long_range_edges}",
+            f"ansatz mismatch:     {geometry.mismatch.diagnosis}",
         ]
     )
     return "\n".join(_wrap_kv(line, width) for line in lines)
