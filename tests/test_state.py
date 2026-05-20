@@ -31,6 +31,34 @@ class StateRenderingTests(unittest.TestCase):
         self.assertIn("Selected bond b1", output)
         self.assertIn("chi-limited", output)
 
+    def test_topology_rows_keep_bonds_between_sites(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        state = reduce_events(events)
+
+        output = render_run(state, RenderOptions(width=90, unicode=False))
+
+        self.assertIn("sites: 0    1    2    3", output)
+        self.assertIn("bonds:    --   !!   --", output)
+
+    def test_topology_alignment_handles_multi_digit_sites(self) -> None:
+        lines = []
+        for bond in range(9, 12):
+            lines.append(
+                '{"event":"bond_updated","step":1,"time":0.1,"layer":"even",'
+                f'"bond":{bond},"site_left":{bond},"site_right":{bond + 1},'
+                '"entropy_before":0.1,"entropy_after":0.2,'
+                '"renyi2_before":0.1,"renyi2_after":0.2,'
+                '"chi_before":8,"chi_after":16,"chi_max":32,'
+                '"trunc_error":1e-12,"discarded_weight":1e-12,'
+                '"walltime_ms":1.0,"diagnostic_tags":[]}'
+            )
+        state = reduce_events(parse_jsonl(lines))
+
+        output = render_run(state, RenderOptions(width=90, unicode=False))
+
+        self.assertIn("sites: 9    10   11   12", output)
+        self.assertIn("bonds:    --   --   --", output)
+
 
 if __name__ == "__main__":
     unittest.main()

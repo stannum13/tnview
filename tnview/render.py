@@ -59,10 +59,15 @@ def _topology(state: RunState, width: int) -> str:
     min_site = min(bond.site_left for bond in bonds)
     max_site = max(bond.site_right for bond in bonds)
     sites = list(range(min_site, max_site + 1))
-    site_row = " ".join(f"{site:>2}" for site in sites)
+    cell_width = max(2, max(len(str(site)) for site in sites))
+    site_sep = "   "
+    bond_sep = " " * (cell_width + len(site_sep) - 2)
+    site_row = site_sep.join(f"{site:^{cell_width}}" for site in sites).rstrip()
+    bond_by_sites = {(bond.site_left, bond.site_right): bond for bond in bonds}
+
     link_cells = []
     for left, right in zip(sites, sites[1:]):
-        bond = next((bond for bond in bonds if bond.site_left == left and bond.site_right == right), None)
+        bond = bond_by_sites.get((left, right))
         if bond is None:
             link_cells.append("  ")
         elif bond.saturated:
@@ -72,12 +77,13 @@ def _topology(state: RunState, width: int) -> str:
         else:
             link_cells.append("--")
 
-    link_row = "   ".join(link_cells)
+    link_indent = " " * (cell_width + 1)
+    link_row = f"{link_indent}{bond_sep.join(link_cells)}"
     return "\n".join(
         [
             "MPS topology",
             _fit(f"sites: {site_row}", width),
-            _fit(f"bonds:   {link_row}", width),
+            _fit(f"bonds: {link_row}", width),
             "legend: -- healthy  ++ pressure  !! saturated",
         ]
     )
