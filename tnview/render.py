@@ -8,6 +8,7 @@ import shutil
 import textwrap
 
 from tnview.events import BondUpdated
+from tnview.compute import compute_cost
 from tnview.state import (
     BondState,
     RunState,
@@ -216,6 +217,7 @@ def _diagnostics(state: RunState, width: int) -> str:
             ]
         )
     warning = early_warning(state)
+    cost = compute_cost(state)
     lines.extend(
         [
             f"chi trend:           {warning.chi_saturation_trend}",
@@ -223,6 +225,15 @@ def _diagnostics(state: RunState, width: int) -> str:
             f"estimated chi need:  {_maybe_int(warning.estimated_chi_need)}",
             f"risk:                {warning.risk}",
             f"recommendation:      {warning.recommendation}",
+        ]
+    )
+    lines.extend(
+        [
+            f"slowest bond:        {_maybe_bond(cost.slowest_bond.bond if cost.slowest_bond else None)}",
+            f"largest chi bond:    {_maybe_bond(cost.largest_chi_bond.bond if cost.largest_chi_bond else None)}",
+            f"largest tensor:      {cost.estimated_largest_tensor or 'n/a'}",
+            f"estimated memory:    {_maybe_float(cost.estimated_memory_mb)} MB",
+            f"compute diagnosis:   {cost.diagnosis}",
         ]
     )
     return "\n".join(_wrap_kv(line, width) for line in lines)
@@ -277,6 +288,12 @@ def _maybe_int(value: int | None) -> str:
     if value is None:
         return "n/a"
     return str(value)
+
+
+def _maybe_bond(value: int | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"b{value}"
 
 
 def _sci(value: float) -> str:

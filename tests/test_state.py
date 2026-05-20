@@ -2,6 +2,7 @@ from pathlib import Path
 import unittest
 
 from tnview.events import parse_jsonl
+from tnview.compute import compute_cost
 from tnview.render import RenderOptions, render_run
 from tnview.state import diagnose_run, entanglement_front, reduce_events
 from tnview.warnings import early_warning
@@ -81,6 +82,17 @@ class StateRenderingTests(unittest.TestCase):
         self.assertEqual(warning.risk, "high")
         self.assertEqual(warning.estimated_chi_need, 512)
         self.assertIn("increase chi_max", warning.recommendation)
+
+    def test_compute_cost_localizes_slowest_bond(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        state = reduce_events(events)
+
+        cost = compute_cost(state)
+
+        self.assertIsNotNone(cost.slowest_bond)
+        assert cost.slowest_bond is not None
+        self.assertEqual(cost.slowest_bond.bond, 1)
+        self.assertEqual(cost.estimated_largest_tensor, "256 x 2 x 256")
 
 
 if __name__ == "__main__":
