@@ -8,7 +8,14 @@ import shutil
 import textwrap
 
 from tnview.events import BondUpdated
-from tnview.state import BondState, RunState, diagnose_bond, diagnose_run, top_truncation_bonds
+from tnview.state import (
+    BondState,
+    RunState,
+    diagnose_bond,
+    diagnose_run,
+    entanglement_front,
+    top_truncation_bonds,
+)
 
 
 UNICODE_BLOCKS = " ▁▂▃▄▅▆▇█"
@@ -178,6 +185,7 @@ def _inspector(state: RunState, width: int, options: RenderOptions) -> str:
 def _diagnostics(state: RunState, width: int) -> str:
     checkpoint = state.latest_checkpoint
     top = top_truncation_bonds(state)
+    front = entanglement_front(state)
     top_text = ", ".join(f"b{bond.bond} ({_sci(bond.trunc_error)})" for bond in top) or "none"
     lines = [
         "Diagnostics",
@@ -194,6 +202,16 @@ def _diagnostics(state: RunState, width: int) -> str:
                 f"total trunc error:   {_maybe_float(checkpoint.total_trunc_error, scientific=True)}",
                 f"energy drift:        {_maybe_float(checkpoint.energy_drift, scientific=True)}",
                 f"norm:                {_maybe_float(checkpoint.norm)}",
+            ]
+        )
+    if front is not None:
+        active = ", ".join(f"b{bond}" for bond in front.active_bonds) or "none"
+        lines.extend(
+            [
+                f"entropy front:       {active}",
+                f"front threshold:     {front.threshold:.3g}",
+                f"front span:          {front.span} bonds",
+                f"front velocity:      {_maybe_float(front.velocity_bonds_per_time)} bonds / time",
             ]
         )
     return "\n".join(_wrap_kv(line, width) for line in lines)

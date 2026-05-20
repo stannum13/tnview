@@ -156,3 +156,55 @@ def diagnose_run(state: RunState) -> str:
 
 def top_truncation_bonds(state: RunState, *, limit: int = 3) -> list[BondState]:
     return sorted(state.ordered_bonds, key=lambda bond: bond.trunc_error, reverse=True)[:limit]
+
+
+@dataclass(frozen=True)
+class EntanglementFront:
+    threshold: float
+    active_bonds: tuple[int, ...]
+    span: int
+    velocity_bonds_per_time: float | None
+
+
+def entanglement_front(state: RunState, *, threshold_fraction: float = 0.5) -> EntanglementFront | None:
+    if not state.history:
+        return None
+
+    latest = state.history[-1]
+    max_entropy = max(latest.entropy_by_bond.values(), default=0.0)
+    if max_entropy <= 0:
+        return EntanglementFront(threshold=0.0, active_bonds=(), span=0, velocity_bonds_per_time=None)
+
+    threshold = max_entropy * threshold_fraction
+    active = tuple(sorted(bond for bond, entropy in latest.entropy_by_bond.items() if entropy >= threshold))
+    span = _bond_span(active)
+    velocity = _front_velocity(state, threshold)
+    return EntanglementFront(
+        threshold=threshold,
+        active_bonds=active,
+        span=span,
+        velocity_bonds_per_time=velocity,
+    )
+
+
+def _front_velocity(state: RunState, threshold: float) -> float | None:
+    if len(state.history) < 2:
+        return None
+
+    previous = state.history[-2]
+    latest = state.history[-1]
+    dt = latest.time - previous.time
+    if dt <= 0:
+        return None
+
+    previous_active = tuple(
+        sorted(bond for bond, entropy in previous.entropy_by_bond.items() if entropy >= threshold)
+    )
+    latest_active = tuple(sorted(bond for bond, entropy in latest.entropy_by_bond.items() if entropy >= threshold))
+    return (_bond_span(latest_active) - _bond_span(previous_active)) / dt
+
+
+def _bond_span(active_bonds: tuple[int, ...]) -> int:
+    if not active_bonds:
+        return 0
+    return max(active_bonds) - min(active_bonds) + 1

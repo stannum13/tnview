@@ -3,7 +3,7 @@ import unittest
 
 from tnview.events import parse_jsonl
 from tnview.render import RenderOptions, render_run
-from tnview.state import diagnose_run, reduce_events
+from tnview.state import diagnose_run, entanglement_front, reduce_events
 
 
 class StateRenderingTests(unittest.TestCase):
@@ -58,6 +58,18 @@ class StateRenderingTests(unittest.TestCase):
 
         self.assertIn("sites: 9    10   11   12", output)
         self.assertIn("bonds:    --   --   --", output)
+
+    def test_entanglement_front_tracks_active_span(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        state = reduce_events(events)
+
+        front = entanglement_front(state)
+
+        self.assertIsNotNone(front)
+        assert front is not None
+        self.assertEqual(front.active_bonds, (1,))
+        self.assertEqual(front.span, 1)
+        self.assertIsNotNone(front.velocity_bonds_per_time)
 
 
 if __name__ == "__main__":
