@@ -22,6 +22,11 @@ class RenderOptions:
     color: bool = False
     history_limit: int = 12
     update_limit: int = 6
+    show_updates: bool = True
+    show_entropy: bool = True
+    show_pressure: bool = True
+    show_inspector: bool = True
+    show_diagnostics: bool = True
 
 
 def render_run(state: RunState, options: RenderOptions | None = None) -> str:
@@ -32,11 +37,11 @@ def render_run(state: RunState, options: RenderOptions | None = None) -> str:
     sections = [
         _title(state, width),
         _topology(state, width),
-        _updates(state, width, options),
-        _heatmap(state, width, options),
-        _pressure_rows(state, width, options),
-        _inspector(state, width, options),
-        _diagnostics(state, width),
+        _updates(state, width, options) if options.show_updates else "",
+        _heatmap(state, width, options) if options.show_entropy else "",
+        _pressure_rows(state, width, options) if options.show_pressure else "",
+        _inspector(state, width, options) if options.show_inspector else "",
+        _diagnostics(state, width) if options.show_diagnostics else "",
     ]
     return "\n\n".join(section for section in sections if section)
 

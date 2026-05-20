@@ -61,6 +61,11 @@ def _render_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
     parser.add_argument("--width", type=int, help="render width in columns")
     parser.add_argument("--history", type=int, default=12, help="number of checkpoint rows to show")
+    parser.add_argument("--no-updates", action="store_true", help="hide TEBD update rows")
+    parser.add_argument("--no-entropy", action="store_true", help="hide the entropy heatmap")
+    parser.add_argument("--no-pressure", action="store_true", help="hide chi/truncation pressure rows")
+    parser.add_argument("--no-inspector", action="store_true", help="hide the selected-bond inspector")
+    parser.add_argument("--no-diagnostics", action="store_true", help="hide the diagnostics panel")
 
 
 def _replay(args: argparse.Namespace) -> int:
@@ -142,7 +147,16 @@ def _print_frame(state: RunState, args: argparse.Namespace) -> None:
 
 
 def _options(args: argparse.Namespace) -> RenderOptions:
-    return RenderOptions(width=args.width, unicode=not args.ascii, history_limit=max(1, args.history))
+    return RenderOptions(
+        width=args.width,
+        unicode=not args.ascii,
+        history_limit=max(1, args.history),
+        show_updates=not args.no_updates,
+        show_entropy=not args.no_entropy,
+        show_pressure=not args.no_pressure,
+        show_inspector=not args.no_inspector,
+        show_diagnostics=not args.no_diagnostics,
+    )
 
 
 def _iter_lines(path: str) -> Iterable[str]:
