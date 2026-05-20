@@ -46,7 +46,8 @@ def _title(state: RunState, width: int) -> str:
     if checkpoint is None:
         suffix = "waiting for checkpoint"
     else:
-        suffix = f"step {checkpoint.step}  t={checkpoint.time:g}  {checkpoint.complexity_status or diagnose_run(state)}"
+        status = checkpoint.complexity_status or diagnose_run(state)
+        suffix = f"step {checkpoint.step}  t={checkpoint.time:g}  {status.replace('_', '-')}"
     return _fit(f"TNView complexity microscope | {suffix}", width)
 
 

@@ -122,6 +122,8 @@ def reduce_events(events: list[TelemetryEvent]) -> RunState:
 def diagnose_bond(bond: BondState) -> str:
     if bond.saturated and bond.trunc_error >= 1e-7:
         return "chi-limited local bottleneck"
+    if bond.saturated and bond.entropy >= 2.0:
+        return "chi-limited local bottleneck"
     if bond.saturated:
         return "chi pressure"
     if bond.trunc_error >= 1e-6:
@@ -141,7 +143,7 @@ def diagnose_run(state: RunState) -> str:
     entropies = [bond.entropy for bond in bonds]
     broad_growth = sum(1 for entropy in entropies if entropy >= 0.5 * max(entropies)) >= max(3, len(entropies) // 2)
 
-    if saturated and high_trunc:
+    if saturated and (high_trunc or max(entropies) >= 2.0):
         return "chi-limited run"
     if high_trunc:
         return "truncation-dominated run"

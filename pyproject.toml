@@ -13,7 +13,3 @@ dependencies = []
 
 [project.scripts]
 tnview = "tnview.cli:main"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]
