@@ -1,6 +1,8 @@
 import subprocess
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 
 class CliTests(unittest.TestCase):
@@ -64,6 +66,30 @@ class CliTests(unittest.TestCase):
         self.assertNotIn("TEBD brick-wall updates", result.stdout)
         self.assertNotIn("Selected bond", result.stdout)
         self.assertIn("Entanglement heatmap", result.stdout)
+
+    def test_replay_can_export_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "snapshot.json"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "replay",
+                    "examples/tebd_run.jsonl",
+                    "--snapshot",
+                    "--output",
+                    str(output),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.stdout, "")
+            exported = output.read_text()
+            self.assertIn('"run_status": "chi-limited run"', exported)
+            self.assertIn('"selected_bond"', exported)
 
 
 if __name__ == "__main__":

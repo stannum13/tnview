@@ -9,6 +9,7 @@ from typing import Iterable, TextIO
 
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.render import RenderOptions, render_run
+from tnview.snapshot import snapshot_json
 from tnview.state import RunState
 
 
@@ -46,6 +47,8 @@ def _parser() -> argparse.ArgumentParser:
         default="latest",
         help="checkpoint index to render, or 'latest' (default)",
     )
+    replay.add_argument("--snapshot", action="store_true", help="write a JSON snapshot instead of terminal view")
+    replay.add_argument("--output", "-o", help="write snapshot or rendered output to a file")
     _render_args(replay)
 
     live = subparsers.add_parser("live", help="stream JSONL telemetry and refresh on checkpoints")
@@ -72,7 +75,8 @@ def _replay(args: argparse.Namespace) -> int:
     events = _read_events(_iter_lines(args.path))
     state = _state_at_checkpoint(events, args.checkpoint)
     _select_requested_bond(state, args.bond)
-    print(render_run(state, _options(args)))
+    output = snapshot_json(state) if args.snapshot else render_run(state, _options(args))
+    _write_output(output, args.output)
     return 0
 
 
@@ -170,6 +174,13 @@ def _iter_lines(path: str) -> Iterable[str]:
 
 def _open_path(path: str) -> TextIO:
     return Path(path).open("r", encoding="utf-8")
+
+
+def _write_output(output: str, path: str | None) -> None:
+    if path is None:
+        print(output)
+        return
+    Path(path).write_text(output + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
