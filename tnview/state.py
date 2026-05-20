@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from tnview.events import BondUpdated, Checkpoint, TelemetryEvent
+from tnview.events import BondUpdated, Checkpoint, TdvpSweep, TelemetryEvent
 
 
 @dataclass
@@ -49,6 +49,7 @@ class RunState:
     bonds: dict[int, BondState] = field(default_factory=dict)
     checkpoints: list[Checkpoint] = field(default_factory=list)
     updates: list[BondUpdated] = field(default_factory=list)
+    sweeps: list[TdvpSweep] = field(default_factory=list)
     history: list[TimeSlice] = field(default_factory=list)
     selected_bond: int | None = None
 
@@ -58,6 +59,8 @@ class RunState:
         elif isinstance(event, Checkpoint):
             self.checkpoints.append(event)
             self._capture_history(event.step, event.time)
+        elif isinstance(event, TdvpSweep):
+            self.sweeps.append(event)
 
     def _apply_bond_update(self, event: BondUpdated) -> None:
         self.updates.append(event)

@@ -7,7 +7,7 @@ from math import log10
 import shutil
 import textwrap
 
-from tnview.events import BondUpdated
+from tnview.events import BondUpdated, TdvpSweep
 from tnview.compute import compute_cost
 from tnview.state import (
     BondState,
@@ -47,6 +47,7 @@ def render_run(state: RunState, options: RenderOptions | None = None) -> str:
         _title(state, width),
         _topology(state, width),
         _updates(state, width, options) if options.show_updates else "",
+        _tdvp_sweeps(state, width, options) if options.show_updates else "",
         _heatmap(state, width, options) if options.show_entropy else "",
         _pressure_rows(state, width, options) if options.show_pressure else "",
         _inspector(state, width, options) if options.show_inspector else "",
@@ -117,6 +118,26 @@ def _updates(state: RunState, width: int, options: RenderOptions) -> str:
             f"S {update.entropy_before:.2f}->{update.entropy_after:.2f} "
             f"dS {delta:+.2f} chi {update.chi_after}/{update.chi_max} "
             f"eps {_sci(update.trunc_error)}"
+        )
+        lines.append(_fit(line, width))
+    return "\n".join(lines)
+
+
+def _tdvp_sweeps(state: RunState, width: int, options: RenderOptions) -> str:
+    sweeps = state.sweeps[-options.update_limit :]
+    if not sweeps:
+        return ""
+
+    lines = ["TDVP sweep view"]
+    for sweep in sweeps:
+        marker = _sweep_marker(sweep)
+        line = (
+            f"{marker} step {sweep.step:<5} {sweep.direction:<5} "
+            f"{sweep.start_site}->{sweep.end_site} "
+            f"res {_maybe_float(sweep.max_residual, scientific=True)} "
+            f"dS {_maybe_float(sweep.max_entropy_delta)} "
+            f"eps {_maybe_float(sweep.max_trunc_error, scientific=True)} "
+            f"wall {_maybe_float(sweep.walltime_ms)} ms"
         )
         lines.append(_fit(line, width))
     return "\n".join(lines)
@@ -246,6 +267,14 @@ def _update_marker(update: BondUpdated) -> str:
     if delta >= 0.4:
         return "#"
     if delta >= 0.15:
+        return "+"
+    return "."
+
+
+def _sweep_marker(sweep: TdvpSweep) -> str:
+    if sweep.max_trunc_error is not None and sweep.max_trunc_error >= 1e-7:
+        return "!"
+    if sweep.max_residual is not None and sweep.max_residual >= 1e-5:
         return "+"
     return "."
 

@@ -1,6 +1,6 @@
 import unittest
 
-from tnview.events import BondUpdated, EventParseError, parse_jsonl_line
+from tnview.events import BondUpdated, EventParseError, TdvpSweep, parse_jsonl_line
 
 
 class EventParsingTests(unittest.TestCase):
@@ -23,6 +23,20 @@ class EventParsingTests(unittest.TestCase):
     def test_rejects_unknown_event(self) -> None:
         with self.assertRaisesRegex(EventParseError, "unknown event"):
             parse_jsonl_line('{"event":"tensor_dump"}')
+
+    def test_parse_tdvp_sweep_event(self) -> None:
+        event = parse_jsonl_line(
+            '{"event":"tdvp_sweep","step":3,"time":0.3,"direction":"right",'
+            '"start_site":0,"end_site":7,"max_residual":1e-8,'
+            '"max_entropy_delta":0.12,"max_trunc_error":1e-10,'
+            '"walltime_ms":42.0,"diagnostic_tags":["converged"]}'
+        )
+
+        self.assertIsInstance(event, TdvpSweep)
+        assert isinstance(event, TdvpSweep)
+        self.assertEqual(event.direction, "right")
+        self.assertEqual(event.start_site, 0)
+        self.assertEqual(event.diagnostic_tags, ("converged",))
 
 
 if __name__ == "__main__":

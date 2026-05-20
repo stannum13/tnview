@@ -17,6 +17,7 @@ class StateRenderingTests(unittest.TestCase):
         assert state.latest_checkpoint is not None
         self.assertEqual(state.latest_checkpoint.step, 80)
         self.assertTrue(state.bonds[1].saturated)
+        self.assertEqual(len(state.sweeps), 2)
         self.assertEqual(diagnose_run(state), "chi-limited run")
 
     def test_render_contains_core_mvp_views(self) -> None:
@@ -28,6 +29,7 @@ class StateRenderingTests(unittest.TestCase):
 
         self.assertIn("MPS topology", output)
         self.assertIn("TEBD brick-wall updates", output)
+        self.assertIn("TDVP sweep view", output)
         self.assertIn("Entanglement heatmap", output)
         self.assertIn("Complexity rows", output)
         self.assertIn("Selected bond b1", output)

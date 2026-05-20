@@ -7,7 +7,7 @@ import json
 from typing import Any, Literal
 
 
-EventName = Literal["bond_updated", "checkpoint"]
+EventName = Literal["bond_updated", "checkpoint", "tdvp_sweep"]
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,21 @@ class Checkpoint:
     complexity_status: str | None
 
 
-TelemetryEvent = BondUpdated | Checkpoint
+@dataclass(frozen=True)
+class TdvpSweep:
+    step: int
+    time: float
+    direction: str
+    start_site: int
+    end_site: int
+    max_residual: float | None
+    max_entropy_delta: float | None
+    max_trunc_error: float | None
+    walltime_ms: float | None
+    diagnostic_tags: tuple[str, ...] = field(default_factory=tuple)
+
+
+TelemetryEvent = BondUpdated | Checkpoint | TdvpSweep
 
 
 class EventParseError(ValueError):
@@ -78,6 +92,8 @@ def parse_jsonl_line(line: str, *, line_number: int | None = None) -> TelemetryE
         return _bond_updated(payload, line_number)
     if event_name == "checkpoint":
         return _checkpoint(payload, line_number)
+    if event_name == "tdvp_sweep":
+        return _tdvp_sweep(payload, line_number)
 
     raise EventParseError(_prefix(line_number, f"unknown event {event_name!r}"))
 
@@ -138,6 +154,27 @@ def _checkpoint(payload: dict[str, Any], line_number: int | None) -> Checkpoint:
         energy_drift=_optional_float(payload, "energy_drift", line_number),
         norm=_optional_float(payload, "norm", line_number),
         complexity_status=_optional_str(payload, "complexity_status", line_number),
+    )
+
+
+def _tdvp_sweep(payload: dict[str, Any], line_number: int | None) -> TdvpSweep:
+    tags = payload.get("diagnostic_tags", [])
+    if tags is None:
+        tags = []
+    if not isinstance(tags, list) or not all(isinstance(tag, str) for tag in tags):
+        raise EventParseError(_prefix(line_number, "diagnostic_tags must be a string array"))
+
+    return TdvpSweep(
+        step=_required_int(payload, "step", line_number),
+        time=_required_float(payload, "time", line_number),
+        direction=_required_str(payload, "direction", line_number),
+        start_site=_required_int(payload, "start_site", line_number),
+        end_site=_required_int(payload, "end_site", line_number),
+        max_residual=_optional_float(payload, "max_residual", line_number),
+        max_entropy_delta=_optional_float(payload, "max_entropy_delta", line_number),
+        max_trunc_error=_optional_float(payload, "max_trunc_error", line_number),
+        walltime_ms=_optional_float(payload, "walltime_ms", line_number),
+        diagnostic_tags=tuple(tags),
     )
 
 
