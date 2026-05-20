@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 from typing import Iterable, TextIO
 
-from tnview.events import EventParseError, parse_jsonl_line
+from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.render import RenderOptions, render_run
 from tnview.state import RunState
 
@@ -41,6 +41,11 @@ def _parser() -> argparse.ArgumentParser:
 
     replay = subparsers.add_parser("replay", help="render a JSONL telemetry replay")
     replay.add_argument("path", help="JSONL replay file, or '-' for stdin")
+    replay.add_argument(
+        "--checkpoint",
+        default="latest",
+        help="checkpoint index to render, or 'latest' (default)",
+    )
     _render_args(replay)
 
     live = subparsers.add_parser("live", help="stream JSONL telemetry and refresh on checkpoints")
@@ -59,7 +64,8 @@ def _render_args(parser: argparse.ArgumentParser) -> None:
 
 
 def _replay(args: argparse.Namespace) -> int:
-    state = _read_state(_iter_lines(args.path))
+    events = _read_events(_iter_lines(args.path))
+    state = _state_at_checkpoint(events, args.checkpoint)
     _select_requested_bond(state, args.bond)
     print(render_run(state, _options(args)))
     return 0
@@ -85,13 +91,42 @@ def _live(args: argparse.Namespace) -> int:
     return 0
 
 
-def _read_state(lines: Iterable[str]) -> RunState:
-    state = RunState()
+def _read_events(lines: Iterable[str]) -> list[TelemetryEvent]:
+    events: list[TelemetryEvent] = []
     for line_number, line in enumerate(lines, start=1):
         event = parse_jsonl_line(line, line_number=line_number)
         if event is not None:
-            state.apply(event)
+            events.append(event)
+    return events
+
+
+def _state_at_checkpoint(events: list[TelemetryEvent], checkpoint: str) -> RunState:
+    state = RunState()
+    checkpoint_count = sum(1 for event in events if event.__class__.__name__ == "Checkpoint")
+    target = _checkpoint_target(checkpoint, checkpoint_count)
+
+    seen = 0
+    for event in events:
+        state.apply(event)
+        if event.__class__.__name__ == "Checkpoint":
+            if seen == target:
+                break
+            seen += 1
     return state
+
+
+def _checkpoint_target(checkpoint: str, checkpoint_count: int) -> int | None:
+    if checkpoint == "latest":
+        return None if checkpoint_count == 0 else checkpoint_count - 1
+    try:
+        target = int(checkpoint)
+    except ValueError as exc:
+        raise EventParseError("--checkpoint must be an integer index or 'latest'") from exc
+    if target < 0:
+        raise EventParseError("--checkpoint must be non-negative")
+    if checkpoint_count and target >= checkpoint_count:
+        raise EventParseError(f"--checkpoint {target} out of range; replay has {checkpoint_count} checkpoints")
+    return target
 
 
 def _select_requested_bond(state: RunState, bond: int | None) -> None:
