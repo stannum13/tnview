@@ -13,6 +13,7 @@ from tnview.render import RenderOptions, render_run
 from tnview.search import render_search, search_bonds
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
+from tnview.validate import render_validation, validate_lines
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -28,6 +29,8 @@ def main(argv: list[str] | None = None) -> int:
             return _compare(args)
         if args.command == "search":
             return _search(args)
+        if args.command == "validate":
+            return _validate(args)
     except EventParseError as exc:
         print(f"tnview: {exc}", file=sys.stderr)
         return 2
@@ -71,6 +74,9 @@ def _parser() -> argparse.ArgumentParser:
     search.add_argument("query", help="query such as bond:14, site:15, tag:chi_saturated, status:limited")
     search.add_argument("--checkpoint", default="latest", help="checkpoint index to search, or 'latest'")
     search.add_argument("--width", type=int, default=100, help="render width in columns")
+
+    validate = subparsers.add_parser("validate", help="validate a JSONL telemetry replay")
+    validate.add_argument("path", help="JSONL replay file, or '-' for stdin")
 
     return parser
 
@@ -132,6 +138,13 @@ def _search(args: argparse.Namespace) -> int:
     matches = search_bonds(state, args.query)
     print(render_search(matches, query=args.query, width=args.width))
     return 0
+
+
+def _validate(args: argparse.Namespace) -> int:
+    lines = list(_iter_lines(args.path))
+    report = validate_lines(lines)
+    print(render_validation(report))
+    return 0 if report.valid else 2
 
 
 def _read_events(lines: Iterable[str]) -> list[TelemetryEvent]:

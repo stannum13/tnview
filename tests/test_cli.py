@@ -129,6 +129,23 @@ class CliTests(unittest.TestCase):
         self.assertIn("b1", result.stdout)
         self.assertIn("chi-limited local bottleneck", result.stdout)
 
+    def test_validate_command_reports_replay_shape(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "validate",
+                "examples/tebd_run.jsonl",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Replay validation: valid", result.stdout)
+        self.assertIn("checkpoints:       3", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
