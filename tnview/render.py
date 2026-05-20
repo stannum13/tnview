@@ -16,6 +16,7 @@ from tnview.state import (
     entanglement_front,
     top_truncation_bonds,
 )
+from tnview.warnings import early_warning
 
 
 UNICODE_BLOCKS = " ▁▂▃▄▅▆▇█"
@@ -214,6 +215,16 @@ def _diagnostics(state: RunState, width: int) -> str:
                 f"front velocity:      {_maybe_float(front.velocity_bonds_per_time)} bonds / time",
             ]
         )
+    warning = early_warning(state)
+    lines.extend(
+        [
+            f"chi trend:           {warning.chi_saturation_trend}",
+            f"truncation trend:    {warning.truncation_trend}",
+            f"estimated chi need:  {_maybe_int(warning.estimated_chi_need)}",
+            f"risk:                {warning.risk}",
+            f"recommendation:      {warning.recommendation}",
+        ]
+    )
     return "\n".join(_wrap_kv(line, width) for line in lines)
 
 

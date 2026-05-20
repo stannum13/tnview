@@ -4,6 +4,7 @@ import unittest
 from tnview.events import parse_jsonl
 from tnview.render import RenderOptions, render_run
 from tnview.state import diagnose_run, entanglement_front, reduce_events
+from tnview.warnings import early_warning
 
 
 class StateRenderingTests(unittest.TestCase):
@@ -70,6 +71,16 @@ class StateRenderingTests(unittest.TestCase):
         self.assertEqual(front.active_bonds, (1,))
         self.assertEqual(front.span, 1)
         self.assertIsNotNone(front.velocity_bonds_per_time)
+
+    def test_early_warning_flags_saturated_run(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        state = reduce_events(events)
+
+        warning = early_warning(state)
+
+        self.assertEqual(warning.risk, "high")
+        self.assertEqual(warning.estimated_chi_need, 512)
+        self.assertIn("increase chi_max", warning.recommendation)
 
 
 if __name__ == "__main__":
