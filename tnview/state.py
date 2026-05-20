@@ -19,6 +19,7 @@ class BondState:
     trunc_error: float = 0.0
     discarded_weight: float | None = None
     walltime_ms: float | None = None
+    schmidt_values: tuple[float, ...] = field(default_factory=tuple)
     last_step: int = 0
     last_time: float = 0.0
     diagnostic_tags: tuple[str, ...] = field(default_factory=tuple)
@@ -71,6 +72,7 @@ class RunState:
             trunc_error=event.trunc_error,
             discarded_weight=event.discarded_weight,
             walltime_ms=event.walltime_ms,
+            schmidt_values=event.schmidt_values,
             last_step=event.step,
             last_time=event.time,
             diagnostic_tags=event.diagnostic_tags,

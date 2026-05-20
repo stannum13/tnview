@@ -56,6 +56,7 @@ def _bond_snapshot(bond: Any) -> dict[str, Any]:
         "trunc_error": bond.trunc_error,
         "discarded_weight": bond.discarded_weight,
         "walltime_ms": bond.walltime_ms,
+        "schmidt_values": list(bond.schmidt_values),
         "diagnosis": diagnose_bond(bond),
         "diagnostic_tags": list(bond.diagnostic_tags),
     }

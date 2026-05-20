@@ -252,6 +252,11 @@ def _update_marker(update: BondUpdated) -> str:
 
 def _schmidt_sparkline(bond: BondState, options: RenderOptions) -> str:
     glyphs = UNICODE_BLOCKS if options.unicode else ASCII_BLOCKS
+    if bond.schmidt_values:
+        values = list(bond.schmidt_values[:16])
+        max_value = max(values)
+        return "".join(_bucket(value, max_value, glyphs) for value in values)
+
     # Telemetry intentionally avoids streaming full tensors. This synthetic profile
     # gives the inspector a visual summary tied to entropy and chi pressure.
     effective_rank = max(1, min(16, bond.chi))
