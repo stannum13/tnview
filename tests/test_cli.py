@@ -110,6 +110,25 @@ class CliTests(unittest.TestCase):
         self.assertIn("tebd_run.jsonl", result.stdout)
         self.assertIn("chi-limited run", result.stdout)
 
+    def test_search_finds_tagged_bond(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "search",
+                "examples/tebd_run.jsonl",
+                "tag:chi_saturated",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Search: tag:chi_saturated", result.stdout)
+        self.assertIn("b1", result.stdout)
+        self.assertIn("chi-limited local bottleneck", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

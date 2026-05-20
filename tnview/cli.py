@@ -10,6 +10,7 @@ from typing import Iterable, TextIO
 from tnview.compare import render_comparison, summarize_run
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.render import RenderOptions, render_run
+from tnview.search import render_search, search_bonds
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
 
@@ -25,6 +26,8 @@ def main(argv: list[str] | None = None) -> int:
             return _live(args)
         if args.command == "compare":
             return _compare(args)
+        if args.command == "search":
+            return _search(args)
     except EventParseError as exc:
         print(f"tnview: {exc}", file=sys.stderr)
         return 2
@@ -62,6 +65,12 @@ def _parser() -> argparse.ArgumentParser:
     compare = subparsers.add_parser("compare", help="compare multiple JSONL telemetry replays")
     compare.add_argument("paths", nargs="+", help="JSONL replay files")
     compare.add_argument("--width", type=int, default=120, help="render width in columns")
+
+    search = subparsers.add_parser("search", help="search bonds by bond, site, tag, or status")
+    search.add_argument("path", help="JSONL replay file")
+    search.add_argument("query", help="query such as bond:14, site:15, tag:chi_saturated, status:limited")
+    search.add_argument("--checkpoint", default="latest", help="checkpoint index to search, or 'latest'")
+    search.add_argument("--width", type=int, default=100, help="render width in columns")
 
     return parser
 
@@ -114,6 +123,14 @@ def _compare(args: argparse.Namespace) -> int:
         state = _state_at_checkpoint(events, "latest")
         summaries.append(summarize_run(path, state))
     print(render_comparison(summaries, width=args.width))
+    return 0
+
+
+def _search(args: argparse.Namespace) -> int:
+    events = _read_events(_iter_lines(args.path))
+    state = _state_at_checkpoint(events, args.checkpoint)
+    matches = search_bonds(state, args.query)
+    print(render_search(matches, query=args.query, width=args.width))
     return 0
 
 
