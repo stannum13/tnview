@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tnview"
+version = "0.1.0"
+description = "Terminal-native complexity microscope for tensor-network telemetry."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "TNView contributors" }]
+dependencies = []
+
+[project.scripts]
+tnview = "tnview.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
