@@ -10,6 +10,7 @@ from typing import Iterable, TextIO
 from tnview.compare import render_comparison, summarize_run
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.export import export_manifest_json, export_replay_jsonl
+from tnview.interactive import run_interactive
 from tnview.render import RenderOptions, render_run
 from tnview.search import render_search, search_bonds
 from tnview.snapshot import snapshot_json
@@ -61,6 +62,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     replay.add_argument("--snapshot", action="store_true", help="write a JSON snapshot instead of terminal view")
     replay.add_argument("--output", "-o", help="write snapshot or rendered output to a file")
+    replay.add_argument("--interactive", action="store_true", help="open an interactive replay shell")
     _render_args(replay)
 
     live = subparsers.add_parser("live", help="stream JSONL telemetry and refresh on checkpoints")
@@ -108,6 +110,9 @@ def _render_args(parser: argparse.ArgumentParser) -> None:
 
 def _replay(args: argparse.Namespace) -> int:
     events = _read_events(_iter_lines(args.path))
+    if args.interactive:
+        run_interactive(events, ascii_mode=args.ascii)
+        return 0
     state = _state_at_checkpoint(events, args.checkpoint)
     _select_requested_bond(state, args.bond)
     output = snapshot_json(state) if args.snapshot else render_run(state, _options(args))
