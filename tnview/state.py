@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from tnview.events import BondUpdated, Checkpoint, TdvpSweep, TelemetryEvent
+from tnview.events import (
+    AnsatzLayoutEvent,
+    BondUpdated,
+    Checkpoint,
+    ModelGeometryEvent,
+    ObservableUpdated,
+    RunStarted,
+    TdvpSweep,
+    TelemetryEvent,
+)
 
 
 @dataclass
@@ -45,22 +54,63 @@ class TimeSlice:
 
 
 @dataclass
+class ObservableState:
+    name: str
+    value: float
+    step: int
+    time: float
+    site: int | None = None
+    bond: int | None = None
+    error: float | None = None
+    diagnostic_tags: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass
 class RunState:
     bonds: dict[int, BondState] = field(default_factory=dict)
     checkpoints: list[Checkpoint] = field(default_factory=list)
     updates: list[BondUpdated] = field(default_factory=list)
     sweeps: list[TdvpSweep] = field(default_factory=list)
+    run: RunStarted | None = None
+    model_geometry: ModelGeometryEvent | None = None
+    ansatz_layout: AnsatzLayoutEvent | None = None
+    observables: dict[str, ObservableState] = field(default_factory=dict)
     history: list[TimeSlice] = field(default_factory=list)
     selected_bond: int | None = None
 
     def apply(self, event: TelemetryEvent) -> None:
-        if isinstance(event, BondUpdated):
+        if isinstance(event, RunStarted):
+            self.run = event
+        elif isinstance(event, ModelGeometryEvent):
+            self.model_geometry = event
+        elif isinstance(event, AnsatzLayoutEvent):
+            self.ansatz_layout = event
+        elif isinstance(event, ObservableUpdated):
+            self._apply_observable(event)
+        elif isinstance(event, BondUpdated):
             self._apply_bond_update(event)
         elif isinstance(event, Checkpoint):
             self.checkpoints.append(event)
             self._capture_history(event.step, event.time)
         elif isinstance(event, TdvpSweep):
             self.sweeps.append(event)
+
+    def _apply_observable(self, event: ObservableUpdated) -> None:
+        key = event.name
+        if event.site is not None:
+            key = f"{key}@site{event.site}"
+        elif event.bond is not None:
+            key = f"{key}@bond{event.bond}"
+        self.observables[key] = ObservableState(
+            name=event.name,
+            value=event.value,
+            step=event.step,
+            time=event.time,
+            site=event.site,
+            bond=event.bond,
+            error=event.error,
+            diagnostic_tags=event.diagnostic_tags,
+        )
 
     def _apply_bond_update(self, event: BondUpdated) -> None:
         self.updates.append(event)

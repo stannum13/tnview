@@ -146,6 +146,7 @@ class CliTests(unittest.TestCase):
 
         self.assertIn("Replay validation: valid", result.stdout)
         self.assertIn("checkpoints:       3", result.stdout)
+        self.assertIn("bonds:             3", result.stdout)
 
     def test_export_command_writes_manifest(self) -> None:
         result = subprocess.run(

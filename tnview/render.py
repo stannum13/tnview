@@ -53,6 +53,7 @@ def render_run(state: RunState, options: RenderOptions | None = None) -> str:
         _heatmap(state, width, options) if options.show_entropy else "",
         _pressure_rows(state, width, options) if options.show_pressure else "",
         _inspector(state, width, options) if options.show_inspector else "",
+        _observables(state, width) if options.show_diagnostics else "",
         _diagnostics(state, width) if options.show_diagnostics else "",
     ]
     return "\n\n".join(section for section in sections if section)
@@ -207,6 +208,23 @@ def _inspector(state: RunState, width: int, options: RenderOptions) -> str:
     return "\n".join(_fit(line, width) for line in lines)
 
 
+def _observables(state: RunState, width: int) -> str:
+    if not state.observables:
+        return ""
+
+    lines = ["Observables"]
+    for key in sorted(state.observables):
+        observable = state.observables[key]
+        location = ""
+        if observable.site is not None:
+            location = f" site {observable.site}"
+        elif observable.bond is not None:
+            location = f" bond {observable.bond}"
+        error = f" ± {_maybe_float(observable.error, scientific=True)}" if observable.error is not None else ""
+        lines.append(_fit(f"{observable.name}{location}: {observable.value:.6g}{error}", width))
+    return "\n".join(lines)
+
+
 def _diagnostics(state: RunState, width: int) -> str:
     checkpoint = state.latest_checkpoint
     top = top_truncation_bonds(state)
@@ -217,6 +235,12 @@ def _diagnostics(state: RunState, width: int) -> str:
         f"run status:          {diagnose_run(state)}",
         f"top error bonds:     {top_text}",
     ]
+    if state.run is not None:
+        lines.append(f"run:                 {state.run.name or state.run.run_id}")
+    if state.model_geometry is not None:
+        lines.append(f"model geometry:      {state.model_geometry.name}")
+    if state.ansatz_layout is not None:
+        lines.append(f"ansatz:              {state.ansatz_layout.ansatz}")
     if checkpoint is not None:
         lines.extend(
             [

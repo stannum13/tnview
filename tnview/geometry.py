@@ -82,7 +82,7 @@ def geometry_diagnostics(state: RunState, model_geometry: GeometryMetadata = Non
     mappings containing ``site_a``/``site_b`` or ``source``/``target``.
     """
 
-    geometry = _coerce_geometry(model_geometry)
+    geometry = _coerce_geometry(model_geometry or _metadata_from_state(state))
     order = geometry.ansatz_order or _infer_ansatz_order(state)
     edges = geometry.edges or _infer_local_edges(state)
     edge_stress = tuple(_edge_stress(edge, state, order) for edge in edges)
@@ -115,6 +115,19 @@ def _coerce_geometry(model_geometry: GeometryMetadata) -> ModelGeometry:
         edges=tuple(_coerce_edge(edge) for edge in raw_edges),
         ansatz_order=order,
     )
+
+
+def _metadata_from_state(state: RunState) -> dict[str, Any] | None:
+    if state.model_geometry is None and state.ansatz_layout is None:
+        return None
+    metadata: dict[str, Any] = {}
+    if state.model_geometry is not None:
+        metadata["name"] = state.model_geometry.name
+        metadata["edges"] = state.model_geometry.edges
+    if state.ansatz_layout is not None:
+        metadata["ansatz"] = state.ansatz_layout.ansatz
+        metadata["ansatz_order"] = state.ansatz_layout.ordering
+    return metadata
 
 
 def _coerce_edge(edge: Any) -> GeometryEdge:

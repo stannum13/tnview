@@ -9,6 +9,7 @@ class ValidationTests(unittest.TestCase):
             report = validate_lines(handle.readlines())
 
         self.assertTrue(report.valid)
+        self.assertEqual(report.event_count, 18)
         self.assertEqual(report.checkpoint_count, 3)
         self.assertEqual(report.bond_count, 3)
 

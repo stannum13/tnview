@@ -7,10 +7,23 @@ import json
 import re
 from typing import Any, Iterable
 
-from tnview.events import BondUpdated, Checkpoint, TdvpSweep, TelemetryEvent
+from tnview.events import (
+    AnsatzLayoutEvent,
+    BondUpdated,
+    Checkpoint,
+    ModelGeometryEvent,
+    ObservableUpdated,
+    RunStarted,
+    TdvpSweep,
+    TelemetryEvent,
+)
 from tnview.state import reduce_events
 
 _EVENT_NAMES = {
+    RunStarted: "run_started",
+    ModelGeometryEvent: "model_geometry",
+    AnsatzLayoutEvent: "ansatz_layout",
+    ObservableUpdated: "observable_updated",
     BondUpdated: "bond_updated",
     Checkpoint: "checkpoint",
     TdvpSweep: "tdvp_sweep",

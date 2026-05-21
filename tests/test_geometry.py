@@ -1,6 +1,7 @@
 import unittest
 
 from tnview.geometry import GeometryEdge, ModelGeometry, ansatz_mismatch, flattening_stress, geometry_diagnostics
+from tnview.events import AnsatzLayoutEvent, ModelGeometryEvent
 from tnview.state import BondState, RunState
 
 
@@ -75,6 +76,30 @@ class GeometryDiagnosticsTests(unittest.TestCase):
         self.assertIsNone(summary.edge_stress[0].ansatz_distance)
         self.assertEqual(summary.edge_stress[0].severity, "unknown")
         self.assertEqual(summary.diagnosis, "incomplete geometry telemetry")
+
+    def test_uses_run_state_geometry_metadata_by_default(self) -> None:
+        state = _chain_state(chi=64, chi_max=64)
+        state.model_geometry = ModelGeometryEvent(
+            step=0,
+            time=0.0,
+            name="ladder",
+            sites=4,
+            dimensions=(2, 2),
+            boundary="open",
+            edges=({"source": 0, "target": 3},),
+        )
+        state.ansatz_layout = AnsatzLayoutEvent(
+            step=0,
+            time=0.0,
+            ansatz="MPS",
+            ordering=(0, 1, 2, 3),
+        )
+
+        diagnostics = geometry_diagnostics(state)
+
+        self.assertEqual(diagnostics.flattening.model_geometry, "ladder")
+        self.assertEqual(diagnostics.flattening.long_range_edges, 1)
+        self.assertEqual(diagnostics.mismatch.diagnosis, "geometry mismatch with chi pressure")
 
 
 def _chain_state(*, chi: int, chi_max: int) -> RunState:

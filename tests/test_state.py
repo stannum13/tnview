@@ -16,6 +16,10 @@ class StateRenderingTests(unittest.TestCase):
         self.assertIsNotNone(state.latest_checkpoint)
         assert state.latest_checkpoint is not None
         self.assertEqual(state.latest_checkpoint.step, 80)
+        self.assertIsNotNone(state.run)
+        self.assertIsNotNone(state.model_geometry)
+        self.assertIsNotNone(state.ansatz_layout)
+        self.assertIn("magnetization@site1", state.observables)
         self.assertTrue(state.bonds[1].saturated)
         self.assertEqual(len(state.sweeps), 2)
         self.assertEqual(diagnose_run(state), "chi-limited run")
@@ -30,12 +34,14 @@ class StateRenderingTests(unittest.TestCase):
         self.assertIn("MPS topology", output)
         self.assertIn("TEBD brick-wall updates", output)
         self.assertIn("TDVP sweep view", output)
+        self.assertIn("Observables", output)
         self.assertIn("Entanglement heatmap", output)
         self.assertIn("Complexity rows", output)
         self.assertIn("Selected bond b1", output)
         self.assertIn("chi-limited", output)
         self.assertIn("drift diagnosis", output)
         self.assertIn("ansatz mismatch", output)
+        self.assertIn("model geometry", output)
 
     def test_topology_rows_keep_bonds_between_sites(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())

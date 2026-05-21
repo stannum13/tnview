@@ -30,11 +30,7 @@ def validate_lines(lines: list[str]) -> ValidationReport:
             events.append(event)
 
     warnings = _warnings(events)
-    bonds = {
-        getattr(event, "bond")
-        for event in events
-        if hasattr(event, "bond")
-    }
+    bonds = {event.bond for event in events if event.__class__.__name__ == "BondUpdated"}
     checkpoints = [event for event in events if isinstance(event, Checkpoint)]
     return ValidationReport(
         valid=not errors,

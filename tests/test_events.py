@@ -1,6 +1,15 @@
 import unittest
 
-from tnview.events import BondUpdated, EventParseError, TdvpSweep, parse_jsonl_line
+from tnview.events import (
+    AnsatzLayoutEvent,
+    BondUpdated,
+    EventParseError,
+    ModelGeometryEvent,
+    ObservableUpdated,
+    RunStarted,
+    TdvpSweep,
+    parse_jsonl_line,
+)
 
 
 class EventParsingTests(unittest.TestCase):
@@ -37,6 +46,36 @@ class EventParsingTests(unittest.TestCase):
         self.assertEqual(event.direction, "right")
         self.assertEqual(event.start_site, 0)
         self.assertEqual(event.diagnostic_tags, ("converged",))
+
+    def test_parse_run_metadata_events(self) -> None:
+        run = parse_jsonl_line(
+            '{"event":"run_started","run_id":"r1","time":0.0,"name":"ladder",'
+            '"simulator":"toy","algorithm":"TEBD","parameters":{"dt":0.01}}'
+        )
+        geometry = parse_jsonl_line(
+            '{"event":"model_geometry","step":0,"time":0.0,"name":"ladder",'
+            '"sites":4,"dimensions":[2,2],"boundary":"open",'
+            '"edges":[{"source":0,"target":1}]}'
+        )
+        ansatz = parse_jsonl_line(
+            '{"event":"ansatz_layout","step":0,"time":0.0,"ansatz":"MPS",'
+            '"ordering":[0,1,2,3],"tensors":[{"name":"A0","site":0}]}'
+        )
+        observable = parse_jsonl_line(
+            '{"event":"observable_updated","step":4,"time":0.4,"name":"energy",'
+            '"value":-3.14,"error":1e-9,"diagnostic_tags":["stable"]}'
+        )
+
+        self.assertIsInstance(run, RunStarted)
+        self.assertIsInstance(geometry, ModelGeometryEvent)
+        self.assertIsInstance(ansatz, AnsatzLayoutEvent)
+        self.assertIsInstance(observable, ObservableUpdated)
+        assert isinstance(geometry, ModelGeometryEvent)
+        assert isinstance(ansatz, AnsatzLayoutEvent)
+        assert isinstance(observable, ObservableUpdated)
+        self.assertEqual(geometry.dimensions, (2, 2))
+        self.assertEqual(ansatz.ordering, (0, 1, 2, 3))
+        self.assertEqual(observable.diagnostic_tags, ("stable",))
 
 
 if __name__ == "__main__":

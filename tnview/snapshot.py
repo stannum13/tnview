@@ -13,8 +13,12 @@ def snapshot_dict(state: RunState) -> dict[str, Any]:
     checkpoint = state.latest_checkpoint
     selected = state.selected
     return {
+        "run": asdict(state.run) if state.run is not None else None,
+        "model_geometry": asdict(state.model_geometry) if state.model_geometry is not None else None,
+        "ansatz_layout": asdict(state.ansatz_layout) if state.ansatz_layout is not None else None,
         "checkpoint": asdict(checkpoint) if checkpoint is not None else None,
         "run_status": diagnose_run(state),
+        "observables": {key: asdict(value) for key, value in state.observables.items()},
         "selected_bond": _bond_snapshot(selected) if selected is not None else None,
         "bonds": [_bond_snapshot(bond) for bond in state.ordered_bonds],
         "top_truncation_bonds": [

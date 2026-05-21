@@ -7,7 +7,58 @@ import json
 from typing import Any, Literal
 
 
-EventName = Literal["bond_updated", "checkpoint", "tdvp_sweep"]
+EventName = Literal[
+    "run_started",
+    "model_geometry",
+    "ansatz_layout",
+    "observable_updated",
+    "bond_updated",
+    "checkpoint",
+    "tdvp_sweep",
+]
+
+
+@dataclass(frozen=True)
+class RunStarted:
+    run_id: str
+    time: float
+    name: str | None
+    simulator: str | None
+    algorithm: str | None
+    parameters: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ModelGeometryEvent:
+    step: int
+    time: float
+    name: str
+    sites: int | None
+    dimensions: tuple[int, ...] = field(default_factory=tuple)
+    boundary: str | None = None
+    edges: tuple[dict[str, Any], ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
+class AnsatzLayoutEvent:
+    step: int
+    time: float
+    ansatz: str
+    ordering: tuple[int, ...] = field(default_factory=tuple)
+    tensors: tuple[dict[str, Any], ...] = field(default_factory=tuple)
+    parameters: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ObservableUpdated:
+    step: int
+    time: float
+    name: str
+    value: float
+    site: int | None = None
+    bond: int | None = None
+    error: float | None = None
+    diagnostic_tags: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -61,7 +112,15 @@ class TdvpSweep:
     diagnostic_tags: tuple[str, ...] = field(default_factory=tuple)
 
 
-TelemetryEvent = BondUpdated | Checkpoint | TdvpSweep
+TelemetryEvent = (
+    RunStarted
+    | ModelGeometryEvent
+    | AnsatzLayoutEvent
+    | ObservableUpdated
+    | BondUpdated
+    | Checkpoint
+    | TdvpSweep
+)
 
 
 class EventParseError(ValueError):
@@ -88,6 +147,14 @@ def parse_jsonl_line(line: str, *, line_number: int | None = None) -> TelemetryE
         raise EventParseError(_prefix(line_number, "event must be a JSON object"))
 
     event_name = payload.get("event")
+    if event_name == "run_started":
+        return _run_started(payload, line_number)
+    if event_name == "model_geometry":
+        return _model_geometry(payload, line_number)
+    if event_name == "ansatz_layout":
+        return _ansatz_layout(payload, line_number)
+    if event_name == "observable_updated":
+        return _observable_updated(payload, line_number)
     if event_name == "bond_updated":
         return _bond_updated(payload, line_number)
     if event_name == "checkpoint":
@@ -105,6 +172,68 @@ def parse_jsonl(lines: list[str] | Any) -> list[TelemetryEvent]:
         if event is not None:
             events.append(event)
     return events
+
+
+def _run_started(payload: dict[str, Any], line_number: int | None) -> RunStarted:
+    parameters = payload.get("parameters", {})
+    if parameters is None:
+        parameters = {}
+    if not isinstance(parameters, dict):
+        raise EventParseError(_prefix(line_number, "parameters must be an object"))
+    return RunStarted(
+        run_id=_required_str(payload, "run_id", line_number),
+        time=_required_float(payload, "time", line_number),
+        name=_optional_str(payload, "name", line_number),
+        simulator=_optional_str(payload, "simulator", line_number),
+        algorithm=_optional_str(payload, "algorithm", line_number),
+        parameters=parameters,
+    )
+
+
+def _model_geometry(payload: dict[str, Any], line_number: int | None) -> ModelGeometryEvent:
+    return ModelGeometryEvent(
+        step=_required_int(payload, "step", line_number),
+        time=_required_float(payload, "time", line_number),
+        name=_required_str(payload, "name", line_number),
+        sites=_optional_int(payload, "sites", line_number),
+        dimensions=_int_tuple(payload.get("dimensions", []), "dimensions", line_number),
+        boundary=_optional_str(payload, "boundary", line_number),
+        edges=_object_tuple(payload.get("edges", []), "edges", line_number),
+    )
+
+
+def _ansatz_layout(payload: dict[str, Any], line_number: int | None) -> AnsatzLayoutEvent:
+    parameters = payload.get("parameters", {})
+    if parameters is None:
+        parameters = {}
+    if not isinstance(parameters, dict):
+        raise EventParseError(_prefix(line_number, "parameters must be an object"))
+    return AnsatzLayoutEvent(
+        step=_required_int(payload, "step", line_number),
+        time=_required_float(payload, "time", line_number),
+        ansatz=_required_str(payload, "ansatz", line_number),
+        ordering=_int_tuple(payload.get("ordering", []), "ordering", line_number),
+        tensors=_object_tuple(payload.get("tensors", []), "tensors", line_number),
+        parameters=parameters,
+    )
+
+
+def _observable_updated(payload: dict[str, Any], line_number: int | None) -> ObservableUpdated:
+    tags = payload.get("diagnostic_tags", [])
+    if tags is None:
+        tags = []
+    if not isinstance(tags, list) or not all(isinstance(tag, str) for tag in tags):
+        raise EventParseError(_prefix(line_number, "diagnostic_tags must be a string array"))
+    return ObservableUpdated(
+        step=_required_int(payload, "step", line_number),
+        time=_required_float(payload, "time", line_number),
+        name=_required_str(payload, "name", line_number),
+        value=_required_float(payload, "value", line_number),
+        site=_optional_int(payload, "site", line_number),
+        bond=_optional_int(payload, "bond", line_number),
+        error=_optional_float(payload, "error", line_number),
+        diagnostic_tags=tuple(tags),
+    )
 
 
 def _bond_updated(payload: dict[str, Any], line_number: int | None) -> BondUpdated:
@@ -228,6 +357,22 @@ def _optional_str(payload: dict[str, Any], key: str, line_number: int | None) ->
 
 def _is_number(value: Any) -> bool:
     return not isinstance(value, bool) and isinstance(value, int | float)
+
+
+def _int_tuple(value: Any, key: str, line_number: int | None) -> tuple[int, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list) or not all(isinstance(item, int) and not isinstance(item, bool) for item in value):
+        raise EventParseError(_prefix(line_number, f"{key} must be an integer array"))
+    return tuple(value)
+
+
+def _object_tuple(value: Any, key: str, line_number: int | None) -> tuple[dict[str, Any], ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise EventParseError(_prefix(line_number, f"{key} must be an object array"))
+    return tuple(value)
 
 
 def _prefix(line_number: int | None, message: str) -> str:
