@@ -2,7 +2,7 @@ from pathlib import Path
 import unittest
 
 from tnview.events import parse_jsonl
-from tnview.interactive import ReplayController
+from tnview.interactive import ReplayController, _footer
 
 
 class ReplayControllerTests(unittest.TestCase):
@@ -37,6 +37,42 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertTrue(controller.handle_key("u"))
         self.assertFalse(controller.show_updates)
         self.assertFalse(controller.handle_key("q"))
+
+    def test_help_toggle_renders_help_text(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+
+        controller.handle_key("?")
+        output = controller.render(width=100, unicode=False)
+
+        self.assertIn("TNView interactive replay help", output)
+        self.assertIn("jump to checkpoint", output)
+
+    def test_jump_checkpoint_and_bond_input_modes(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+
+        controller.handle_key("g")
+        controller.handle_key("1")
+        self.assertIn("jump checkpoint", _footer(controller))
+        controller.handle_key("\n")
+        self.assertEqual(controller.checkpoint_index, 1)
+
+        controller.handle_key("b")
+        controller.handle_key("2")
+        controller.handle_key("\n")
+        self.assertEqual(controller.selected_bond, 2)
+
+    def test_jump_methods_are_bounded(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+
+        controller.jump_checkpoint(99)
+        self.assertEqual(controller.checkpoint_index, 2)
+        controller.jump_checkpoint(-10)
+        self.assertEqual(controller.checkpoint_index, 0)
+        controller.jump_bond(99)
+        self.assertNotEqual(controller.selected_bond, 99)
 
     def test_render_uses_current_controller_state(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())

@@ -89,3 +89,15 @@ You can also run without activating an environment:
 ```bash
 python -m tnview.cli replay examples/tebd_run.jsonl --interactive
 ```
+
+Interactive replay keys:
+
+```text
+n/p       next/previous checkpoint
+j/k       next/previous bond
+g         jump to checkpoint
+b         jump to bond
+u/e/c/i/d toggle updates, entropy, chi rows, inspector, diagnostics
+?         help
+q         quit
+```

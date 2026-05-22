@@ -20,6 +20,9 @@ class ReplayController:
     show_pressure: bool = True
     show_inspector: bool = True
     show_diagnostics: bool = True
+    show_help: bool = False
+    input_mode: str | None = None
+    input_buffer: str = ""
 
     def __post_init__(self) -> None:
         count = self.checkpoint_count
@@ -47,6 +50,8 @@ class ReplayController:
         return state
 
     def render(self, *, width: int, unicode: bool = True) -> str:
+        if self.show_help:
+            return _help_text()
         return render_run(
             self.state(),
             RenderOptions(
@@ -61,8 +66,13 @@ class ReplayController:
         )
 
     def handle_key(self, key: str) -> bool:
+        if self.input_mode is not None:
+            self._handle_input_key(key)
+            return True
         if key in {"q", "Q"}:
             return False
+        if key in {"?", "H"}:
+            self.show_help = not self.show_help
         if key in {"n", "l", "KEY_RIGHT"}:
             self.next_checkpoint()
         elif key in {"p", "h", "KEY_LEFT"}:
@@ -81,7 +91,24 @@ class ReplayController:
             self.show_inspector = not self.show_inspector
         elif key == "d":
             self.show_diagnostics = not self.show_diagnostics
+        elif key == "g":
+            self.input_mode = "checkpoint"
+            self.input_buffer = ""
+        elif key == "b":
+            self.input_mode = "bond"
+            self.input_buffer = ""
         return True
+
+    def jump_checkpoint(self, index: int) -> None:
+        count = self.checkpoint_count
+        if not count:
+            return
+        self.checkpoint_index = min(count - 1, max(0, index))
+
+    def jump_bond(self, bond: int) -> None:
+        bonds = {bond_state.bond for bond_state in self.state().ordered_bonds}
+        if bond in bonds:
+            self.selected_bond = bond
 
     def next_checkpoint(self) -> None:
         count = self.checkpoint_count
@@ -115,6 +142,30 @@ class ReplayController:
         index = bonds.index(self.selected_bond)
         self.selected_bond = bonds[max(0, index - 1)]
 
+    def _handle_input_key(self, key: str) -> None:
+        if key in {"\n", "\r", "KEY_ENTER"}:
+            self._commit_input()
+            return
+        if key in {"\x1b", "ESC"}:
+            self.input_mode = None
+            self.input_buffer = ""
+            return
+        if key in {"KEY_BACKSPACE", "\b", "\x7f"}:
+            self.input_buffer = self.input_buffer[:-1]
+            return
+        if key.isdigit():
+            self.input_buffer += key
+
+    def _commit_input(self) -> None:
+        if self.input_buffer:
+            value = int(self.input_buffer)
+            if self.input_mode == "checkpoint":
+                self.jump_checkpoint(value)
+            elif self.input_mode == "bond":
+                self.jump_bond(value)
+        self.input_mode = None
+        self.input_buffer = ""
+
 
 def run_interactive(events: list[TelemetryEvent], *, ascii_mode: bool = False) -> None:
     controller = ReplayController(events)
@@ -139,10 +190,50 @@ def _main(stdscr: object, controller: ReplayController, ascii_mode: bool) -> Non
 
 
 def _footer(controller: ReplayController) -> str:
+    if controller.input_mode is not None:
+        label = "checkpoint" if controller.input_mode == "checkpoint" else "bond"
+        return f"jump {label}: {controller.input_buffer}_  enter accept  esc cancel"
     checkpoint = "n/a" if controller.checkpoint_index is None else str(controller.checkpoint_index)
     bond = "n/a" if controller.selected_bond is None else f"b{controller.selected_bond}"
+    toggles = (
+        f"U:{_on(controller.show_updates)} "
+        f"E:{_on(controller.show_entropy)} "
+        f"C:{_on(controller.show_pressure)} "
+        f"I:{_on(controller.show_inspector)} "
+        f"D:{_on(controller.show_diagnostics)}"
+    )
     return (
         f"checkpoint {checkpoint}/{max(0, controller.checkpoint_count - 1)}  "
-        f"bond {bond}  n/p checkpoint  j/k bond  "
-        "u/e/c/i/d toggle  q quit"
+        f"bond {bond}  {toggles}  ? help  q quit"
+    )
+
+
+def _on(value: bool) -> str:
+    return "on" if value else "off"
+
+
+def _help_text() -> str:
+    return "\n".join(
+        [
+            "TNView interactive replay help",
+            "",
+            "navigation",
+            "  n, l, right     next checkpoint",
+            "  p, h, left      previous checkpoint",
+            "  j, down         next bond",
+            "  k, up           previous bond",
+            "  g               jump to checkpoint index",
+            "  b               jump to bond index",
+            "",
+            "toggles",
+            "  u               TEBD/TDVP updates",
+            "  e               entropy heatmap",
+            "  c               chi/truncation rows",
+            "  i               selected-bond inspector",
+            "  d               diagnostics",
+            "",
+            "other",
+            "  ?               toggle this help",
+            "  q               quit",
+        ]
     )
