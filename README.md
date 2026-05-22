@@ -62,6 +62,7 @@ tnview validate examples/tebd_run.jsonl
 tnview replay examples/tebd_run.jsonl --ascii --width 120 -b 1
 tnview replay examples/tebd_run.jsonl --interactive
 tnview examples
+tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generated.jsonl
 tnview compare examples/tebd_run.jsonl examples/tebd_run.jsonl
 tnview compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
 tnview compare examples/*.jsonl --sort risk --csv

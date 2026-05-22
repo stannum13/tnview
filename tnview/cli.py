@@ -11,6 +11,7 @@ from tnview.compare import render_comparison, render_comparison_csv, sort_summar
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_replay_jsonl
+from tnview.fixtures import generate_chain_fixture
 from tnview.interactive import run_interactive
 from tnview.render import RenderOptions, render_run
 from tnview.search import render_search, search_bonds
@@ -38,6 +39,8 @@ def main(argv: list[str] | None = None) -> int:
             return _export(args)
         if args.command == "examples":
             return _examples(args)
+        if args.command == "fixture":
+            return _fixture(args)
     except EventParseError as exc:
         print(f"tnview: {exc}", file=sys.stderr)
         return 2
@@ -105,6 +108,14 @@ def _parser() -> argparse.ArgumentParser:
 
     examples = subparsers.add_parser("examples", help="list built-in replay examples")
     examples.add_argument("--root", default="examples", help="examples directory")
+
+    fixture = subparsers.add_parser("fixture", help="generate synthetic JSONL replay fixtures")
+    fixture.add_argument("kind", choices=["chain"], help="fixture kind")
+    fixture.add_argument("--sites", type=int, default=32, help="number of sites")
+    fixture.add_argument("--checkpoints", type=int, default=8, help="number of checkpoints")
+    fixture.add_argument("--chi-max", type=int, default=256, help="maximum bond dimension")
+    fixture.add_argument("--profile", choices=["easy", "hard"], default="hard", help="complexity profile")
+    fixture.add_argument("--output", "-o", help="write generated JSONL to a file")
 
     return parser
 
@@ -194,6 +205,19 @@ def _export(args: argparse.Namespace) -> int:
 def _examples(args: argparse.Namespace) -> int:
     print(render_examples(list_examples(Path(args.root))))
     return 0
+
+
+def _fixture(args: argparse.Namespace) -> int:
+    if args.kind == "chain":
+        output = generate_chain_fixture(
+            sites=args.sites,
+            checkpoints=args.checkpoints,
+            chi_max=args.chi_max,
+            profile=args.profile,
+        )
+        _write_output(output.rstrip("\n"), args.output)
+        return 0
+    raise EventParseError(f"unsupported fixture kind {args.kind!r}")
 
 
 def _read_events(lines: Iterable[str]) -> list[TelemetryEvent]:
