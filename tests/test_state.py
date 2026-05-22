@@ -36,6 +36,7 @@ class StateRenderingTests(unittest.TestCase):
         self.assertIn("TDVP sweep view", output)
         self.assertIn("Observables", output)
         self.assertIn("Entanglement heatmap", output)
+        self.assertIn("        0 1 2", output)
         self.assertIn("Complexity rows", output)
         self.assertIn("Selected bond b1", output)
         self.assertIn("chi-limited", output)

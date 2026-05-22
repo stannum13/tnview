@@ -156,10 +156,10 @@ def _heatmap(state: RunState, width: int, options: RenderOptions) -> str:
     glyphs = UNICODE_BLOCKS if options.unicode else ASCII_BLOCKS
 
     lines = ["Entanglement heatmap  time / bond ->"]
-    header = "        " + "".join(str(bond % 10) for bond in bonds)
+    header = "        " + _bond_axis(bonds)
     lines.append(_fit(header, width))
     for row in rows:
-        cells = "".join(_bucket(row.entropy_by_bond.get(bond, 0.0), max_entropy, glyphs) for bond in bonds)
+        cells = " ".join(_bucket(row.entropy_by_bond.get(bond, 0.0), max_entropy, glyphs) for bond in bonds)
         lines.append(_fit(f"t={row.time:<5g} {cells}", width))
     return "\n".join(lines)
 
@@ -171,10 +171,10 @@ def _pressure_rows(state: RunState, width: int, options: RenderOptions) -> str:
 
     glyphs = UNICODE_BLOCKS if options.unicode else ASCII_BLOCKS
     max_trunc = max((bond.trunc_error for bond in bonds), default=0.0)
-    pressure = "".join(_bucket(bond.chi_pressure, 1.0, glyphs) for bond in bonds)
-    saturation = "".join("!" if bond.saturated else "+" if bond.chi_pressure >= 0.75 else "." for bond in bonds)
-    truncation = "".join(_log_bucket(bond.trunc_error, max_trunc, glyphs) for bond in bonds)
-    labels = "".join(str(bond.bond % 10) for bond in bonds)
+    pressure = " ".join(_bucket(bond.chi_pressure, 1.0, glyphs) for bond in bonds)
+    saturation = " ".join("!" if bond.saturated else "+" if bond.chi_pressure >= 0.75 else "." for bond in bonds)
+    truncation = " ".join(_log_bucket(bond.trunc_error, max_trunc, glyphs) for bond in bonds)
+    labels = _bond_axis([bond.bond for bond in bonds])
 
     return "\n".join(
         [
@@ -338,6 +338,10 @@ def _bucket(value: float, max_value: float, glyphs: str) -> str:
         return glyphs[0]
     ratio = max(0.0, min(1.0, value / max_value))
     return glyphs[round(ratio * (len(glyphs) - 1))]
+
+
+def _bond_axis(bonds: list[int]) -> str:
+    return " ".join(str(bond % 10) for bond in bonds)
 
 
 def _log_bucket(value: float, max_value: float, glyphs: str) -> str:
