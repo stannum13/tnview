@@ -172,6 +172,23 @@ class CliTests(unittest.TestCase):
         self.assertIn('"checkpoint_count":3', result.stdout)
         self.assertIn('"bond_count":3', result.stdout)
 
+    def test_examples_command_lists_fixtures(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "examples",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Built-in replay examples", result.stdout)
+        self.assertIn("easy_chain.jsonl", result.stdout)
+        self.assertIn("tnview compare", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

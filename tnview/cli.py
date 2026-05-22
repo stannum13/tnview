@@ -9,6 +9,7 @@ from typing import Iterable, TextIO
 
 from tnview.compare import render_comparison, summarize_run
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
+from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_replay_jsonl
 from tnview.interactive import run_interactive
 from tnview.render import RenderOptions, render_run
@@ -35,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
             return _validate(args)
         if args.command == "export":
             return _export(args)
+        if args.command == "examples":
+            return _examples(args)
     except EventParseError as exc:
         print(f"tnview: {exc}", file=sys.stderr)
         return 2
@@ -92,6 +95,9 @@ def _parser() -> argparse.ArgumentParser:
         help="export format",
     )
     export.add_argument("--output", "-o", help="write exported output to a file")
+
+    examples = subparsers.add_parser("examples", help="list built-in replay examples")
+    examples.add_argument("--root", default="examples", help="examples directory")
 
     return parser
 
@@ -172,6 +178,11 @@ def _export(args: argparse.Namespace) -> int:
     else:
         output = export_replay_jsonl(events).rstrip("\n")
     _write_output(output, args.output)
+    return 0
+
+
+def _examples(args: argparse.Namespace) -> int:
+    print(render_examples(list_examples(Path(args.root))))
     return 0
 
 
