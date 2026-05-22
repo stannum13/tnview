@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 from typing import Iterable, TextIO
 
-from tnview.compare import render_comparison, summarize_run
+from tnview.compare import render_comparison, render_comparison_csv, sort_summaries, summarize_run
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_replay_jsonl
@@ -76,6 +76,13 @@ def _parser() -> argparse.ArgumentParser:
     compare = subparsers.add_parser("compare", help="compare multiple JSONL telemetry replays")
     compare.add_argument("paths", nargs="+", help="JSONL replay files")
     compare.add_argument("--width", type=int, default=160, help="render width in columns")
+    compare.add_argument(
+        "--sort",
+        choices=["input", "name", "risk", "max-entropy", "trunc", "chi"],
+        default="input",
+        help="sort comparison rows",
+    )
+    compare.add_argument("--csv", action="store_true", help="write comparison as CSV")
 
     search = subparsers.add_parser("search", help="search bonds by bond, site, tag, or status")
     search.add_argument("path", help="JSONL replay file")
@@ -154,7 +161,8 @@ def _compare(args: argparse.Namespace) -> int:
         events = _read_events(_iter_lines(path))
         state = _state_at_checkpoint(events, "latest")
         summaries.append(summarize_run(path, state))
-    print(render_comparison(summaries, width=args.width))
+    summaries = sort_summaries(summaries, args.sort)
+    print(render_comparison_csv(summaries) if args.csv else render_comparison(summaries, width=args.width))
     return 0
 
 

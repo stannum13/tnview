@@ -140,6 +140,30 @@ class CliTests(unittest.TestCase):
         self.assertIn("chi-limited run", result.stdout)
         self.assertIn("geometry", result.stdout)
 
+    def test_compare_can_sort_by_risk_and_emit_csv(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "compare",
+                "examples/easy_chain.jsonl",
+                "examples/long_range_chi_limited.jsonl",
+                "examples/blocked_ladder.jsonl",
+                "--sort",
+                "risk",
+                "--csv",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        lines = result.stdout.splitlines()
+        self.assertTrue(lines[0].startswith("model,step,time,max_entropy"))
+        self.assertIn("long_range_chi_limited.jsonl", lines[1])
+        self.assertIn("easy_chain.jsonl", result.stdout)
+
     def test_search_finds_tagged_bond(self) -> None:
         result = subprocess.run(
             [

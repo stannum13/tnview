@@ -64,6 +64,7 @@ tnview replay examples/tebd_run.jsonl --interactive
 tnview examples
 tnview compare examples/tebd_run.jsonl examples/tebd_run.jsonl
 tnview compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
+tnview compare examples/*.jsonl --sort risk --csv
 ```
 
 Makefile shortcuts:

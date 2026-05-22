@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 
 from tnview.drift import drift_diagnostics
@@ -84,6 +86,64 @@ def render_comparison(summaries: list[RunSummary], *, width: int = 160) -> str:
         ]
         lines.append(_fit("  ".join(row), width))
     return "\n".join(lines)
+
+
+def sort_summaries(summaries: list[RunSummary], key: str) -> list[RunSummary]:
+    if key == "name":
+        return sorted(summaries, key=lambda summary: summary.name)
+    if key == "risk":
+        return sorted(summaries, key=lambda summary: _risk_rank(summary), reverse=True)
+    if key == "max-entropy":
+        return sorted(summaries, key=lambda summary: summary.max_entropy, reverse=True)
+    if key == "trunc":
+        return sorted(summaries, key=lambda summary: summary.total_trunc_error, reverse=True)
+    if key == "chi":
+        return sorted(summaries, key=lambda summary: summary.max_chi, reverse=True)
+    return summaries
+
+
+def render_comparison_csv(summaries: list[RunSummary]) -> str:
+    handle = StringIO()
+    writer = csv.writer(handle)
+    writer.writerow(
+        [
+            "model",
+            "step",
+            "time",
+            "max_entropy",
+            "max_chi",
+            "saturated_bonds",
+            "total_trunc_error",
+            "bottleneck_bond",
+            "drift_risk",
+            "geometry_diagnosis",
+            "diagnosis",
+        ]
+    )
+    for summary in summaries:
+        writer.writerow(
+            [
+                summary.name,
+                summary.step,
+                summary.time,
+                summary.max_entropy,
+                summary.max_chi,
+                summary.saturated_bonds,
+                summary.total_trunc_error,
+                summary.bottleneck_bond,
+                summary.drift_risk,
+                summary.geometry_diagnosis,
+                summary.status,
+            ]
+        )
+    return handle.getvalue().rstrip("\r\n")
+
+
+def _risk_rank(summary: RunSummary) -> tuple[int, int, int]:
+    run_risk = 2 if "limited" in summary.status else 1 if "pressure" in summary.status else 0
+    drift_risk = {"unknown": 0, "low": 0, "medium": 1, "high": 2}.get(summary.drift_risk, 0)
+    geometry_risk = 2 if "mismatch" in summary.geometry_diagnosis else 0
+    return (max(run_risk, drift_risk, geometry_risk), summary.saturated_bonds, summary.max_chi)
 
 
 def _maybe_int(value: int | None) -> str:
