@@ -17,6 +17,9 @@ tnview replay examples/tebd_run.jsonl
 python run_tebd.py | tnview live -
 ```
 
+Telemetry producers should emit the JSONL events documented in
+[docs/telemetry.md](docs/telemetry.md).
+
 ## Setup
 
 From the repo root, install the editable package into your active Python
