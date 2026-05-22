@@ -1,0 +1,5 @@
+# Runtime install.
+#
+# This project currently has no third-party runtime dependencies, but installing
+# the package in editable mode creates the `tnview` console command.
+-e .
