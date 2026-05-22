@@ -23,7 +23,7 @@ replay-interactive:
 	$(TNVIEW) replay examples/tebd_run.jsonl --interactive
 
 compare:
-	$(TNVIEW) compare examples/tebd_run.jsonl examples/tebd_run.jsonl
+	$(TNVIEW) compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
 
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +

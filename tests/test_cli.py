@@ -98,8 +98,10 @@ class CliTests(unittest.TestCase):
                 "-m",
                 "tnview.cli",
                 "compare",
-                "examples/tebd_run.jsonl",
-                "examples/tebd_run.jsonl",
+                "examples/easy_chain.jsonl",
+                "examples/long_range_chi_limited.jsonl",
+                "examples/ladder_snake_mismatch.jsonl",
+                "examples/blocked_ladder.jsonl",
             ],
             check=True,
             capture_output=True,
@@ -107,7 +109,10 @@ class CliTests(unittest.TestCase):
         )
 
         self.assertIn("Toy model comparison", result.stdout)
-        self.assertIn("tebd_run.jsonl", result.stdout)
+        self.assertIn("easy_chain.jsonl", result.stdout)
+        self.assertIn("long_range_chi_limited", result.stdout)
+        self.assertIn("ladder_snake_mismatch", result.stdout)
+        self.assertIn("blocked_ladder.jsonl", result.stdout)
         self.assertIn("chi-limited run", result.stdout)
         self.assertIn("geometry", result.stdout)
 

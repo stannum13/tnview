@@ -59,6 +59,7 @@ tnview validate examples/tebd_run.jsonl
 tnview replay examples/tebd_run.jsonl --ascii --width 120 -b 1
 tnview replay examples/tebd_run.jsonl --interactive
 tnview compare examples/tebd_run.jsonl examples/tebd_run.jsonl
+tnview compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
 ```
 
 Makefile shortcuts:
