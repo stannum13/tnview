@@ -23,6 +23,8 @@ class ReplayController:
     show_help: bool = False
     input_mode: str | None = None
     input_buffer: str = ""
+    bond_start: int = 0
+    bond_limit: int = 24
 
     def __post_init__(self) -> None:
         count = self.checkpoint_count
@@ -62,6 +64,8 @@ class ReplayController:
                 show_pressure=self.show_pressure,
                 show_inspector=self.show_inspector,
                 show_diagnostics=self.show_diagnostics,
+                bond_start=self.bond_start,
+                bond_limit=self.bond_limit,
             ),
         )
 
@@ -81,6 +85,10 @@ class ReplayController:
             self.next_bond()
         elif key in {"k", "KEY_UP"}:
             self.previous_bond()
+        elif key in {"]", "KEY_NPAGE"}:
+            self.next_bond_window()
+        elif key in {"[", "KEY_PPAGE"}:
+            self.previous_bond_window()
         elif key == "u":
             self.show_updates = not self.show_updates
         elif key == "e":
@@ -141,6 +149,16 @@ class ReplayController:
             return
         index = bonds.index(self.selected_bond)
         self.selected_bond = bonds[max(0, index - 1)]
+
+    def next_bond_window(self) -> None:
+        bonds = [bond.bond for bond in self.state().ordered_bonds]
+        if not bonds:
+            return
+        max_start = max(0, bonds[-1] - self.bond_limit + 1)
+        self.bond_start = min(max_start, self.bond_start + self.bond_limit)
+
+    def previous_bond_window(self) -> None:
+        self.bond_start = max(0, self.bond_start - self.bond_limit)
 
     def _handle_input_key(self, key: str) -> None:
         if key in {"\n", "\r", "KEY_ENTER"}:
@@ -204,7 +222,8 @@ def _footer(controller: ReplayController) -> str:
     )
     return (
         f"checkpoint {checkpoint}/{max(0, controller.checkpoint_count - 1)}  "
-        f"bond {bond}  {toggles}  ? help  q quit"
+        f"bond {bond}  window b{controller.bond_start}+{controller.bond_limit}  "
+        f"{toggles}  ? help  q quit"
     )
 
 
@@ -224,6 +243,7 @@ def _help_text() -> str:
             "  k, up           previous bond",
             "  g               jump to checkpoint index",
             "  b               jump to bond index",
+            "  [, ]            previous/next bond viewport",
             "",
             "toggles",
             "  u               TEBD/TDVP updates",

@@ -97,6 +97,7 @@ n/p       next/previous checkpoint
 j/k       next/previous bond
 g         jump to checkpoint
 b         jump to bond
+[ / ]     previous/next bond viewport
 u/e/c/i/d toggle updates, entropy, chi rows, inspector, diagnostics
 ?         help
 q         quit

@@ -67,6 +67,30 @@ class CliTests(unittest.TestCase):
         self.assertNotIn("Selected bond", result.stdout)
         self.assertIn("Entanglement heatmap", result.stdout)
 
+    def test_replay_can_limit_bond_viewport(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "replay",
+                "examples/ladder_snake_mismatch.jsonl",
+                "--bond-start",
+                "2",
+                "--bond-limit",
+                "3",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("viewport b2-b4 of 7 bonds", result.stdout)
+        self.assertIn("bond:       2 3 4", result.stdout)
+
     def test_replay_can_export_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "snapshot.json"

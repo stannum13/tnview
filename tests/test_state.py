@@ -72,6 +72,16 @@ class StateRenderingTests(unittest.TestCase):
         self.assertIn("sites: 9    10   11   12", output)
         self.assertIn("bonds:    --   --   --", output)
 
+    def test_render_can_limit_bond_viewport(self) -> None:
+        events = parse_jsonl(Path("examples/ladder_snake_mismatch.jsonl").read_text().splitlines())
+        state = reduce_events(events)
+
+        output = render_run(state, RenderOptions(width=100, unicode=False, bond_start=2, bond_limit=3))
+
+        self.assertIn("viewport b2-b4 of 7 bonds", output)
+        self.assertIn("bond:       2 3 4", output)
+        self.assertNotIn("bond:       0 1 2", output)
+
     def test_entanglement_front_tracks_active_span(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
         state = reduce_events(events)

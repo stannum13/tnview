@@ -38,6 +38,8 @@ class RenderOptions:
     show_pressure: bool = True
     show_inspector: bool = True
     show_diagnostics: bool = True
+    bond_start: int | None = None
+    bond_limit: int | None = None
 
 
 def render_run(state: RunState, options: RenderOptions | None = None) -> str:
@@ -47,7 +49,7 @@ def render_run(state: RunState, options: RenderOptions | None = None) -> str:
 
     sections = [
         _title(state, width),
-        _topology(state, width),
+        _topology(state, width, options),
         _updates(state, width, options) if options.show_updates else "",
         _tdvp_sweeps(state, width, options) if options.show_updates else "",
         _heatmap(state, width, options) if options.show_entropy else "",
@@ -69,8 +71,9 @@ def _title(state: RunState, width: int) -> str:
     return _fit(f"TNView complexity microscope | {suffix}", width)
 
 
-def _topology(state: RunState, width: int) -> str:
-    bonds = state.ordered_bonds
+def _topology(state: RunState, width: int, options: RenderOptions) -> str:
+    all_bonds = state.ordered_bonds
+    bonds = _visible_bonds(state, options)
     if not bonds:
         return "MPS topology\n(no bond telemetry yet)"
 
@@ -99,7 +102,7 @@ def _topology(state: RunState, width: int) -> str:
     link_row = f"{link_indent}{bond_sep.join(link_cells)}"
     return "\n".join(
         [
-            "MPS topology",
+            _viewport_title("MPS topology", all_bonds, bonds),
             _fit(f"sites: {site_row}", width),
             _fit(f"bonds: {link_row}", width),
             "legend: -- healthy  ++ pressure  !! saturated",
@@ -108,7 +111,8 @@ def _topology(state: RunState, width: int) -> str:
 
 
 def _updates(state: RunState, width: int, options: RenderOptions) -> str:
-    updates = state.updates[-options.update_limit :]
+    visible = {bond.bond for bond in _visible_bonds(state, options)}
+    updates = [update for update in state.updates if not visible or update.bond in visible][-options.update_limit :]
     if not updates:
         return ""
 
@@ -151,7 +155,9 @@ def _heatmap(state: RunState, width: int, options: RenderOptions) -> str:
         return ""
 
     rows = state.history[-options.history_limit :]
-    bonds = [bond.bond for bond in state.ordered_bonds]
+    bonds = [bond.bond for bond in _visible_bonds(state, options)]
+    if not bonds:
+        return ""
     max_entropy = max((value for row in rows for value in row.entropy_by_bond.values()), default=0.0)
     glyphs = UNICODE_BLOCKS if options.unicode else ASCII_BLOCKS
 
@@ -165,7 +171,7 @@ def _heatmap(state: RunState, width: int, options: RenderOptions) -> str:
 
 
 def _pressure_rows(state: RunState, width: int, options: RenderOptions) -> str:
-    bonds = state.ordered_bonds
+    bonds = _visible_bonds(state, options)
     if not bonds:
         return ""
 
@@ -342,6 +348,26 @@ def _bucket(value: float, max_value: float, glyphs: str) -> str:
 
 def _bond_axis(bonds: list[int]) -> str:
     return " ".join(str(bond % 10) for bond in bonds)
+
+
+def _visible_bonds(state: RunState, options: RenderOptions) -> list[BondState]:
+    bonds = state.ordered_bonds
+    if options.bond_start is None and options.bond_limit is None:
+        return bonds
+
+    start = options.bond_start or 0
+    visible = [bond for bond in bonds if bond.bond >= start]
+    if options.bond_limit is not None:
+        visible = visible[: max(0, options.bond_limit)]
+    return visible
+
+
+def _viewport_title(title: str, all_bonds: list[BondState], visible_bonds: list[BondState]) -> str:
+    if not all_bonds or len(all_bonds) == len(visible_bonds):
+        return title
+    first = visible_bonds[0].bond
+    last = visible_bonds[-1].bond
+    return f"{title}  viewport b{first}-b{last} of {len(all_bonds)} bonds"
 
 
 def _log_bucket(value: float, max_value: float, glyphs: str) -> str:
