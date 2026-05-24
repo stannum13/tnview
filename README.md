@@ -21,6 +21,8 @@ python run_tebd.py | tnview live -
 Telemetry producers should emit the JSONL events documented in
 [docs/telemetry.md](docs/telemetry.md).
 
+Current implementation status is tracked in [docs/status.md](docs/status.md).
+
 ## Setup
 
 From the repo root, install the editable package into your active Python
