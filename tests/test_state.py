@@ -24,6 +24,16 @@ class StateRenderingTests(unittest.TestCase):
         self.assertEqual(len(state.sweeps), 2)
         self.assertEqual(diagnose_run(state), "chi-limited run")
 
+    def test_contraction_path_renders_compute_context(self) -> None:
+        events = parse_jsonl(Path("examples/ladder_snake_mismatch.jsonl").read_text().splitlines())
+        state = reduce_events(events)
+
+        output = render_run(state, RenderOptions(width=120, unicode=False))
+
+        self.assertEqual(len(state.contraction_paths), 1)
+        self.assertIn("contraction path:    ladder boundary contraction", output)
+        self.assertIn("path peak memory:    512", output)
+
     def test_render_contains_core_mvp_views(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
         state = reduce_events(events)

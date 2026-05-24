@@ -3,6 +3,7 @@ import unittest
 from tnview.events import (
     AnsatzLayoutEvent,
     BondUpdated,
+    ContractionPathEvent,
     EventParseError,
     ModelGeometryEvent,
     ObservableUpdated,
@@ -46,6 +47,19 @@ class EventParsingTests(unittest.TestCase):
         self.assertEqual(event.direction, "right")
         self.assertEqual(event.start_site, 0)
         self.assertEqual(event.diagnostic_tags, ("converged",))
+
+    def test_parse_contraction_path_event(self) -> None:
+        event = parse_jsonl_line(
+            '{"event":"contraction_path","step":5,"time":0.5,"name":"path",'
+            '"optimizer":"greedy","tensors":4,"steps":[{"left":"A","right":"B"}],'
+            '"estimated_flops":1000000,"estimated_memory_mb":32.5,'
+            '"peak_intermediate":"64 x 64","diagnostic_tags":["hot"]}'
+        )
+
+        self.assertIsInstance(event, ContractionPathEvent)
+        assert isinstance(event, ContractionPathEvent)
+        self.assertEqual(event.steps[0]["left"], "A")
+        self.assertEqual(event.estimated_memory_mb, 32.5)
 
     def test_parse_run_metadata_events(self) -> None:
         run = parse_jsonl_line(

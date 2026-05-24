@@ -11,6 +11,7 @@ from tnview.events import (
     AnsatzLayoutEvent,
     BondUpdated,
     Checkpoint,
+    ContractionPathEvent,
     ModelGeometryEvent,
     ObservableUpdated,
     RunStarted,
@@ -27,6 +28,7 @@ _EVENT_NAMES = {
     BondUpdated: "bond_updated",
     Checkpoint: "checkpoint",
     TdvpSweep: "tdvp_sweep",
+    ContractionPathEvent: "contraction_path",
 }
 
 

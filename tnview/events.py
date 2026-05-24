@@ -15,6 +15,7 @@ EventName = Literal[
     "bond_updated",
     "checkpoint",
     "tdvp_sweep",
+    "contraction_path",
 ]
 
 
@@ -112,6 +113,20 @@ class TdvpSweep:
     diagnostic_tags: tuple[str, ...] = field(default_factory=tuple)
 
 
+@dataclass(frozen=True)
+class ContractionPathEvent:
+    step: int
+    time: float
+    name: str
+    optimizer: str | None
+    tensors: int | None
+    steps: tuple[dict[str, Any], ...] = field(default_factory=tuple)
+    estimated_flops: float | None = None
+    estimated_memory_mb: float | None = None
+    peak_intermediate: str | None = None
+    diagnostic_tags: tuple[str, ...] = field(default_factory=tuple)
+
+
 TelemetryEvent = (
     RunStarted
     | ModelGeometryEvent
@@ -120,6 +135,7 @@ TelemetryEvent = (
     | BondUpdated
     | Checkpoint
     | TdvpSweep
+    | ContractionPathEvent
 )
 
 
@@ -161,6 +177,8 @@ def parse_jsonl_line(line: str, *, line_number: int | None = None) -> TelemetryE
         return _checkpoint(payload, line_number)
     if event_name == "tdvp_sweep":
         return _tdvp_sweep(payload, line_number)
+    if event_name == "contraction_path":
+        return _contraction_path(payload, line_number)
 
     raise EventParseError(_prefix(line_number, f"unknown event {event_name!r}"))
 
@@ -303,6 +321,26 @@ def _tdvp_sweep(payload: dict[str, Any], line_number: int | None) -> TdvpSweep:
         max_entropy_delta=_optional_float(payload, "max_entropy_delta", line_number),
         max_trunc_error=_optional_float(payload, "max_trunc_error", line_number),
         walltime_ms=_optional_float(payload, "walltime_ms", line_number),
+        diagnostic_tags=tuple(tags),
+    )
+
+
+def _contraction_path(payload: dict[str, Any], line_number: int | None) -> ContractionPathEvent:
+    tags = payload.get("diagnostic_tags", [])
+    if tags is None:
+        tags = []
+    if not isinstance(tags, list) or not all(isinstance(tag, str) for tag in tags):
+        raise EventParseError(_prefix(line_number, "diagnostic_tags must be a string array"))
+    return ContractionPathEvent(
+        step=_required_int(payload, "step", line_number),
+        time=_required_float(payload, "time", line_number),
+        name=_required_str(payload, "name", line_number),
+        optimizer=_optional_str(payload, "optimizer", line_number),
+        tensors=_optional_int(payload, "tensors", line_number),
+        steps=_object_tuple(payload.get("steps", []), "steps", line_number),
+        estimated_flops=_optional_float(payload, "estimated_flops", line_number),
+        estimated_memory_mb=_optional_float(payload, "estimated_memory_mb", line_number),
+        peak_intermediate=_optional_str(payload, "peak_intermediate", line_number),
         diagnostic_tags=tuple(tags),
     )
 

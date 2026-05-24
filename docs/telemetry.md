@@ -20,6 +20,7 @@ ansatz_layout
 bond_updated ...
 observable_updated ...
 tdvp_sweep ...
+contraction_path ...
 checkpoint
 ```
 
@@ -196,6 +197,31 @@ Example:
 
 ```json
 {"event":"observable_updated","step":120,"time":1.2,"name":"magnetization","site":14,"value":0.73,"error":1e-8,"diagnostic_tags":["local"]}
+```
+
+## `contraction_path`
+
+Reports contraction-path cost telemetry for generic TN, PEPS-like, or expensive
+environment contractions.
+
+Required:
+- `step`: integer
+- `time`: number
+- `name`: string
+
+Optional:
+- `optimizer`: string or null
+- `tensors`: integer or null
+- `steps`: object array
+- `estimated_flops`: number or null
+- `estimated_memory_mb`: number or null
+- `peak_intermediate`: string or null
+- `diagnostic_tags`: string array
+
+Example:
+
+```json
+{"event":"contraction_path","step":120,"time":1.2,"name":"ladder boundary contraction","optimizer":"greedy","tensors":8,"steps":[{"left":"A3","right":"A4","size":"256x2x256"}],"estimated_flops":8.4e9,"estimated_memory_mb":512.0,"peak_intermediate":"256 x 256 x 256","diagnostic_tags":["contraction_pressure"]}
 ```
 
 ## Minimal Python Emitter

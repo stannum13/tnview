@@ -11,6 +11,7 @@ The MVP reads JSONL telemetry from TEBD/MPS-style simulations and renders:
 - truncation localization
 - selected-bond diagnostics
 - run-level complexity status
+- contraction-path cost diagnostics
 
 ```bash
 tnview replay examples/tebd_run.jsonl

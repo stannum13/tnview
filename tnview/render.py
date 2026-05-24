@@ -291,6 +291,17 @@ def _diagnostics(state: RunState, width: int) -> str:
             f"compute diagnosis:   {cost.diagnosis}",
         ]
     )
+    if cost.contraction_path is not None:
+        path = cost.contraction_path
+        lines.extend(
+            [
+                f"contraction path:    {path.name}",
+                f"path optimizer:      {path.optimizer or 'n/a'}",
+                f"path flops:          {_maybe_float(path.estimated_flops, scientific=True)}",
+                f"path peak memory:    {_maybe_float(path.estimated_memory_mb)} MB",
+                f"peak intermediate:   {path.peak_intermediate or 'n/a'}",
+            ]
+        )
     lines.extend(
         [
             f"energy drift:        {_maybe_float(drift.energy.latest, scientific=True)} ({drift.energy.severity})",

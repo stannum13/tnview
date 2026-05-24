@@ -8,6 +8,7 @@ from tnview.events import (
     AnsatzLayoutEvent,
     BondUpdated,
     Checkpoint,
+    ContractionPathEvent,
     ModelGeometryEvent,
     ObservableUpdated,
     RunStarted,
@@ -71,6 +72,7 @@ class RunState:
     checkpoints: list[Checkpoint] = field(default_factory=list)
     updates: list[BondUpdated] = field(default_factory=list)
     sweeps: list[TdvpSweep] = field(default_factory=list)
+    contraction_paths: list[ContractionPathEvent] = field(default_factory=list)
     run: RunStarted | None = None
     model_geometry: ModelGeometryEvent | None = None
     ansatz_layout: AnsatzLayoutEvent | None = None
@@ -94,6 +96,8 @@ class RunState:
             self._capture_history(event.step, event.time)
         elif isinstance(event, TdvpSweep):
             self.sweeps.append(event)
+        elif isinstance(event, ContractionPathEvent):
+            self.contraction_paths.append(event)
 
     def _apply_observable(self, event: ObservableUpdated) -> None:
         key = event.name
