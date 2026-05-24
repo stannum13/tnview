@@ -28,6 +28,7 @@ P1 coverage:
 Operational support:
 - Interactive replay shell
 - Bond viewporting for larger systems
+- Focused replay inspection with bottleneck, entropy-front, compute, and center presets
 - Built-in replay examples
 - Synthetic chain fixture generator
 - Telemetry schema documentation

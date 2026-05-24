@@ -12,6 +12,7 @@ from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_replay_jsonl
 from tnview.fixtures import generate_chain_fixture
+from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.interactive import run_interactive
 from tnview.render import RenderOptions, render_run
 from tnview.search import render_search, search_bonds
@@ -31,6 +32,8 @@ def main(argv: list[str] | None = None) -> int:
             return _live(args)
         if args.command == "compare":
             return _compare(args)
+        if args.command == "inspect":
+            return _inspect(args)
         if args.command == "search":
             return _search(args)
         if args.command == "validate":
@@ -69,6 +72,12 @@ def _parser() -> argparse.ArgumentParser:
     replay.add_argument("--snapshot", action="store_true", help="write a JSON snapshot instead of terminal view")
     replay.add_argument("--output", "-o", help="write snapshot or rendered output to a file")
     replay.add_argument("--interactive", action="store_true", help="open an interactive replay shell")
+    replay.add_argument(
+        "--focus",
+        choices=["none", "bottleneck", "entropy", "front", "compute", "center"],
+        default="none",
+        help="select an interesting bond automatically",
+    )
     _render_args(replay)
 
     live = subparsers.add_parser("live", help="stream JSONL telemetry and refresh on checkpoints")
@@ -86,6 +95,19 @@ def _parser() -> argparse.ArgumentParser:
         help="sort comparison rows",
     )
     compare.add_argument("--csv", action="store_true", help="write comparison as CSV")
+
+    inspect = subparsers.add_parser("inspect", help="render a focused bottleneck view of a replay")
+    inspect.add_argument("path", help="JSONL replay file")
+    inspect.add_argument("--checkpoint", default="latest", help="checkpoint index to inspect, or 'latest'")
+    inspect.add_argument(
+        "--focus",
+        choices=["bottleneck", "entropy", "front", "compute", "center"],
+        default="bottleneck",
+        help="focus strategy",
+    )
+    inspect.add_argument("--window", type=int, default=12, help="number of bonds to show around focus")
+    inspect.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    inspect.add_argument("--width", type=int, help="render width in columns")
 
     search = subparsers.add_parser("search", help="search bonds by bond, site, tag, or status")
     search.add_argument("path", help="JSONL replay file")
@@ -127,6 +149,7 @@ def _render_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--history", type=int, default=12, help="number of checkpoint rows to show")
     parser.add_argument("--bond-start", type=int, help="first bond index to show in topology and heatmaps")
     parser.add_argument("--bond-limit", type=int, help="number of bonds to show in topology and heatmaps")
+    parser.add_argument("--window", type=int, help="number of bonds to show around selected/focused bond")
     parser.add_argument("--no-updates", action="store_true", help="hide TEBD update rows")
     parser.add_argument("--no-entropy", action="store_true", help="hide the entropy heatmap")
     parser.add_argument("--no-pressure", action="store_true", help="hide chi/truncation pressure rows")
@@ -140,7 +163,7 @@ def _replay(args: argparse.Namespace) -> int:
         run_interactive(events, ascii_mode=args.ascii)
         return 0
     state = _state_at_checkpoint(events, args.checkpoint)
-    _select_requested_bond(state, args.bond)
+    _apply_focus_and_selection(state, args)
     output = snapshot_json(state) if args.snapshot else render_run(state, _options(args))
     _write_output(output, args.output)
     return 0
@@ -156,7 +179,7 @@ def _live(args: argparse.Namespace) -> int:
         if event is None:
             continue
         state.apply(event)
-        _select_requested_bond(state, args.bond)
+        _apply_focus_and_selection(state, args)
         if event.__class__.__name__ == "Checkpoint":
             _print_frame(state, args)
             rendered = True
@@ -174,6 +197,24 @@ def _compare(args: argparse.Namespace) -> int:
         summaries.append(summarize_run(path, state))
     summaries = sort_summaries(summaries, args.sort)
     print(render_comparison_csv(summaries) if args.csv else render_comparison(summaries, width=args.width))
+    return 0
+
+
+def _inspect(args: argparse.Namespace) -> int:
+    events = _read_events(_iter_lines(args.path))
+    state = _state_at_checkpoint(events, args.checkpoint)
+    focus = choose_focus(state, strategy=args.focus, window=args.window)
+    if focus.bond is not None:
+        state.select_bond(focus.bond)
+    options = RenderOptions(
+        width=args.width,
+        unicode=not args.ascii,
+        bond_start=focus.bond_start,
+        bond_limit=focus.bond_limit,
+    )
+    print(f"Focus: {focus.reason}" + (f" at b{focus.bond}" if focus.bond is not None else ""))
+    print()
+    print(render_run(state, options))
     return 0
 
 
@@ -263,6 +304,25 @@ def _select_requested_bond(state: RunState, bond: int | None) -> None:
         state.select_bond(bond)
 
 
+def _apply_focus_and_selection(state: RunState, args: argparse.Namespace) -> None:
+    explicit_bond_start = args.bond_start
+    if getattr(args, "focus", "none") != "none":
+        focus = choose_focus(state, strategy=args.focus, window=args.window or args.bond_limit)
+        if focus.bond is not None:
+            state.select_bond(focus.bond)
+        if args.bond_start is None:
+            args.bond_start = focus.bond_start
+        if args.bond_limit is None:
+            args.bond_limit = focus.bond_limit
+    _select_requested_bond(state, args.bond)
+    if args.window is not None and explicit_bond_start is None:
+        focused = state.selected_bond
+        if focused is not None:
+            focus = choose_focus_for_bond(state, focused, args.window)
+            args.bond_start = focus.bond_start
+            args.bond_limit = focus.bond_limit
+
+
 def _print_frame(state: RunState, args: argparse.Namespace) -> None:
     if not args.no_clear and sys.stdout.isatty():
         print("\033[2J\033[H", end="")
@@ -276,7 +336,7 @@ def _options(args: argparse.Namespace) -> RenderOptions:
         unicode=not args.ascii,
         history_limit=max(1, args.history),
         bond_start=args.bond_start,
-        bond_limit=args.bond_limit,
+        bond_limit=args.bond_limit or args.window,
         show_updates=not args.no_updates,
         show_entropy=not args.no_entropy,
         show_pressure=not args.no_pressure,

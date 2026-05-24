@@ -91,6 +91,103 @@ class CliTests(unittest.TestCase):
         self.assertIn("viewport b2-b4 of 7 bonds", result.stdout)
         self.assertIn("bond:       2 3 4", result.stdout)
 
+    def test_replay_can_focus_bottleneck_window(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "replay",
+                "examples/ladder_snake_mismatch.jsonl",
+                "--focus",
+                "bottleneck",
+                "--window",
+                "3",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Selected bond b3", result.stdout)
+        self.assertIn("viewport b2-b4 of 7 bonds", result.stdout)
+
+    def test_replay_window_centers_selected_bond(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "replay",
+                "examples/ladder_snake_mismatch.jsonl",
+                "-b",
+                "5",
+                "--window",
+                "3",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Selected bond b5", result.stdout)
+        self.assertIn("viewport b4-b6 of 7 bonds", result.stdout)
+
+    def test_explicit_bond_overrides_focus_window(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "replay",
+                "examples/ladder_snake_mismatch.jsonl",
+                "--focus",
+                "bottleneck",
+                "-b",
+                "5",
+                "--window",
+                "3",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Selected bond b5", result.stdout)
+        self.assertIn("viewport b4-b6 of 7 bonds", result.stdout)
+
+    def test_inspect_renders_focused_bottleneck_view(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "inspect",
+                "examples/ladder_snake_mismatch.jsonl",
+                "--window",
+                "3",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Focus: truncation/chi bottleneck at b3", result.stdout)
+        self.assertIn("Selected bond b3", result.stdout)
+        self.assertIn("viewport b2-b4 of 7 bonds", result.stdout)
+
     def test_replay_can_export_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "snapshot.json"

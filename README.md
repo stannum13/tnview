@@ -15,6 +15,7 @@ The MVP reads JSONL telemetry from TEBD/MPS-style simulations and renders:
 
 ```bash
 tnview replay examples/tebd_run.jsonl
+tnview inspect examples/ladder_snake_mismatch.jsonl
 python run_tebd.py | tnview live -
 ```
 
@@ -62,6 +63,8 @@ make setup
 
 ```bash
 tnview validate examples/tebd_run.jsonl
+tnview inspect examples/ladder_snake_mismatch.jsonl
+tnview replay examples/ladder_snake_mismatch.jsonl --focus bottleneck --window 12
 tnview replay examples/tebd_run.jsonl --ascii --width 120 -b 1
 tnview replay examples/tebd_run.jsonl --interactive
 tnview examples
@@ -70,6 +73,12 @@ tnview compare examples/tebd_run.jsonl examples/tebd_run.jsonl
 tnview compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
 tnview compare examples/*.jsonl --sort risk --csv
 ```
+
+Use `inspect` when you want TNView to choose a useful starting point. It
+defaults to the truncation/chi bottleneck, selects that bond, and shows a
+smaller bond window around it. `replay --focus` supports the same targeting
+inside the regular replay view: `bottleneck`, `entropy`, `front`, `compute`, or
+`center`.
 
 Makefile shortcuts:
 
