@@ -23,7 +23,7 @@ P1 coverage:
 - Energy/norm drift diagnostics
 - Compute-cost overlay
 - Contraction-path cost telemetry
-- Search by site, bond, tag, and diagnosis text
+- Search by site, bond, tag, diagnosis text, tensor name, and contraction-path operand
 - Export snapshots, normalized replay JSONL, manifests, and CSV comparison
 
 Operational support:
@@ -39,7 +39,6 @@ Operational support:
 
 - Complexity preview calibration against richer Hamiltonian/circuit metadata.
 - Richer contraction-path visual layout beyond summary metrics.
-- Search by tensor name.
 - 2D PEPS, TTN, MERA, and generic graph layouts.
 - P2 mixed-state/state-space diagnostics.
 - Sector/charge-resolved entanglement.
@@ -48,7 +47,7 @@ Operational support:
 
 ## Recommended Next Steps
 
-1. Add tensor-name search using `ansatz_layout.tensors` and contraction path steps.
-2. Add distance-to-baseline comparison metrics for P2-style run comparison.
-3. Add richer graph/2D topology renderers for non-MPS layouts.
-4. Add Hamiltonian/circuit metadata fields to improve preview calibration.
+1. Add distance-to-baseline comparison metrics for P2-style run comparison.
+2. Add richer graph/2D topology renderers for non-MPS layouts.
+3. Add Hamiltonian/circuit metadata fields to improve preview calibration.
+4. Add richer contraction-path visual layout beyond summary metrics.

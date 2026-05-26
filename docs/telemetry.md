@@ -96,6 +96,9 @@ Example:
 {"event":"ansatz_layout","step":0,"time":0.0,"ansatz":"MPS","ordering":[0,1,2,3,4,5,6,7],"parameters":{"physical_dim":2}}
 ```
 
+Tensor objects may include `name`, `site`, `bond`, or `sites` fields. Named
+tensors are searchable with `tnview search run.jsonl tensor:A3`.
+
 ## `bond_updated`
 
 Reports local bond complexity after an update.

@@ -300,6 +300,46 @@ class CliTests(unittest.TestCase):
         self.assertIn("b1", result.stdout)
         self.assertIn("chi-limited local bottleneck", result.stdout)
 
+    def test_search_finds_tensor_names(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "search",
+                "examples/tebd_run.jsonl",
+                "tensor:A2",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Search: tensor:A2", result.stdout)
+        self.assertIn("ansatz", result.stdout)
+        self.assertIn("A2", result.stdout)
+        self.assertIn("site 2", result.stdout)
+
+    def test_search_finds_contraction_path_tensor_names(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "search",
+                "examples/ladder_snake_mismatch.jsonl",
+                "tensor:A3",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Search: tensor:A3", result.stdout)
+        self.assertIn("path", result.stdout)
+        self.assertIn("A3", result.stdout)
+        self.assertIn("ladder boundary contraction", result.stdout)
+
     def test_validate_command_reports_replay_shape(self) -> None:
         result = subprocess.run(
             [

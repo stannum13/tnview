@@ -69,6 +69,7 @@ tnview inspect examples/ladder_snake_mismatch.jsonl
 tnview replay examples/ladder_snake_mismatch.jsonl --focus bottleneck --window 12
 tnview replay examples/tebd_run.jsonl --ascii --width 120 -b 1
 tnview replay examples/tebd_run.jsonl --interactive
+tnview search examples/tebd_run.jsonl tensor:A2
 tnview examples
 tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generated.jsonl
 tnview compare examples/tebd_run.jsonl examples/tebd_run.jsonl
@@ -85,6 +86,10 @@ defaults to the truncation/chi bottleneck, selects that bond, and shows a
 smaller bond window around it. `replay --focus` supports the same targeting
 inside the regular replay view: `bottleneck`, `entropy`, `front`, `compute`, or
 `center`.
+
+Use `search` to locate bonds by `bond:`, `site:`, `tag:`, or `status:`.
+Tensor-name search also works with `tensor:A2`; it scans `ansatz_layout.tensors`
+and contraction-path step operands.
 
 Makefile shortcuts:
 

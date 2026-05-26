@@ -16,7 +16,7 @@ from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.interactive import run_interactive
 from tnview.preview import complexity_preview, render_preview
 from tnview.render import RenderOptions, render_run
-from tnview.search import render_search, search_bonds
+from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
 from tnview.validate import render_validation, validate_lines
@@ -235,6 +235,10 @@ def _inspect(args: argparse.Namespace) -> int:
 def _search(args: argparse.Namespace) -> int:
     events = _read_events(_iter_lines(args.path))
     state = _state_at_checkpoint(events, args.checkpoint)
+    if is_tensor_query(args.query):
+        matches = search_tensors(state, args.query)
+        print(render_tensor_search(matches, query=args.query, width=args.width))
+        return 0
     matches = search_bonds(state, args.query)
     print(render_search(matches, query=args.query, width=args.width))
     return 0
