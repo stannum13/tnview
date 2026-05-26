@@ -87,6 +87,31 @@ class ReplayControllerTests(unittest.TestCase):
         controller.previous_bond_window()
         self.assertEqual(controller.bond_start, 0)
 
+    def test_focus_keys_select_hotspots_and_center_window(self) -> None:
+        events = parse_jsonl(Path("examples/ladder_snake_mismatch.jsonl").read_text().splitlines())
+        controller = ReplayController(events, bond_limit=3)
+
+        controller.handle_key("f")
+        self.assertEqual(controller.selected_bond, 3)
+        self.assertEqual(controller.bond_start, 2)
+
+        controller.handle_key("m")
+        self.assertEqual(controller.selected_bond, 3)
+        self.assertEqual(controller.bond_start, 2)
+
+        controller.handle_key("x")
+        self.assertEqual(controller.selected_bond, 3)
+        self.assertEqual(controller.bond_start, 2)
+
+    def test_manual_bond_jump_centers_window(self) -> None:
+        events = parse_jsonl(Path("examples/ladder_snake_mismatch.jsonl").read_text().splitlines())
+        controller = ReplayController(events, bond_limit=3)
+
+        controller.jump_bond(5)
+
+        self.assertEqual(controller.selected_bond, 5)
+        self.assertEqual(controller.bond_start, 4)
+
     def test_render_uses_current_controller_state(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
         controller = ReplayController(events)

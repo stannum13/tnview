@@ -6,6 +6,7 @@ import curses
 from dataclasses import dataclass
 
 from tnview.events import Checkpoint, TelemetryEvent
+from tnview.focus import choose_focus
 from tnview.render import RenderOptions, render_run
 from tnview.state import RunState
 
@@ -89,6 +90,12 @@ class ReplayController:
             self.next_bond_window()
         elif key in {"[", "KEY_PPAGE"}:
             self.previous_bond_window()
+        elif key == "f":
+            self.focus("bottleneck")
+        elif key == "m":
+            self.focus("entropy")
+        elif key == "x":
+            self.focus("compute")
         elif key == "u":
             self.show_updates = not self.show_updates
         elif key == "e":
@@ -117,6 +124,15 @@ class ReplayController:
         bonds = {bond_state.bond for bond_state in self.state().ordered_bonds}
         if bond in bonds:
             self.selected_bond = bond
+            self._center_window_on_bond(bond)
+
+    def focus(self, strategy: str) -> None:
+        focus = choose_focus(self.state(), strategy=strategy, window=self.bond_limit)
+        if focus.bond is None:
+            return
+        self.selected_bond = focus.bond
+        if focus.bond_start is not None:
+            self.bond_start = focus.bond_start
 
     def next_checkpoint(self) -> None:
         count = self.checkpoint_count
@@ -136,9 +152,11 @@ class ReplayController:
             return
         if self.selected_bond not in bonds:
             self.selected_bond = bonds[0]
+            self._center_window_on_bond(self.selected_bond)
             return
         index = bonds.index(self.selected_bond)
         self.selected_bond = bonds[min(len(bonds) - 1, index + 1)]
+        self._center_window_on_bond(self.selected_bond)
 
     def previous_bond(self) -> None:
         bonds = [bond.bond for bond in self.state().ordered_bonds]
@@ -146,9 +164,11 @@ class ReplayController:
             return
         if self.selected_bond not in bonds:
             self.selected_bond = bonds[0]
+            self._center_window_on_bond(self.selected_bond)
             return
         index = bonds.index(self.selected_bond)
         self.selected_bond = bonds[max(0, index - 1)]
+        self._center_window_on_bond(self.selected_bond)
 
     def next_bond_window(self) -> None:
         bonds = [bond.bond for bond in self.state().ordered_bonds]
@@ -159,6 +179,15 @@ class ReplayController:
 
     def previous_bond_window(self) -> None:
         self.bond_start = max(0, self.bond_start - self.bond_limit)
+
+    def _center_window_on_bond(self, bond: int) -> None:
+        bonds = [bond_state.bond for bond_state in self.state().ordered_bonds]
+        if bond not in bonds or self.bond_limit <= 0:
+            return
+        index = bonds.index(bond)
+        first_index = max(0, index - self.bond_limit // 2)
+        first_index = min(first_index, max(0, len(bonds) - self.bond_limit))
+        self.bond_start = bonds[first_index]
 
     def _handle_input_key(self, key: str) -> None:
         if key in {"\n", "\r", "KEY_ENTER"}:
@@ -223,7 +252,7 @@ def _footer(controller: ReplayController) -> str:
     return (
         f"checkpoint {checkpoint}/{max(0, controller.checkpoint_count - 1)}  "
         f"bond {bond}  window b{controller.bond_start}+{controller.bond_limit}  "
-        f"{toggles}  ? help  q quit"
+        f"f/m/x focus  {toggles}  ? help  q quit"
     )
 
 
@@ -244,6 +273,9 @@ def _help_text() -> str:
             "  g               jump to checkpoint index",
             "  b               jump to bond index",
             "  [, ]            previous/next bond viewport",
+            "  f               focus truncation/chi bottleneck",
+            "  m               focus max-entropy bond",
+            "  x               focus slowest-compute bond",
             "",
             "toggles",
             "  u               TEBD/TDVP updates",
