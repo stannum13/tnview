@@ -261,6 +261,26 @@ class CliTests(unittest.TestCase):
         self.assertIn("long_range_chi_limited.jsonl", lines[1])
         self.assertIn("easy_chain.jsonl", result.stdout)
 
+    def test_preview_command_renders_setup_risk(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "preview",
+                "examples/ladder_snake_mismatch.jsonl",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Toy model complexity preview", result.stdout)
+        self.assertIn("geometry:           2D ladder", result.stdout)
+        self.assertIn("interaction range:  long-range", result.stdout)
+        self.assertIn("contraction risk:   high", result.stdout)
+        self.assertIn("MPS ordering is likely poor", result.stdout)
+
     def test_search_finds_tagged_bond(self) -> None:
         result = subprocess.run(
             [

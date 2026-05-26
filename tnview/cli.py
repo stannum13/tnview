@@ -14,6 +14,7 @@ from tnview.export import export_manifest_json, export_replay_jsonl
 from tnview.fixtures import generate_chain_fixture
 from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.interactive import run_interactive
+from tnview.preview import complexity_preview, render_preview
 from tnview.render import RenderOptions, render_run
 from tnview.search import render_search, search_bonds
 from tnview.snapshot import snapshot_json
@@ -32,6 +33,8 @@ def main(argv: list[str] | None = None) -> int:
             return _live(args)
         if args.command == "compare":
             return _compare(args)
+        if args.command == "preview":
+            return _preview(args)
         if args.command == "inspect":
             return _inspect(args)
         if args.command == "search":
@@ -95,6 +98,10 @@ def _parser() -> argparse.ArgumentParser:
         help="sort comparison rows",
     )
     compare.add_argument("--csv", action="store_true", help="write comparison as CSV")
+
+    preview = subparsers.add_parser("preview", help="preview model/ansatz complexity from setup telemetry")
+    preview.add_argument("path", help="JSONL replay or setup metadata file")
+    preview.add_argument("--width", type=int, default=100, help="render width in columns")
 
     inspect = subparsers.add_parser("inspect", help="render a focused bottleneck view of a replay")
     inspect.add_argument("path", help="JSONL replay file")
@@ -200,6 +207,13 @@ def _compare(args: argparse.Namespace) -> int:
     return 0
 
 
+def _preview(args: argparse.Namespace) -> int:
+    events = _read_events(_iter_lines(args.path))
+    state = _state_for_preview(events)
+    print(render_preview(complexity_preview(state), width=args.width))
+    return 0
+
+
 def _inspect(args: argparse.Namespace) -> int:
     events = _read_events(_iter_lines(args.path))
     state = _state_at_checkpoint(events, args.checkpoint)
@@ -282,6 +296,15 @@ def _state_at_checkpoint(events: list[TelemetryEvent], checkpoint: str) -> RunSt
             if seen == target:
                 break
             seen += 1
+    return state
+
+
+def _state_for_preview(events: list[TelemetryEvent]) -> RunState:
+    state = RunState()
+    for event in events:
+        if event.__class__.__name__ in {"BondUpdated", "Checkpoint", "ObservableUpdated", "TdvpSweep"}:
+            break
+        state.apply(event)
     return state
 
 

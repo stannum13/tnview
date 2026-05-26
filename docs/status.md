@@ -15,6 +15,7 @@ P0 coverage:
 - Replay mode, live mode, validation, export, and snapshots
 
 P1 coverage:
+- Complexity preview from model geometry and ansatz layout telemetry
 - Toy-model comparison mode
 - Ansatz mismatch diagnostics
 - Entanglement-front tracker
@@ -36,7 +37,7 @@ Operational support:
 
 ## Still Missing Or Thin
 
-- Complexity preview before a run starts.
+- Complexity preview calibration against richer Hamiltonian/circuit metadata.
 - Richer contraction-path visual layout beyond summary metrics.
 - Search by tensor name.
 - 2D PEPS, TTN, MERA, and generic graph layouts.
@@ -47,7 +48,7 @@ Operational support:
 
 ## Recommended Next Steps
 
-1. Add complexity preview from `model_geometry` + `ansatz_layout` before bond telemetry arrives.
-2. Add tensor-name search using `ansatz_layout.tensors` and contraction path steps.
-3. Add distance-to-baseline comparison metrics for P2-style run comparison.
-4. Add richer graph/2D topology renderers for non-MPS layouts.
+1. Add tensor-name search using `ansatz_layout.tensors` and contraction path steps.
+2. Add distance-to-baseline comparison metrics for P2-style run comparison.
+3. Add richer graph/2D topology renderers for non-MPS layouts.
+4. Add Hamiltonian/circuit metadata fields to improve preview calibration.

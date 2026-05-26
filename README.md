@@ -14,6 +14,7 @@ The MVP reads JSONL telemetry from TEBD/MPS-style simulations and renders:
 - contraction-path cost diagnostics
 
 ```bash
+tnview preview examples/ladder_snake_mismatch.jsonl
 tnview replay examples/tebd_run.jsonl
 tnview inspect examples/ladder_snake_mismatch.jsonl
 python run_tebd.py | tnview live -
@@ -63,6 +64,7 @@ make setup
 
 ```bash
 tnview validate examples/tebd_run.jsonl
+tnview preview examples/ladder_snake_mismatch.jsonl
 tnview inspect examples/ladder_snake_mismatch.jsonl
 tnview replay examples/ladder_snake_mismatch.jsonl --focus bottleneck --window 12
 tnview replay examples/tebd_run.jsonl --ascii --width 120 -b 1
@@ -73,6 +75,10 @@ tnview compare examples/tebd_run.jsonl examples/tebd_run.jsonl
 tnview compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
 tnview compare examples/*.jsonl --sort risk --csv
 ```
+
+Use `preview` before committing to a run. It reads setup telemetry such as
+`model_geometry` and `ansatz_layout` and reports interaction range, expected
+lightcone, early chi-pressure risk, contraction risk, and ansatz suggestions.
 
 Use `inspect` when you want TNView to choose a useful starting point. It
 defaults to the truncation/chi bottleneck, selects that bond, and shows a
