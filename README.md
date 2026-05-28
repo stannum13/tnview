@@ -135,8 +135,3 @@ Telemetry producers should emit the JSONL events documented in
 - `tdvp_sweep`
 - `observable_updated`
 - `contraction_path`
-
-## Project Direction
-
-Current implementation status is tracked in [docs/status.md](docs/status.md).
-The broader research/product direction lives in [docs/vision.md](docs/vision.md).
