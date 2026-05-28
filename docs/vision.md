@@ -1,4 +1,8 @@
-# TNView: A Complexity-First TUI for Tensor-Network Research
+# TNView Vision: A Complexity-First TUI for Tensor-Network Research
+
+This document captures the broader product and research direction. The
+implementation starts with a lightweight terminal viewer and grows toward these
+diagnostics as simulator integrations and real telemetry mature.
 
 ## One-line description
 
@@ -997,4 +1001,3 @@ The highest-value outcome is not prettier tensor-network diagrams. It is faster 
 ```text
 See the complexity before it eats the simulation.
 ```
-

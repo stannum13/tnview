@@ -1,36 +1,92 @@
 # TNView
 
-TNView is a terminal-native complexity microscope for tensor-network research.
+TNView is an experimental terminal-native viewer for tensor-network dynamics.
 
-The MVP reads JSONL telemetry from TEBD/MPS-style simulations and renders:
+It is built around lightweight JSONL telemetry: simulations emit events, and
+TNView turns them into compact terminal views for entropy growth, bond-dimension
+pressure, truncation hotspots, update history, and run-level diagnostics.
 
-- MPS topology
-- recent TEBD updates
-- entanglement heatmap
-- bond-dimension pressure
-- truncation localization
-- selected-bond diagnostics
-- run-level complexity status
-- contraction-path cost diagnostics
+The immediate goal is a lively TUI that makes MPS/TEBD-style runs easy to watch
+without opening a heavier GUI. The longer-term research direction is to make the
+same telemetry useful for comparing toy models, spotting ansatz pressure, and
+debugging complexity growth.
+
+## Quick Start
 
 ```bash
-tnview preview examples/ladder_snake_mismatch.jsonl
-tnview replay examples/tebd_run.jsonl
-tnview inspect examples/ladder_snake_mismatch.jsonl
-python run_tebd.py | tnview live -
+make setup
+tnview demo
+tnview demo --interactive
 ```
 
-Telemetry producers should emit the JSONL events documented in
-[docs/telemetry.md](docs/telemetry.md).
+If `tnview` is not on your shell path, run the module directly:
 
-Current implementation status is tracked in [docs/status.md](docs/status.md).
+```bash
+python -m tnview.cli demo
+```
+
+## What It Shows
+
+- MPS topology and bond viewporting
+- recent TEBD/TDVP-style updates
+- entanglement heatmaps over time
+- chi pressure and saturation rows
+- truncation-error localization
+- selected-bond inspection
+- entropy-front and early-warning signals
+- contraction-path and compute-cost telemetry
+- geometry/ansatz mismatch hints
+- run comparison tables and CSV export
+
+## Common Commands
+
+```bash
+tnview demo
+tnview demo --interactive
+tnview examples
+
+tnview validate examples/tebd_run.jsonl
+tnview replay examples/tebd_run.jsonl --ascii --width 120
+tnview replay examples/tebd_run.jsonl --interactive
+
+tnview preview examples/ladder_snake_mismatch.jsonl
+tnview inspect examples/ladder_snake_mismatch.jsonl
+tnview replay examples/ladder_snake_mismatch.jsonl --focus bottleneck --window 12
+
+tnview search examples/tebd_run.jsonl tensor:A2
+tnview compare examples/*.jsonl --sort risk
+tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generated.jsonl
+```
+
+## Command Guide
+
+`demo` generates an in-memory MPS/TEBD-style replay and renders it immediately.
+Use this first to see the terminal view without preparing data.
+
+`replay` renders JSONL telemetry from disk. Add `--interactive` for keyboard
+navigation, or use `--focus bottleneck --window N` to frame the interesting
+region automatically.
+
+`live` streams JSONL telemetry from a file or stdin and refreshes on checkpoint
+events.
+
+`preview` reads setup telemetry such as `model_geometry` and `ansatz_layout` and
+reports interaction range, expected lightcone, early chi-pressure risk,
+contraction risk, and ansatz suggestions.
+
+`inspect` chooses a useful starting point, selects that bond, and shows a
+smaller window around it. Focus strategies include `bottleneck`, `entropy`,
+`front`, `compute`, and `center`.
+
+`search` locates bonds by `bond:`, `site:`, `tag:`, or `status:`. Tensor-name
+search also works with `tensor:A2`; it scans `ansatz_layout.tensors` and
+contraction-path step operands.
+
+`compare` summarizes multiple runs side by side.
 
 ## Setup
 
-From the repo root, install the editable package into your active Python
-environment. This creates the `tnview` command.
-
-Recommended:
+From the repo root:
 
 ```bash
 make setup
@@ -49,73 +105,10 @@ If `make setup` created `.venv`, activate it before running `tnview` directly:
 
 ```bash
 source .venv/bin/activate
-tnview replay examples/tebd_run.jsonl --interactive
+tnview demo --interactive
 ```
 
-If you are using a named conda/venv environment, activate it first, then run the
-same command:
-
-```bash
-conda activate p310
-make setup
-```
-
-## Common commands
-
-```bash
-tnview validate examples/tebd_run.jsonl
-tnview preview examples/ladder_snake_mismatch.jsonl
-tnview inspect examples/ladder_snake_mismatch.jsonl
-tnview replay examples/ladder_snake_mismatch.jsonl --focus bottleneck --window 12
-tnview replay examples/tebd_run.jsonl --ascii --width 120 -b 1
-tnview replay examples/tebd_run.jsonl --interactive
-tnview search examples/tebd_run.jsonl tensor:A2
-tnview examples
-tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generated.jsonl
-tnview compare examples/tebd_run.jsonl examples/tebd_run.jsonl
-tnview compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
-tnview compare examples/*.jsonl --sort risk --csv
-```
-
-Use `preview` before committing to a run. It reads setup telemetry such as
-`model_geometry` and `ansatz_layout` and reports interaction range, expected
-lightcone, early chi-pressure risk, contraction risk, and ansatz suggestions.
-
-Use `inspect` when you want TNView to choose a useful starting point. It
-defaults to the truncation/chi bottleneck, selects that bond, and shows a
-smaller bond window around it. `replay --focus` supports the same targeting
-inside the regular replay view: `bottleneck`, `entropy`, `front`, `compute`, or
-`center`.
-
-Use `search` to locate bonds by `bond:`, `site:`, `tag:`, or `status:`.
-Tensor-name search also works with `tensor:A2`; it scans `ansatz_layout.tensors`
-and contraction-path step operands.
-
-Makefile shortcuts:
-
-```bash
-make test
-make validate
-make replay
-make replay-interactive
-make compare
-```
-
-If `tnview` is not found, the package has not been installed into the currently
-active environment. Re-run one of:
-
-```bash
-make setup
-python -m pip install -r requirements.txt
-```
-
-You can also run without activating an environment:
-
-```bash
-python -m tnview.cli replay examples/tebd_run.jsonl --interactive
-```
-
-Interactive replay keys:
+## Interactive Keys
 
 ```text
 n/p       next/previous checkpoint
@@ -128,3 +121,22 @@ u/e/c/i/d toggle updates, entropy, chi rows, inspector, diagnostics
 ?         help
 q         quit
 ```
+
+## Telemetry
+
+Telemetry producers should emit the JSONL events documented in
+[docs/telemetry.md](docs/telemetry.md). The core event types are:
+
+- `run_started`
+- `model_geometry`
+- `ansatz_layout`
+- `bond_updated`
+- `checkpoint`
+- `tdvp_sweep`
+- `observable_updated`
+- `contraction_path`
+
+## Project Direction
+
+Current implementation status is tracked in [docs/status.md](docs/status.md).
+The broader research/product direction lives in [docs/vision.md](docs/vision.md).

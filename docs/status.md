@@ -27,6 +27,7 @@ P1 coverage:
 - Export snapshots, normalized replay JSONL, manifests, and CSV comparison
 
 Operational support:
+- Generated zero-setup demo command
 - Interactive replay shell
 - Bond viewporting for larger systems
 - Focused replay inspection with bottleneck, entropy-front, compute, and center presets
@@ -48,7 +49,7 @@ Operational support:
 
 ## Recommended Next Steps
 
-1. Add distance-to-baseline comparison metrics for P2-style run comparison.
-2. Add richer graph/2D topology renderers for non-MPS layouts.
-3. Add Hamiltonian/circuit metadata fields to improve preview calibration.
-4. Add richer contraction-path visual layout beyond summary metrics.
+1. Improve live/interactive visual pacing and dashboard density.
+2. Add a small telemetry recorder API for real simulations.
+3. Add distance-to-baseline comparison metrics for P2-style run comparison.
+4. Add richer graph/2D topology renderers for non-MPS layouts.

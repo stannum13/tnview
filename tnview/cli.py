@@ -31,6 +31,8 @@ def main(argv: list[str] | None = None) -> int:
             return _replay(args)
         if args.command == "live":
             return _live(args)
+        if args.command == "demo":
+            return _demo(args)
         if args.command == "compare":
             return _compare(args)
         if args.command == "preview":
@@ -61,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tnview",
-        description="Terminal-native complexity microscope for tensor-network JSONL telemetry.",
+        description="Terminal-native viewer for tensor-network dynamics and complexity telemetry.",
     )
     subparsers = parser.add_subparsers(dest="command")
 
@@ -87,6 +89,16 @@ def _parser() -> argparse.ArgumentParser:
     live.add_argument("path", nargs="?", default="-", help="JSONL source, default stdin")
     live.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     _render_args(live)
+
+    demo = subparsers.add_parser("demo", help="render a generated tensor-network dynamics demo")
+    demo.add_argument("--sites", type=int, default=32, help="number of sites in the generated chain")
+    demo.add_argument("--checkpoints", type=int, default=10, help="number of generated checkpoints")
+    demo.add_argument("--chi-max", type=int, default=128, help="maximum bond dimension")
+    demo.add_argument("--profile", choices=["easy", "hard"], default="hard", help="demo complexity profile")
+    demo.add_argument("--interactive", action="store_true", help="open the generated replay in the interactive shell")
+    demo.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    demo.add_argument("--width", type=int, help="render width in columns")
+    demo.add_argument("--window", type=int, default=16, help="number of bonds to show around the bottleneck")
 
     compare = subparsers.add_parser("compare", help="compare multiple JSONL telemetry replays")
     compare.add_argument("paths", nargs="+", help="JSONL replay files")
@@ -193,6 +205,40 @@ def _live(args: argparse.Namespace) -> int:
 
     if not rendered:
         _print_frame(state, args)
+    return 0
+
+
+def _demo(args: argparse.Namespace) -> int:
+    replay = generate_chain_fixture(
+        sites=args.sites,
+        checkpoints=args.checkpoints,
+        chi_max=args.chi_max,
+        profile=args.profile,
+        run_id="tnview-demo",
+    )
+    events = _read_events(replay.splitlines())
+    if args.interactive:
+        run_interactive(events, ascii_mode=args.ascii)
+        return 0
+
+    state = _state_at_checkpoint(events, "latest")
+    focus = choose_focus(state, strategy="bottleneck", window=args.window)
+    if focus.bond is not None:
+        state.select_bond(focus.bond)
+    print(f"TNView demo | generated {args.profile} MPS/TEBD replay")
+    print("Tip: run `tnview demo --interactive` for keyboard navigation.")
+    print()
+    print(
+        render_run(
+            state,
+            RenderOptions(
+                width=args.width,
+                unicode=not args.ascii,
+                bond_start=focus.bond_start,
+                bond_limit=focus.bond_limit,
+            ),
+        )
+    )
     return 0
 
 

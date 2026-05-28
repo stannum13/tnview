@@ -212,6 +212,33 @@ class CliTests(unittest.TestCase):
             self.assertIn('"run_status": "chi-limited run"', exported)
             self.assertIn('"selected_bond"', exported)
 
+    def test_demo_command_renders_generated_replay(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "demo",
+                "--sites",
+                "12",
+                "--checkpoints",
+                "4",
+                "--chi-max",
+                "32",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView demo | generated hard MPS/TEBD replay", result.stdout)
+        self.assertIn("TNView", result.stdout)
+        self.assertIn("Entanglement heatmap", result.stdout)
+        self.assertIn("Selected bond", result.stdout)
+
     def test_compare_renders_summary_table(self) -> None:
         result = subprocess.run(
             [

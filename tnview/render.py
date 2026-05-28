@@ -68,7 +68,7 @@ def _title(state: RunState, width: int) -> str:
     else:
         status = checkpoint.complexity_status or diagnose_run(state)
         suffix = f"step {checkpoint.step}  t={checkpoint.time:g}  {status.replace('_', '-')}"
-    return _fit(f"TNView complexity microscope | {suffix}", width)
+    return _fit(f"TNView dynamics viewer | {suffix}", width)
 
 
 def _topology(state: RunState, width: int, options: RenderOptions) -> str:
