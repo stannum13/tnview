@@ -84,6 +84,26 @@ contraction-path step operands.
 
 `compare` summarizes multiple runs side by side.
 
+## Python Object Interfaces
+
+TNView can also adapt objects from existing quantum Python libraries. The first
+adapter targets quimb-style matrix product states without making quimb a hard
+dependency.
+
+```python
+from pathlib import Path
+import quimb.tensor as qtn
+from tnview.adapters.quimb import view_mps, mps_to_jsonl
+
+psi = qtn.MPS_rand_state(L=32, bond_dim=16, phys_dim=2)
+
+print(view_mps(psi, width=120))
+Path("mps.jsonl").write_text(mps_to_jsonl(psi), encoding="utf-8")
+```
+
+The adapter reads MPS structure such as site count, bond dimensions, tensor
+shapes, and singular values when the object exposes them.
+
 ## Setup
 
 From the repo root:
