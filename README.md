@@ -194,3 +194,15 @@ Then inspect it with:
 tnview replay run.jsonl
 tnview replay run.jsonl --interactive
 ```
+
+For MPS-like objects, record snapshots directly inside an evolution loop:
+
+```python
+from tnview import Recorder
+
+with Recorder("run.jsonl") as rec:
+    rec.run_started(run_id="tebd-001", simulator="quimb", algorithm="TEBD")
+    for step, time in enumerate(times):
+        # update psi with your simulator here
+        rec.observe_mps(psi, step=step, time=time, chi_max=128, include_setup=(step == 0))
+```

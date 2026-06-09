@@ -4,6 +4,7 @@ import unittest
 
 from tnview import Recorder
 from tnview.events import BondUpdated, Checkpoint, RunStarted, parse_jsonl
+from tests.test_quimb_adapter import FakeMPS
 
 
 class RecorderTests(unittest.TestCase):
@@ -55,6 +56,29 @@ class RecorderTests(unittest.TestCase):
         self.assertIsInstance(events[3], BondUpdated)
         self.assertIsInstance(events[4], Checkpoint)
         self.assertEqual(json.loads(lines[0])["run_id"], "r1")
+
+    def test_observe_mps_records_snapshot_without_setup_by_default(self) -> None:
+        handle = StringIO()
+
+        with Recorder(handle) as recorder:
+            recorder.observe_mps(FakeMPS(), step=3, time=0.3, chi_max=4)
+
+        events = parse_jsonl(handle.getvalue().splitlines())
+        bonds = [event for event in events if isinstance(event, BondUpdated)]
+
+        self.assertEqual(len(bonds), 3)
+        self.assertIsInstance(events[-1], Checkpoint)
+        self.assertNotIsInstance(events[0], RunStarted)
+
+    def test_observe_mps_can_include_setup_events(self) -> None:
+        handle = StringIO()
+
+        with Recorder(handle) as recorder:
+            recorder.observe_mps(FakeMPS(), run_id="fake", include_setup=True)
+
+        events = parse_jsonl(handle.getvalue().splitlines())
+
+        self.assertIsInstance(events[0], RunStarted)
 
 
 if __name__ == "__main__":

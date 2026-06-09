@@ -39,10 +39,44 @@ class Recorder:
         self._owns_handle = False
 
     def emit(self, event: str, **payload: Any) -> None:
-        handle = self._require_handle()
         record = {"event": event, **payload}
+        self.emit_record(record)
+
+    def emit_record(self, record: dict[str, Any]) -> None:
+        handle = self._require_handle()
         handle.write(json.dumps(record, separators=(",", ":")) + "\n")
         handle.flush()
+
+    def observe_mps(
+        self,
+        mps: Any,
+        *,
+        run_id: str = "mps",
+        name: str | None = None,
+        step: int = 0,
+        time: float = 0.0,
+        chi_max: int | None = None,
+        include_setup: bool = False,
+        include_checkpoint: bool = True,
+    ) -> None:
+        """Record a quimb-style MPS snapshot as TNView telemetry."""
+
+        from tnview.adapters.quimb import mps_to_events
+
+        events = mps_to_events(
+            mps,
+            run_id=run_id,
+            name=name,
+            step=step,
+            time=time,
+            chi_max=chi_max,
+        )
+        for event in events:
+            if not include_setup and event["event"] in {"run_started", "model_geometry", "ansatz_layout"}:
+                continue
+            if not include_checkpoint and event["event"] == "checkpoint":
+                continue
+            self.emit_record(event)
 
     def run_started(
         self,
