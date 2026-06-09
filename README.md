@@ -93,11 +93,12 @@ dependency.
 ```python
 from pathlib import Path
 import quimb.tensor as qtn
-from tnview.adapters.quimb import view_mps, mps_to_jsonl
+from tnview import view
+from tnview.adapters.quimb import mps_to_jsonl
 
 psi = qtn.MPS_rand_state(L=32, bond_dim=16, phys_dim=2)
 
-print(view_mps(psi, width=120))
+print(view(psi, width=120))
 Path("mps.jsonl").write_text(mps_to_jsonl(psi), encoding="utf-8")
 ```
 
