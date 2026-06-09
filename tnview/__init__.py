@@ -1,5 +1,7 @@
-"""TNView package."""
+"""Terminal-native viewer for tensor-network dynamics telemetry."""
 
-__all__ = ["__version__"]
+from tnview.recorder import Recorder
+
+__all__ = ["Recorder", "__version__"]
 
 __version__ = "0.1.0"

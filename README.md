@@ -135,3 +135,41 @@ Telemetry producers should emit the JSONL events documented in
 - `tdvp_sweep`
 - `observable_updated`
 - `contraction_path`
+
+Python code can write TNView telemetry directly:
+
+```python
+from tnview import Recorder
+
+with Recorder("run.jsonl") as rec:
+    rec.run_started(run_id="ising-001", simulator="my-code", algorithm="TEBD")
+    rec.model_geometry(
+        name="1D chain",
+        sites=32,
+        dimensions=[32],
+        edges=[{"source": i, "target": i + 1} for i in range(31)],
+    )
+    rec.ansatz_layout(ansatz="MPS", ordering=list(range(32)))
+    rec.bond_updated(
+        step=10,
+        time=0.1,
+        layer="even",
+        bond=15,
+        site_left=15,
+        site_right=16,
+        entropy_before=0.4,
+        entropy_after=0.8,
+        chi_before=32,
+        chi_after=64,
+        chi_max=128,
+        trunc_error=1e-10,
+    )
+    rec.checkpoint(step=10, time=0.1, max_entropy=0.8, max_chi=64)
+```
+
+Then inspect it with:
+
+```bash
+tnview replay run.jsonl
+tnview replay run.jsonl --interactive
+```
