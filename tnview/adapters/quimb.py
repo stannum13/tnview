@@ -118,6 +118,37 @@ def view_mps(mps: Any, *, width: int | None = None, unicode: bool = True, **kwar
     return render_run(state, RenderOptions(width=width, unicode=unicode))
 
 
+def tnoptimizer_callback(logger: Any):
+    """Return a quimb ``TNOptimizer`` callback that emits optimizer telemetry."""
+
+    def callback(tnopt: Any) -> None:
+        record: dict[str, Any] = {
+            "library": "quimb",
+            "algorithm": "tnoptimizer",
+            "step": _json_scalar(_optional_attr(tnopt, "nevals")),
+            "loss": _json_scalar(_optional_attr(tnopt, "loss")),
+        }
+        for source, target in [
+            ("loss_best", "loss_best"),
+            ("best_loss", "loss_best"),
+        ]:
+            value = _json_scalar(_optional_attr(tnopt, source))
+            if value is not None and target not in record:
+                record[target] = value
+
+        losses = _optional_attr(tnopt, "losses")
+        if isinstance(losses, list | tuple) and losses:
+            scalar_losses = [_json_scalar(value) for value in losses]
+            numeric_losses = [value for value in scalar_losses if isinstance(value, int | float)]
+            record["loss_history_len"] = len(losses)
+            if numeric_losses:
+                record.setdefault("loss_best", min(numeric_losses))
+
+        logger.emit("optimizer_step", **{key: value for key, value in record.items() if value is not None})
+
+    return callback
+
+
 def _site_count(mps: Any) -> int:
     value = getattr(mps, "L", None)
     if callable(value):
@@ -193,3 +224,27 @@ def _object_name(mps: Any) -> str:
     if isinstance(name, str):
         return name
     return type(mps).__name__
+
+
+def _optional_attr(obj: Any, name: str) -> Any:
+    value = getattr(obj, name, None)
+    if callable(value):
+        try:
+            return value()
+        except TypeError:
+            return None
+    return value
+
+
+def _json_scalar(value: Any) -> str | int | float | bool | None:
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            candidate = item()
+        except (TypeError, ValueError):
+            return None
+        if isinstance(candidate, str | int | float | bool):
+            return candidate
+    return None

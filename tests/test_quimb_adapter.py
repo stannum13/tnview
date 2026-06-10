@@ -1,6 +1,9 @@
+import json
+from io import StringIO
 import unittest
 
-from tnview.adapters.quimb import mps_to_events, mps_to_jsonl, view_mps
+from tnview import RunLogger
+from tnview.adapters.quimb import mps_to_events, mps_to_jsonl, tnoptimizer_callback, view_mps
 from tnview.events import BondUpdated, parse_jsonl
 
 
@@ -22,6 +25,13 @@ class FakeMPS:
             1: (0.7, 0.2, 0.1),
             2: (0.8, 0.2),
         }[i]
+
+
+class FakeTNOptimizer:
+    nevals = 7
+    loss = 0.123
+    loss_best = 0.1
+    losses = [0.5, 0.2, 0.123]
 
 
 class QuimbAdapterTests(unittest.TestCase):
@@ -48,6 +58,24 @@ class QuimbAdapterTests(unittest.TestCase):
         self.assertIn("MPS topology", output)
         self.assertIn("Selected bond", output)
         self.assertIn("object-inspection", output)
+
+    def test_tnoptimizer_callback_emits_optimizer_step(self) -> None:
+        handle = StringIO()
+        with RunLogger(handle, run_id="opt-run") as logger:
+            callback = tnoptimizer_callback(logger)
+            callback(FakeTNOptimizer())
+
+        record = json.loads(handle.getvalue().strip())
+        self.assertEqual(record["event"], "optimizer_step")
+        self.assertEqual(record["run_id"], "opt-run")
+        self.assertEqual(record["library"], "quimb")
+        self.assertEqual(record["algorithm"], "tnoptimizer")
+        self.assertEqual(record["step"], 7)
+        self.assertEqual(record["loss"], 0.123)
+        self.assertEqual(record["loss_best"], 0.1)
+        self.assertEqual(record["loss_history_len"], 3)
+        self.assertEqual(record["schema_version"], "0.1")
+        self.assertIn("timestamp", record)
 
 
 if __name__ == "__main__":

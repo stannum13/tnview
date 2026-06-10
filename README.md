@@ -1,17 +1,48 @@
 # TNView
 
-TNView is an experimental terminal-native viewer for tensor-network dynamics.
+TNView is a terminal-first black-box recorder for tensor-network simulations.
 
-It is built around lightweight JSONL telemetry: simulations emit events, and
-TNView turns them into compact terminal views for entropy growth, bond-dimension
-pressure, truncation hotspots, update history, and run-level diagnostics.
+Long-running DMRG, TEBD, and tensor-network optimization jobs can emit
+append-only JSONL telemetry through `RunLogger`. TNView then tails those logs,
+surfaces deterministic diagnostics, and renders compact terminal views for
+entropy growth, bond-dimension pressure, truncation hotspots, update history,
+and run comparisons.
 
-The immediate goal is a lively TUI that makes MPS/TEBD-style runs easy to watch
-without opening a heavier GUI. The longer-term research direction is to make the
-same telemetry useful for comparing toy models, spotting ansatz pressure, and
-debugging complexity growth.
+The immediate goal is a lively TUI for runs that are too dynamic for static
+logs but do not need a heavier GUI. The longer-term research direction is to
+make the same telemetry useful for comparing toy models, spotting ansatz
+pressure, and debugging complexity growth.
 
 ## Quick Start
+
+Record a run:
+
+```python
+from tnview import RunLogger
+
+with RunLogger("runs/dmrg.jsonl", run_id="dmrg-001") as log:
+    log.emit("run_start", library="my-code", algorithm="dmrg")
+    for sweep in range(4):
+        log.emit(
+            "sweep_end",
+            sweep=sweep,
+            energy=-1.0 - sweep * 0.01,
+            delta_energy=1e-9,
+            max_chi=128,
+            chi_max_configured=128,
+            max_trunc_err=2e-7,
+        )
+    log.emit("run_end", status="complete")
+```
+
+Inspect it from the terminal:
+
+```bash
+tnview tail runs/dmrg.jsonl
+tnview diagnose runs/dmrg.jsonl
+```
+
+Try the visual replay demo:
 
 ```bash
 make setup
@@ -171,16 +202,16 @@ Python code can write TNView telemetry directly:
 ```python
 from tnview import RunLogger
 
-with RunLogger("run.jsonl") as rec:
-    rec.run_started(run_id="ising-001", simulator="my-code", algorithm="TEBD")
-    rec.model_geometry(
+with RunLogger("run.jsonl") as log:
+    log.run_started(run_id="ising-001", simulator="my-code", algorithm="TEBD")
+    log.model_geometry(
         name="1D chain",
         sites=32,
         dimensions=[32],
         edges=[{"source": i, "target": i + 1} for i in range(31)],
     )
-    rec.ansatz_layout(ansatz="MPS", ordering=list(range(32)))
-    rec.bond_updated(
+    log.ansatz_layout(ansatz="MPS", ordering=list(range(32)))
+    log.bond_updated(
         step=10,
         time=0.1,
         layer="even",
@@ -211,9 +242,27 @@ For MPS-like objects, record snapshots directly inside an evolution loop:
 ```python
 from tnview import RunLogger
 
-with RunLogger("run.jsonl") as rec:
-    rec.run_started(run_id="tebd-001", simulator="quimb", algorithm="TEBD")
+with RunLogger("run.jsonl") as log:
+    log.run_started(run_id="tebd-001", simulator="quimb", algorithm="TEBD")
     for step, time in enumerate(times):
         # update psi with your simulator here
-        rec.observe_mps(psi, step=step, time=time, chi_max=128, include_setup=(step == 0))
+        log.observe_mps(psi, step=step, time=time, chi_max=128, include_setup=(step == 0))
 ```
+
+For quimb `TNOptimizer`, pass a TNView callback into the optimizer:
+
+```python
+from tnview import RunLogger
+from tnview.adapters.quimb import tnoptimizer_callback
+
+with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
+    callback = tnoptimizer_callback(log)
+    # qtn.TNOptimizer(..., callback=callback)
+```
+
+## Non-goals for v0
+
+- full quantum object inspection across every library
+- full QuTiP or Qiskit support
+- tensor serialization or checkpoint storage
+- browser dashboards
