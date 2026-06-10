@@ -47,6 +47,7 @@ tnview examples
 
 tnview validate examples/tebd_run.jsonl
 tnview diagnose run.jsonl
+tnview tail run.jsonl
 tnview replay examples/tebd_run.jsonl --ascii --width 120
 tnview replay examples/tebd_run.jsonl --interactive
 
@@ -70,6 +71,9 @@ region automatically.
 
 `live` streams JSONL telemetry from a file or stdin and refreshes on checkpoint
 events.
+
+`tail` prints a current-state summary for run-log files. For replay logs, it
+falls back to the same frame rendering used by `live`.
 
 `diagnose` prints deterministic warnings for run-log events such as energy
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
@@ -198,6 +202,8 @@ Then inspect it with:
 ```bash
 tnview replay run.jsonl
 tnview replay run.jsonl --interactive
+tnview tail run.jsonl
+tnview diagnose run.jsonl
 ```
 
 For MPS-like objects, record snapshots directly inside an evolution loop:

@@ -17,10 +17,11 @@ from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.interactive import run_interactive
 from tnview.preview import complexity_preview, render_preview
 from tnview.render import RenderOptions, render_run
-from tnview.runlog import read_jsonl_records
+from tnview.runlog import RUN_LOG_EVENTS, read_jsonl_records
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
+from tnview.tail import render_run_log_tail
 from tnview.validate import render_validation, validate_lines
 
 
@@ -33,6 +34,8 @@ def main(argv: list[str] | None = None) -> int:
             return _replay(args)
         if args.command == "live":
             return _live(args)
+        if args.command == "tail":
+            return _tail(args)
         if args.command == "demo":
             return _demo(args)
         if args.command == "compare":
@@ -93,6 +96,11 @@ def _parser() -> argparse.ArgumentParser:
     live.add_argument("path", nargs="?", default="-", help="JSONL source, default stdin")
     live.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     _render_args(live)
+
+    tail = subparsers.add_parser("tail", help="tail a TNView replay or run-log JSONL file")
+    tail.add_argument("path", nargs="?", default="-", help="JSONL source, default stdin")
+    tail.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
+    _render_args(tail)
 
     demo = subparsers.add_parser("demo", help="render a generated tensor-network dynamics demo")
     demo.add_argument("--sites", type=int, default=32, help="number of sites in the generated chain")
@@ -196,11 +204,24 @@ def _replay(args: argparse.Namespace) -> int:
 
 
 def _live(args: argparse.Namespace) -> int:
+    return _render_live_lines(_iter_lines(args.path), args)
+
+
+def _tail(args: argparse.Namespace) -> int:
+    lines = list(_iter_lines(args.path))
+    report = read_jsonl_records(lines)
+    run_records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
+    if run_records:
+        print(render_run_log_tail(run_records, width=args.width or 100))
+        return 0 if not report.errors else 2
+    return _render_live_lines(lines, args)
+
+
+def _render_live_lines(lines: Iterable[str], args: argparse.Namespace) -> int:
     state = RunState()
-    source = _iter_lines(args.path)
     rendered = False
 
-    for line_number, line in enumerate(source, start=1):
+    for line_number, line in enumerate(lines, start=1):
         event = parse_jsonl_line(line, line_number=line_number)
         if event is None:
             continue

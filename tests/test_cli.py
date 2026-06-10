@@ -418,6 +418,59 @@ class CliTests(unittest.TestCase):
         self.assertIn("chi_saturation", result.stdout)
         self.assertIn("truncation_floor", result.stdout)
 
+    def test_tail_command_renders_run_log_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text(
+                "\n".join(
+                    [
+                        '{"event":"run_start","run_id":"r","library":"quimb","algorithm":"dmrg"}',
+                        '{"event":"sweep_end","sweep":1,"energy":-1.0,"delta_energy":1e-4,"max_chi":64}',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "tail",
+                    str(path),
+                    "--width",
+                    "100",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertIn("TNView run tail", result.stdout)
+        self.assertIn("run_id=r", result.stdout)
+        self.assertIn("Recent events", result.stdout)
+
+    def test_tail_command_falls_back_to_replay_rendering(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "tail",
+                "examples/tebd_run.jsonl",
+                "--no-clear",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView dynamics viewer", result.stdout)
+        self.assertIn("Entanglement heatmap", result.stdout)
+
     def test_export_command_writes_manifest(self) -> None:
         result = subprocess.run(
             [
