@@ -2,9 +2,22 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 import json
 from typing import Any, TextIO
+
+
+LEGACY_REPLAY_EVENTS = {
+    "run_started",
+    "model_geometry",
+    "ansatz_layout",
+    "observable_updated",
+    "bond_updated",
+    "checkpoint",
+    "tdvp_sweep",
+    "contraction_path",
+}
 
 
 class RunLogger:
@@ -14,10 +27,22 @@ class RunLogger:
     physics objects and TNView records observable summaries for replay.
     """
 
-    def __init__(self, path: str | Path | TextIO):
+    def __init__(
+        self,
+        path: str | Path | TextIO,
+        *,
+        run_id: str | None = None,
+        schema_version: str = "0.1",
+        flush: bool = True,
+        strict: bool = False,
+    ):
         self._target = path
         self._handle: TextIO | None = path if hasattr(path, "write") else None
         self._owns_handle = False
+        self.run_id = run_id or "run"
+        self.schema_version = schema_version
+        self.flush = flush
+        self.strict = strict
 
     def __enter__(self) -> RunLogger:
         self.open()
@@ -29,8 +54,14 @@ class RunLogger:
     def open(self) -> None:
         if self._handle is not None:
             return
-        self._handle = Path(self._target).open("w", encoding="utf-8")  # type: ignore[arg-type]
-        self._owns_handle = True
+        try:
+            path = Path(self._target)  # type: ignore[arg-type]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            self._handle = path.open("a", encoding="utf-8")
+            self._owns_handle = True
+        except Exception:
+            if self.strict:
+                raise
 
     def close(self) -> None:
         if self._handle is not None and self._owns_handle:
@@ -43,9 +74,17 @@ class RunLogger:
         self.emit_record(record)
 
     def emit_record(self, record: dict[str, Any]) -> None:
-        handle = self._require_handle()
-        handle.write(json.dumps(record, separators=(",", ":")) + "\n")
-        handle.flush()
+        try:
+            handle = self._require_handle()
+            if handle is None:
+                return
+            prepared = self._prepare_record(record)
+            handle.write(json.dumps(prepared, separators=(",", ":")) + "\n")
+            if self.flush:
+                handle.flush()
+        except Exception:
+            if self.strict:
+                raise
 
     def observe_mps(
         self,
@@ -214,8 +253,22 @@ class RunLogger:
             complexity_status=complexity_status,
         )
 
-    def _require_handle(self) -> TextIO:
+    def _prepare_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        prepared = dict(record)
+        event = str(prepared.get("event", ""))
+        timestamp = _utc_timestamp()
+        prepared.setdefault("schema_version", self.schema_version)
+        prepared.setdefault("run_id", self.run_id)
+        prepared.setdefault("timestamp", timestamp)
+        if "time" not in prepared and event not in LEGACY_REPLAY_EVENTS:
+            prepared["time"] = timestamp
+        return prepared
+
+    def _require_handle(self) -> TextIO | None:
         if self._handle is None:
             self.open()
-        assert self._handle is not None
         return self._handle
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")

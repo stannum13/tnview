@@ -1,5 +1,7 @@
 from io import StringIO
 import json
+from pathlib import Path
+import tempfile
 import unittest
 
 from tnview import RunLogger
@@ -57,6 +59,46 @@ class RunLoggerTests(unittest.TestCase):
         self.assertIsInstance(events[4], Checkpoint)
         self.assertEqual(json.loads(lines[0])["run_id"], "r1")
 
+    def test_logger_adds_run_log_metadata(self) -> None:
+        handle = StringIO()
+
+        with RunLogger(handle, run_id="run-1") as logger:
+            logger.emit("sweep_end", sweep=2, energy=-1.23)
+
+        record = json.loads(handle.getvalue())
+
+        self.assertEqual(record["event"], "sweep_end")
+        self.assertEqual(record["run_id"], "run-1")
+        self.assertEqual(record["schema_version"], "0.1")
+        self.assertIn("timestamp", record)
+        self.assertTrue(record["time"].endswith("Z"))
+
+    def test_logger_appends_and_creates_parent_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "runs" / "run.jsonl"
+
+            with RunLogger(path, run_id="first") as logger:
+                logger.emit("run_start")
+            with RunLogger(path, run_id="second") as logger:
+                logger.emit("run_end", status="ok")
+
+            records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+        self.assertEqual([record["event"] for record in records], ["run_start", "run_end"])
+        self.assertEqual(records[0]["run_id"], "first")
+        self.assertEqual(records[1]["run_id"], "second")
+
+    def test_non_strict_logger_does_not_raise_on_write_failure(self) -> None:
+        logger = RunLogger(FailingHandle(), strict=False)
+
+        logger.emit("run_start")
+
+    def test_strict_logger_raises_on_write_failure(self) -> None:
+        logger = RunLogger(FailingHandle(), strict=True)
+
+        with self.assertRaises(OSError):
+            logger.emit("run_start")
+
     def test_observe_mps_records_snapshot_without_setup_by_default(self) -> None:
         handle = StringIO()
 
@@ -79,6 +121,13 @@ class RunLoggerTests(unittest.TestCase):
         events = parse_jsonl(handle.getvalue().splitlines())
 
         self.assertIsInstance(events[0], RunStarted)
+
+class FailingHandle:
+    def write(self, _value: str) -> int:
+        raise OSError("write failed")
+
+    def flush(self) -> None:
+        pass
 
 
 if __name__ == "__main__":

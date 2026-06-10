@@ -9,6 +9,15 @@ tnview replay run.jsonl
 tnview validate run.jsonl
 ```
 
+TNView accepts two related JSONL shapes:
+
+- replay telemetry for visualizing MPS/TEBD state evolution
+- run-log telemetry for black-box diagnostics of DMRG, TEBD, and tensor-network
+  optimization jobs
+
+Run-log events should include `schema_version`, `run_id`, and a timestamp-like
+`time` or `timestamp` field. `RunLogger` adds these fields automatically.
+
 ## Event Ordering
 
 A useful replay usually emits metadata first, then update/checkpoint events:
@@ -26,6 +35,22 @@ checkpoint
 
 Only `bond_updated` events are required for a basic render. Checkpoints create
 history rows for the heatmap and enable checkpoint navigation.
+
+A run-log file may instead emit events such as:
+
+```text
+run_start
+sweep_start
+sweep_end
+optimizer_step
+observable
+warning
+diagnostic
+run_end
+```
+
+Run-log files are validated and diagnosed directly, while replay rendering uses
+the visual telemetry events below.
 
 ## Common Types
 
