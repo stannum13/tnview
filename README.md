@@ -46,6 +46,7 @@ tnview demo --interactive
 tnview examples
 
 tnview validate examples/tebd_run.jsonl
+tnview diagnose run.jsonl
 tnview replay examples/tebd_run.jsonl --ascii --width 120
 tnview replay examples/tebd_run.jsonl --interactive
 
@@ -69,6 +70,10 @@ region automatically.
 
 `live` streams JSONL telemetry from a file or stdin and refreshes on checkpoint
 events.
+
+`diagnose` prints deterministic warnings for run-log events such as energy
+plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
+and optimizer stagnation.
 
 `preview` reads setup telemetry such as `model_geometry` and `ansatz_layout` and
 reports interaction range, expected lightcone, early chi-pressure risk,

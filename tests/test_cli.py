@@ -385,6 +385,39 @@ class CliTests(unittest.TestCase):
         self.assertIn("checkpoints:       3", result.stdout)
         self.assertIn("bonds:             3", result.stdout)
 
+    def test_diagnose_command_reports_run_log_warnings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text(
+                "\n".join(
+                    [
+                        '{"event":"sweep_end","run_id":"r","delta_energy":1e-9,"max_chi":256,"chi_max_configured":256}',
+                        '{"event":"sweep_end","run_id":"r","delta_energy":1e-9,"max_chi":256,"chi_max_configured":256}',
+                        '{"event":"sweep_end","run_id":"r","delta_energy":1e-9,"max_chi":256,"chi_max_configured":256}',
+                        '{"event":"sweep_end","run_id":"r","delta_energy":1e-9,"max_trunc_err":2e-7}',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "diagnose",
+                    str(path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertIn("TNView diagnostics", result.stdout)
+        self.assertIn("energy_plateau", result.stdout)
+        self.assertIn("chi_saturation", result.stdout)
+        self.assertIn("truncation_floor", result.stdout)
+
     def test_export_command_writes_manifest(self) -> None:
         result = subprocess.run(
             [

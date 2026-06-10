@@ -8,6 +8,7 @@ import sys
 from typing import Iterable, TextIO
 
 from tnview.compare import render_comparison, render_comparison_csv, sort_summaries, summarize_run
+from tnview.diagnose import diagnose_events, render_diagnostics
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_replay_jsonl
@@ -16,6 +17,7 @@ from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.interactive import run_interactive
 from tnview.preview import complexity_preview, render_preview
 from tnview.render import RenderOptions, render_run
+from tnview.runlog import read_jsonl_records
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
@@ -43,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
             return _search(args)
         if args.command == "validate":
             return _validate(args)
+        if args.command == "diagnose":
+            return _diagnose(args)
         if args.command == "export":
             return _export(args)
         if args.command == "examples":
@@ -136,6 +140,9 @@ def _parser() -> argparse.ArgumentParser:
 
     validate = subparsers.add_parser("validate", help="validate a JSONL telemetry replay")
     validate.add_argument("path", help="JSONL replay file, or '-' for stdin")
+
+    diagnose = subparsers.add_parser("diagnose", help="print run-log diagnostics")
+    diagnose.add_argument("path", help="JSONL run log, or '-' for stdin")
 
     export = subparsers.add_parser("export", help="export normalized replay JSONL or manifest JSON")
     export.add_argument("path", help="JSONL replay file, or '-' for stdin")
@@ -295,6 +302,18 @@ def _validate(args: argparse.Namespace) -> int:
     report = validate_lines(lines)
     print(render_validation(report))
     return 0 if report.valid else 2
+
+
+def _diagnose(args: argparse.Namespace) -> int:
+    report = read_jsonl_records(_iter_lines(args.path))
+    if report.errors:
+        print("TNView diagnostics")
+        print("errors:")
+        for error in report.errors:
+            print(f"- {error}")
+        return 2
+    print(render_diagnostics(diagnose_events(list(report.records))))
+    return 0
 
 
 def _export(args: argparse.Namespace) -> int:
