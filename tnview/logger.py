@@ -1,4 +1,4 @@
-"""Programmatic telemetry writer for TNView JSONL streams."""
+"""Programmatic run logger for TNView JSONL streams."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import json
 from typing import Any, TextIO
 
 
-class Recorder:
+class RunLogger:
     """Write TNView telemetry events as newline-delimited JSON.
 
-    The recorder is intentionally small: simulation libraries keep ownership of
+    The logger is intentionally small: simulation libraries keep ownership of
     physics objects and TNView records observable summaries for replay.
     """
 
@@ -19,7 +19,7 @@ class Recorder:
         self._handle: TextIO | None = path if hasattr(path, "write") else None
         self._owns_handle = False
 
-    def __enter__(self) -> Recorder:
+    def __enter__(self) -> RunLogger:
         self.open()
         return self
 

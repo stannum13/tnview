@@ -160,9 +160,9 @@ Telemetry producers should emit the JSONL events documented in
 Python code can write TNView telemetry directly:
 
 ```python
-from tnview import Recorder
+from tnview import RunLogger
 
-with Recorder("run.jsonl") as rec:
+with RunLogger("run.jsonl") as rec:
     rec.run_started(run_id="ising-001", simulator="my-code", algorithm="TEBD")
     rec.model_geometry(
         name="1D chain",
@@ -198,9 +198,9 @@ tnview replay run.jsonl --interactive
 For MPS-like objects, record snapshots directly inside an evolution loop:
 
 ```python
-from tnview import Recorder
+from tnview import RunLogger
 
-with Recorder("run.jsonl") as rec:
+with RunLogger("run.jsonl") as rec:
     rec.run_started(run_id="tebd-001", simulator="quimb", algorithm="TEBD")
     for step, time in enumerate(times):
         # update psi with your simulator here
