@@ -79,6 +79,7 @@ tnview examples
 tnview tail examples/dmrg_bad_run.jsonl
 tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
+tnview export examples/quimb_tnoptimizer_run.jsonl --format csv
 
 tnview validate examples/tebd_run.jsonl
 tnview diagnose run.jsonl

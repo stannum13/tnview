@@ -20,7 +20,7 @@ from tnview.compare import (
 from tnview.diagnose import diagnose_events, render_diagnostics
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
-from tnview.export import export_manifest_json, export_replay_jsonl
+from tnview.export import export_manifest_json, export_records_csv, export_replay_csv, export_replay_jsonl
 from tnview.fixtures import generate_chain_fixture
 from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.interactive import run_interactive
@@ -170,7 +170,7 @@ def _parser() -> argparse.ArgumentParser:
     export.add_argument("path", help="JSONL replay file, or '-' for stdin")
     export.add_argument(
         "--format",
-        choices=["jsonl", "manifest"],
+        choices=["jsonl", "manifest", "csv"],
         default="jsonl",
         help="export format",
     )
@@ -375,7 +375,18 @@ def _diagnose(args: argparse.Namespace) -> int:
 
 
 def _export(args: argparse.Namespace) -> int:
-    events = _read_events(_iter_lines(args.path))
+    lines = list(_iter_lines(args.path))
+    if args.format == "csv":
+        report = read_jsonl_records(lines)
+        if report.errors:
+            raise EventParseError("; ".join(report.errors))
+        if any(record.get("event") in RUN_LOG_EVENTS for record in report.records):
+            output = export_records_csv(report.records)
+        else:
+            output = export_replay_csv(_read_events(lines))
+        _write_output(output, args.output)
+        return 0
+    events = _read_events(lines)
     if args.format == "manifest":
         output = export_manifest_json(events)
     else:

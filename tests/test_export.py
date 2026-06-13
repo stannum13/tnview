@@ -3,7 +3,14 @@ from pathlib import Path
 import unittest
 
 from tnview.events import parse_jsonl, parse_jsonl_line
-from tnview.export import export_manifest, export_manifest_json, export_replay_jsonl, normalize_event
+from tnview.export import (
+    export_manifest,
+    export_manifest_json,
+    export_records_csv,
+    export_replay_csv,
+    export_replay_jsonl,
+    normalize_event,
+)
 
 
 class ReplayExportTests(unittest.TestCase):
@@ -31,6 +38,36 @@ class ReplayExportTests(unittest.TestCase):
 
         self.assertTrue(exported.endswith("\n"))
         self.assertEqual(reparsed, events)
+
+    def test_export_replay_csv_uses_normalized_columns(self) -> None:
+        events = parse_jsonl(
+            [
+                '{"event":"checkpoint","step":0,"time":0.0,"max_entropy":0.5,'
+                '"mean_entropy":0.2,"max_chi":32,"num_saturated_bonds":0,'
+                '"total_trunc_error":1e-9,"energy":-1.0,"energy_drift":0.0,'
+                '"norm":1.0,"complexity_status":"healthy"}'
+            ]
+        )
+
+        exported = export_replay_csv(events)
+
+        self.assertTrue(exported.startswith("event,time,step,energy,max_chi"))
+        self.assertIn("checkpoint,0.0,0,-1.0,32", exported)
+
+    def test_export_records_csv_flattens_nested_values(self) -> None:
+        exported = export_records_csv(
+            [
+                {
+                    "event": "diagnostic",
+                    "run_id": "r",
+                    "library": "manual",
+                    "evidence": {"max_chi": 128},
+                }
+            ]
+        )
+
+        self.assertEqual(exported.splitlines()[0], "event,run_id,library,evidence")
+        self.assertIn('"{""max_chi"":128}"', exported)
 
     def test_export_manifest_summarizes_replay_metadata(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())

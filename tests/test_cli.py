@@ -575,6 +575,27 @@ class CliTests(unittest.TestCase):
         self.assertIn('"checkpoint_count":3', result.stdout)
         self.assertIn('"bond_count":3', result.stdout)
 
+    def test_export_command_writes_run_log_csv(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "export",
+                "examples/quimb_tnoptimizer_run.jsonl",
+                "--format",
+                "csv",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        lines = result.stdout.splitlines()
+        self.assertTrue(lines[0].startswith("event,schema_version,run_id,timestamp"))
+        self.assertIn("optimizer_step,0.1,quimb-opt", result.stdout)
+        self.assertIn("loss", lines[0])
+
     def test_examples_command_lists_fixtures(self) -> None:
         result = subprocess.run(
             [

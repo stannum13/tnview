@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 from dataclasses import fields, is_dataclass
+from io import StringIO
 import json
 import re
 from typing import Any, Iterable
@@ -50,6 +52,25 @@ def export_replay_jsonl(events: Iterable[TelemetryEvent]) -> str:
     if not lines:
         return ""
     return "\n".join(lines) + "\n"
+
+
+def export_replay_csv(events: Iterable[TelemetryEvent]) -> str:
+    """Serialize parsed telemetry events as normalized CSV rows."""
+
+    return export_records_csv(normalize_event(event) for event in events)
+
+
+def export_records_csv(records: Iterable[dict[str, Any]]) -> str:
+    """Serialize JSON-like event dictionaries as a stable CSV table."""
+
+    rows = list(records)
+    columns = _columns(rows)
+    handle = StringIO()
+    writer = csv.writer(handle)
+    writer.writerow(columns)
+    for row in rows:
+        writer.writerow([_csv_value(row.get(column)) for column in columns])
+    return handle.getvalue().rstrip("\r\n")
 
 
 def export_manifest(events: Iterable[TelemetryEvent]) -> dict[str, Any]:
@@ -101,6 +122,42 @@ def _json_value(value: Any) -> Any:
     return value
 
 
+def _columns(records: list[dict[str, Any]]) -> list[str]:
+    priority = [
+        "event",
+        "schema_version",
+        "run_id",
+        "timestamp",
+        "time",
+        "library",
+        "algorithm",
+        "sweep",
+        "step",
+        "energy",
+        "delta_energy",
+        "loss",
+        "max_chi",
+        "chi_max_configured",
+        "max_trunc_err",
+        "entropy_max",
+        "wall_s",
+        "step_wall_s",
+        "rss_mb",
+        "status",
+        "message",
+    ]
+    keys = {key for record in records for key in record}
+    ordered = [key for key in priority if key in keys]
+    ordered.extend(sorted(keys - set(ordered)))
+    return ordered
+
+
+def _csv_value(value: Any) -> Any:
+    if isinstance(value, dict | list | tuple):
+        return json.dumps(_json_value(value), sort_keys=True, separators=(",", ":"))
+    return value
+
+
 def _statuses(checkpoints: list[Checkpoint]) -> list[str]:
     statuses: list[str] = []
     for checkpoint in checkpoints:
@@ -111,8 +168,10 @@ def _statuses(checkpoints: list[Checkpoint]) -> list[str]:
 
 
 __all__ = [
+    "export_records_csv",
     "export_manifest",
     "export_manifest_json",
+    "export_replay_csv",
     "export_replay_jsonl",
     "normalize_event",
 ]
