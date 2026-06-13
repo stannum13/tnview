@@ -7,7 +7,16 @@ from pathlib import Path
 import sys
 from typing import Iterable, TextIO
 
-from tnview.compare import render_comparison, render_comparison_csv, sort_summaries, summarize_run
+from tnview.compare import (
+    render_comparison,
+    render_comparison_csv,
+    render_run_log_comparison,
+    render_run_log_comparison_csv,
+    sort_run_log_summaries,
+    sort_summaries,
+    summarize_run,
+    summarize_run_log,
+)
 from tnview.diagnose import diagnose_events, render_diagnostics
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
@@ -120,6 +129,11 @@ def _parser() -> argparse.ArgumentParser:
         choices=["input", "name", "risk", "max-entropy", "trunc", "chi"],
         default="input",
         help="sort comparison rows",
+    )
+    compare.add_argument(
+        "--metric",
+        choices=["energy", "delta-energy", "loss", "trunc", "chi", "entropy", "rss", "wall"],
+        help="sort run-log comparisons by a specific metric",
     )
     compare.add_argument("--csv", action="store_true", help="write comparison as CSV")
 
@@ -271,9 +285,32 @@ def _demo(args: argparse.Namespace) -> int:
 
 
 def _compare(args: argparse.Namespace) -> int:
+    sources = [(path, list(_iter_lines(path))) for path in args.paths]
+    raw_reports = [(path, read_jsonl_records(lines)) for path, lines in sources]
+    run_log_inputs = [
+        (path, [record for record in report.records if record.get("event") in RUN_LOG_EVENTS])
+        for path, report in raw_reports
+    ]
+    has_run_logs = [bool(records) for _, records in run_log_inputs]
+    if any(has_run_logs):
+        if not all(has_run_logs):
+            raise EventParseError("compare cannot mix replay telemetry and run-log telemetry")
+        errors = [f"{path}: {error}" for path, report in raw_reports for error in report.errors]
+        if errors:
+            raise EventParseError("; ".join(errors))
+        summaries = [summarize_run_log(path, records) for path, records in run_log_inputs]
+        summaries = sort_run_log_summaries(summaries, args.sort, metric=args.metric)
+        print(
+            render_run_log_comparison_csv(summaries)
+            if args.csv
+            else render_run_log_comparison(summaries, width=args.width)
+        )
+        return 0
+    if args.metric:
+        raise EventParseError("--metric is only supported for run-log comparisons")
     summaries = []
-    for path in args.paths:
-        events = _read_events(_iter_lines(path))
+    for path, lines in sources:
+        events = _read_events(lines)
         state = _state_at_checkpoint(events, "latest")
         summaries.append(summarize_run(path, state))
     summaries = sort_summaries(summaries, args.sort)

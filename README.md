@@ -79,6 +79,7 @@ tnview examples
 tnview validate examples/tebd_run.jsonl
 tnview diagnose run.jsonl
 tnview tail run.jsonl
+tnview compare runs/*.jsonl --metric loss
 tnview replay examples/tebd_run.jsonl --ascii --width 120
 tnview replay examples/tebd_run.jsonl --interactive
 
@@ -122,7 +123,10 @@ smaller window around it. Focus strategies include `bottleneck`, `entropy`,
 search also works with `tensor:A2`; it scans `ansatz_layout.tensors` and
 contraction-path step operands.
 
-`compare` summarizes multiple runs side by side.
+`compare` summarizes multiple runs side by side. Replay logs show tensor-network
+state summaries; run logs show latest energy, loss, chi, truncation, memory, and
+diagnostic codes. Add `--metric loss` or another run-log metric to sort the
+table.
 
 ## Python Object Interfaces
 

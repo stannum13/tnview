@@ -288,6 +288,91 @@ class CliTests(unittest.TestCase):
         self.assertIn("long_range_chi_limited.jsonl", lines[1])
         self.assertIn("easy_chain.jsonl", result.stdout)
 
+    def test_compare_renders_run_log_summary_table(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            good = Path(directory) / "good.jsonl"
+            bad = Path(directory) / "bad.jsonl"
+            good.write_text(
+                "\n".join(
+                    [
+                        '{"event":"run_start","run_id":"good","library":"quimb","algorithm":"dmrg"}',
+                        '{"event":"sweep_end","sweep":3,"energy":-1.1,"delta_energy":1e-5,"max_chi":64,"max_trunc_err":1e-9,"rss_mb":512}',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            bad.write_text(
+                "\n".join(
+                    [
+                        '{"event":"run_start","run_id":"bad","library":"quimb","algorithm":"dmrg"}',
+                        '{"event":"sweep_end","sweep":1,"energy":-1.0,"delta_energy":1e-9,"max_chi":128,"chi_max_configured":128,"max_trunc_err":2e-7,"rss_mb":700}',
+                        '{"event":"sweep_end","sweep":2,"energy":-1.0,"delta_energy":1e-9,"max_chi":128,"chi_max_configured":128}',
+                        '{"event":"sweep_end","sweep":3,"energy":-1.0,"delta_energy":1e-9,"max_chi":128,"chi_max_configured":128}',
+                        '{"event":"sweep_end","sweep":4,"energy":-1.0,"delta_energy":1e-9}',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "compare",
+                    str(good),
+                    str(bad),
+                    "--sort",
+                    "risk",
+                    "--width",
+                    "160",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertIn("Run-log comparison", result.stdout)
+        self.assertIn("good.jsonl", result.stdout)
+        self.assertIn("bad.jsonl", result.stdout)
+        self.assertIn("energy_plateau", result.stdout)
+        self.assertLess(result.stdout.index("bad.jsonl"), result.stdout.index("good.jsonl"))
+
+    def test_compare_run_log_csv_can_sort_by_metric(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            low = Path(directory) / "low.jsonl"
+            high = Path(directory) / "high.jsonl"
+            low.write_text(
+                '{"event":"optimizer_step","run_id":"low","library":"quimb","algorithm":"tnoptimizer","step":1,"loss":0.2}\n',
+                encoding="utf-8",
+            )
+            high.write_text(
+                '{"event":"optimizer_step","run_id":"high","library":"quimb","algorithm":"tnoptimizer","step":1,"loss":0.9}\n',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "compare",
+                    str(low),
+                    str(high),
+                    "--metric",
+                    "loss",
+                    "--csv",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        lines = result.stdout.splitlines()
+        self.assertTrue(lines[0].startswith("run,run_id,library,algorithm"))
+        self.assertIn("high.jsonl,high", lines[1])
+        self.assertIn("low.jsonl,low", lines[2])
+
     def test_preview_command_renders_setup_risk(self) -> None:
         result = subprocess.run(
             [
