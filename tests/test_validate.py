@@ -33,13 +33,16 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report.run_log_count, 2)
         self.assertIn("run-log events:    2", render_validation(report))
 
-    def test_all_example_replays_validate(self) -> None:
+    def test_all_examples_validate(self) -> None:
         for path in Path("examples").glob("*.jsonl"):
             with self.subTest(path=path):
                 report = validate_lines(path.read_text(encoding="utf-8").splitlines())
                 self.assertTrue(report.valid)
-                self.assertGreater(report.event_count, 0)
-                self.assertGreater(report.checkpoint_count, 0)
+                if report.run_log_count:
+                    self.assertGreater(report.run_log_count, 0)
+                else:
+                    self.assertGreater(report.event_count, 0)
+                    self.assertGreater(report.checkpoint_count, 0)
 
 
 if __name__ == "__main__":

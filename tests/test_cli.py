@@ -588,7 +588,7 @@ class CliTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn("Built-in replay examples", result.stdout)
+        self.assertIn("Built-in examples", result.stdout)
         self.assertIn("easy_chain.jsonl", result.stdout)
         self.assertIn("tnview compare", result.stdout)
 

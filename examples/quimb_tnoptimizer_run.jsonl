@@ -1,0 +1,6 @@
+{"event":"run_start","schema_version":"0.1","run_id":"quimb-opt","timestamp":"2026-06-10T01:00:00.000Z","library":"quimb","algorithm":"tnoptimizer"}
+{"event":"optimizer_step","schema_version":"0.1","run_id":"quimb-opt","timestamp":"2026-06-10T01:00:02.000Z","library":"quimb","algorithm":"tnoptimizer","step":1,"loss":0.8,"loss_best":0.8,"wall_s":2.0,"rss_mb":512}
+{"event":"optimizer_step","schema_version":"0.1","run_id":"quimb-opt","timestamp":"2026-06-10T01:00:04.000Z","library":"quimb","algorithm":"tnoptimizer","step":2,"loss":0.42,"loss_best":0.42,"wall_s":2.1,"rss_mb":518}
+{"event":"optimizer_step","schema_version":"0.1","run_id":"quimb-opt","timestamp":"2026-06-10T01:00:07.000Z","library":"quimb","algorithm":"tnoptimizer","step":3,"loss":0.18,"loss_best":0.18,"wall_s":2.4,"rss_mb":523}
+{"event":"optimizer_step","schema_version":"0.1","run_id":"quimb-opt","timestamp":"2026-06-10T01:00:10.000Z","library":"quimb","algorithm":"tnoptimizer","step":4,"loss":0.07,"loss_best":0.07,"wall_s":2.3,"rss_mb":526}
+{"event":"run_end","schema_version":"0.1","run_id":"quimb-opt","timestamp":"2026-06-10T01:00:11.000Z","library":"quimb","algorithm":"tnoptimizer","status":"complete"}
