@@ -21,6 +21,23 @@ class TailTests(unittest.TestCase):
         self.assertIn("sweep", output)
         self.assertIn("energy_plateau", output)
         self.assertIn("chi_saturation", output)
+        self.assertIn("Trends:", output)
+        self.assertIn("energy", output)
+
+    def test_render_run_log_tail_can_use_ascii_sparklines(self) -> None:
+        output = render_run_log_tail(
+            [
+                {"event": "optimizer_step", "step": 1, "loss": 0.5},
+                {"event": "optimizer_step", "step": 2, "loss": 0.25},
+                {"event": "optimizer_step", "step": 3, "loss": 0.1},
+            ],
+            width=100,
+            unicode=False,
+        )
+
+        self.assertIn("Trends:", output)
+        self.assertIn("loss", output)
+        self.assertIn("latest=0.1", output)
 
 
 if __name__ == "__main__":

@@ -535,6 +535,46 @@ class CliTests(unittest.TestCase):
         self.assertIn("run_id=r", result.stdout)
         self.assertIn("Recent events", result.stdout)
 
+    def test_tail_follow_renders_once_for_run_logs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text(
+                "\n".join(
+                    [
+                        '{"event":"run_start","run_id":"r","library":"quimb","algorithm":"tnoptimizer"}',
+                        '{"event":"optimizer_step","step":1,"loss":0.5}',
+                        '{"event":"optimizer_step","step":2,"loss":0.25}',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "tail",
+                    str(path),
+                    "--follow",
+                    "--max-refreshes",
+                    "1",
+                    "--interval",
+                    "0.01",
+                    "--no-clear",
+                    "--ascii",
+                    "--width",
+                    "100",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertIn("TNView run tail", result.stdout)
+        self.assertIn("Trends:", result.stdout)
+        self.assertIn("loss", result.stdout)
+
     def test_tail_command_falls_back_to_replay_rendering(self) -> None:
         result = subprocess.run(
             [

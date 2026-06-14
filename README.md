@@ -77,6 +77,7 @@ tnview demo --interactive
 tnview examples
 
 tnview tail examples/dmrg_bad_run.jsonl
+tnview tail examples/dmrg_bad_run.jsonl --follow
 tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 tnview export examples/quimb_tnoptimizer_run.jsonl --format csv
@@ -109,8 +110,10 @@ region automatically.
 `live` streams JSONL telemetry from a file or stdin and refreshes on checkpoint
 events.
 
-`tail` prints a current-state summary for run-log files. For replay logs, it
-falls back to the same frame rendering used by `live`.
+`tail` prints a current-state summary for run-log files, including compact
+metric sparklines for recent energy, loss, chi, truncation, and memory changes.
+Add `--follow` to keep refreshing a file as a batch job appends events. For
+replay logs, it falls back to the same frame rendering used by `live`.
 
 `diagnose` prints deterministic warnings for run-log events such as energy
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,

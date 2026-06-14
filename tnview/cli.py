@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
+from time import sleep
 from typing import Iterable, TextIO
 
 from tnview.compare import (
@@ -108,6 +109,9 @@ def _parser() -> argparse.ArgumentParser:
 
     tail = subparsers.add_parser("tail", help="tail a TNView replay or run-log JSONL file")
     tail.add_argument("path", nargs="?", default="-", help="JSONL source, default stdin")
+    tail.add_argument("--follow", "-f", action="store_true", help="keep refreshing as new JSONL events are appended")
+    tail.add_argument("--interval", type=float, default=1.0, help="refresh interval in seconds for --follow")
+    tail.add_argument("--max-refreshes", type=int, help="stop after N refreshes, useful for scripted checks")
     tail.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     _render_args(tail)
 
@@ -222,13 +226,54 @@ def _live(args: argparse.Namespace) -> int:
 
 
 def _tail(args: argparse.Namespace) -> int:
+    if args.follow:
+        return _tail_follow(args)
     lines = list(_iter_lines(args.path))
     report = read_jsonl_records(lines)
     run_records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
     if run_records:
-        print(render_run_log_tail(run_records, width=args.width or 100))
+        print(render_run_log_tail(run_records, width=args.width or 100, unicode=not args.ascii))
         return 0 if not report.errors else 2
     return _render_live_lines(lines, args)
+
+
+def _tail_follow(args: argparse.Namespace) -> int:
+    if args.path == "-":
+        raise EventParseError("tail --follow requires a file path")
+    if args.interval <= 0:
+        raise EventParseError("--interval must be positive")
+    if args.max_refreshes is not None and args.max_refreshes <= 0:
+        raise EventParseError("--max-refreshes must be positive")
+
+    refreshes = 0
+    status = 0
+    try:
+        while args.max_refreshes is None or refreshes < args.max_refreshes:
+            output, status = _tail_snapshot(args)
+            if not args.no_clear and sys.stdout.isatty():
+                print("\033[2J\033[H", end="")
+            print(output)
+            print(flush=True)
+            refreshes += 1
+            if args.max_refreshes is not None and refreshes >= args.max_refreshes:
+                break
+            sleep(args.interval)
+    except KeyboardInterrupt:
+        return status
+    return status
+
+
+def _tail_snapshot(args: argparse.Namespace) -> tuple[str, int]:
+    lines = list(_iter_lines(args.path))
+    report = read_jsonl_records(lines)
+    run_records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
+    if run_records:
+        return render_run_log_tail(run_records, width=args.width or 100, unicode=not args.ascii), 0 if not report.errors else 2
+
+    events = _read_events(lines)
+    state = _state_at_checkpoint(events, "latest")
+    _apply_focus_and_selection(state, args)
+    return render_run(state, _options(args)), 0
 
 
 def _render_live_lines(lines: Iterable[str], args: argparse.Namespace) -> int:

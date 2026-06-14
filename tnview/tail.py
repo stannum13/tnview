@@ -7,7 +7,7 @@ from typing import Any
 from tnview.diagnose import diagnose_events
 
 
-def render_run_log_tail(records: list[dict[str, Any]], *, width: int = 100) -> str:
+def render_run_log_tail(records: list[dict[str, Any]], *, width: int = 100, unicode: bool = True) -> str:
     latest = _latest_state(records)
     diagnostics = diagnose_events(records)
     lines = [
@@ -16,6 +16,7 @@ def render_run_log_tail(records: list[dict[str, Any]], *, width: int = 100) -> s
             + _suffix(latest, ["run_id", "library", "algorithm"]),
             width,
         ),
+        _fit(f"events={len(records)}" + _updated_suffix(records), width),
         "",
         "Current:",
     ]
@@ -42,6 +43,11 @@ def render_run_log_tail(records: list[dict[str, Any]], *, width: int = 100) -> s
     else:
         lines.append("  no warnings")
 
+    trends = _trend_lines(records, width=width, unicode=unicode)
+    if trends:
+        lines.extend(["", "Trends:"])
+        lines.extend(trends)
+
     lines.extend(["", "Recent events:"])
     for record in records[-5:]:
         lines.append(_fit("  " + _event_summary(record), width))
@@ -59,6 +65,15 @@ def _latest_state(records: list[dict[str, Any]]) -> dict[str, Any]:
     return state
 
 
+def _updated_suffix(records: list[dict[str, Any]]) -> str:
+    value = None
+    if records:
+        value = records[-1].get("timestamp") or records[-1].get("time")
+    if value is None:
+        return ""
+    return f" updated={_format_value(value)}"
+
+
 def _suffix(state: dict[str, Any], keys: list[str]) -> str:
     parts = [f"{key}={state[key]}" for key in keys if state.get(key) is not None]
     if not parts:
@@ -72,6 +87,45 @@ def _event_summary(record: dict[str, Any]) -> str:
         if key in record:
             fields.append(f"{key}={_format_value(record[key])}")
     return " ".join(fields)
+
+
+def _trend_lines(records: list[dict[str, Any]], *, width: int, unicode: bool) -> list[str]:
+    lines = []
+    for key, label in [
+        ("energy", "energy"),
+        ("delta_energy", "delta E"),
+        ("loss", "loss"),
+        ("max_chi", "max chi"),
+        ("max_trunc_err", "trunc"),
+        ("rss_mb", "rss"),
+    ]:
+        values = [_number(record.get(key)) for record in records]
+        series = [value for value in values if value is not None][-24:]
+        if len(series) < 2:
+            continue
+        sparkline = _sparkline(series, unicode=unicode)
+        change = series[-1] - series[-2]
+        lines.append(_fit(f"  {label:<8} {sparkline}  latest={_format_value(series[-1])} change={_format_value(change)}", width))
+    return lines
+
+
+def _sparkline(values: list[float], *, unicode: bool) -> str:
+    marks = "▁▂▃▄▅▆▇█" if unicode else "._:-=+*#"
+    low = min(values)
+    high = max(values)
+    if high == low:
+        return marks[0] * len(values)
+    span = high - low
+    scale = len(marks) - 1
+    return "".join(marks[int((value - low) / span * scale)] for value in values)
+
+
+def _number(value: Any) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    return None
 
 
 def _format_value(value: Any) -> str:
