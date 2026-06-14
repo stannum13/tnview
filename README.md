@@ -278,6 +278,19 @@ with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
     # qtn.TNOptimizer(..., callback=callback)
 ```
 
+For TeNPy DMRG-style runs, emit sweep summaries from the engine's
+`sweep_stats` dictionary:
+
+```python
+from tnview import RunLogger
+from tnview.adapters.tenpy import DMRGObserver
+
+with RunLogger("runs/tenpy_dmrg.jsonl", run_id="tenpy-dmrg") as log:
+    observer = DMRGObserver(log)
+    # after each DMRG sweep:
+    observer.sweep_end(engine)
+```
+
 ## Non-goals for v0
 
 - full quantum object inspection across every library
