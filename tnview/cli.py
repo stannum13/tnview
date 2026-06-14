@@ -27,6 +27,7 @@ from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.interactive import run_interactive
 from tnview.preview import complexity_preview, render_preview
 from tnview.render import RenderOptions, render_run
+from tnview.runreplay import render_run_log_replay, run_interactive_run_log
 from tnview.runlog import RUN_LOG_EVENTS, read_jsonl_records
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.snapshot import snapshot_json
@@ -42,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "replay":
             return _replay(args)
+        if args.command == "replay-runlog":
+            return _replay_runlog(args)
         if args.command == "live":
             return _live(args)
         if args.command == "tail":
@@ -101,6 +104,13 @@ def _parser() -> argparse.ArgumentParser:
         help="select an interesting bond automatically",
     )
     _render_args(replay)
+
+    replay_runlog = subparsers.add_parser("replay-runlog", help="replay a run-log JSONL file by event index")
+    replay_runlog.add_argument("path", help="JSONL run log, or '-' for stdin")
+    replay_runlog.add_argument("--index", default="latest", help="event index to render, or 'latest' (default)")
+    replay_runlog.add_argument("--interactive", action="store_true", help="open an interactive run-log replay shell")
+    replay_runlog.add_argument("--ascii", action="store_true", help="use ASCII sparklines")
+    replay_runlog.add_argument("--width", type=int, default=100, help="render width in columns")
 
     live = subparsers.add_parser("live", help="stream JSONL telemetry and refresh on checkpoints")
     live.add_argument("path", nargs="?", default="-", help="JSONL source, default stdin")
@@ -218,6 +228,21 @@ def _replay(args: argparse.Namespace) -> int:
     _apply_focus_and_selection(state, args)
     output = snapshot_json(state) if args.snapshot else render_run(state, _options(args))
     _write_output(output, args.output)
+    return 0
+
+
+def _replay_runlog(args: argparse.Namespace) -> int:
+    report = read_jsonl_records(_iter_lines(args.path))
+    if report.errors:
+        raise EventParseError("; ".join(report.errors))
+    records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
+    if not records:
+        raise EventParseError("no run-log events found")
+    if args.interactive:
+        run_interactive_run_log(records, ascii_mode=args.ascii)
+        return 0
+    index = _run_log_index(args.index, len(records))
+    print(render_run_log_replay(records, index=index, width=args.width, unicode=not args.ascii))
     return 0
 
 
@@ -502,6 +527,20 @@ def _checkpoint_target(checkpoint: str, checkpoint_count: int) -> int | None:
         raise EventParseError("--checkpoint must be non-negative")
     if checkpoint_count and target >= checkpoint_count:
         raise EventParseError(f"--checkpoint {target} out of range; replay has {checkpoint_count} checkpoints")
+    return target
+
+
+def _run_log_index(index: str, count: int) -> int | None:
+    if index == "latest":
+        return None
+    try:
+        target = int(index)
+    except ValueError as exc:
+        raise EventParseError("--index must be an integer index or 'latest'") from exc
+    if target < 0:
+        raise EventParseError("--index must be non-negative")
+    if target >= count:
+        raise EventParseError(f"--index {target} out of range; run log has {count} events")
     return target
 
 

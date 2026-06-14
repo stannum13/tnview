@@ -47,6 +47,47 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("out of range", result.stderr)
 
+    def test_replay_runlog_renders_selected_event(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "replay-runlog",
+                "examples/quimb_tnoptimizer_run.jsonl",
+                "--index",
+                "2",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Run-log replay event 2/5", result.stdout)
+        self.assertIn("step          2", result.stdout)
+        self.assertIn("loss          0.42", result.stdout)
+
+    def test_replay_runlog_rejects_missing_event(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "replay-runlog",
+                "examples/quimb_tnoptimizer_run.jsonl",
+                "--index",
+                "99",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("out of range", result.stderr)
+
     def test_replay_view_toggles_hide_sections(self) -> None:
         result = subprocess.run(
             [

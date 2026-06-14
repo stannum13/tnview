@@ -78,6 +78,7 @@ tnview examples
 
 tnview tail examples/dmrg_bad_run.jsonl
 tnview tail examples/dmrg_bad_run.jsonl --follow
+tnview replay-runlog examples/dmrg_bad_run.jsonl --interactive
 tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 tnview export examples/quimb_tnoptimizer_run.jsonl --format csv
@@ -106,6 +107,10 @@ Use this first to see the terminal view without preparing data.
 `replay` renders JSONL telemetry from disk. Add `--interactive` for keyboard
 navigation, or use `--focus bottleneck --window N` to frame the interesting
 region automatically.
+
+`replay-runlog` steps through run-log events after a run has completed or
+crashed. Use `--index N` for a static point-in-time view or `--interactive` for
+keyboard navigation through the log.
 
 `live` streams JSONL telemetry from a file or stdin and refreshes on checkpoint
 events.
