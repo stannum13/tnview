@@ -9,6 +9,8 @@ from tnview.diagnose import diagnose_events
 
 def render_run_log_tail(records: list[dict[str, Any]], *, width: int = 100, unicode: bool = True) -> str:
     latest = _latest_state(records)
+    previous = _latest_state(records[:-1])
+    changed = _changed_fields(latest, previous)
     diagnostics = diagnose_events(records)
     lines = [
         _fit(
@@ -34,7 +36,9 @@ def render_run_log_tail(records: list[dict[str, Any]], *, width: int = 100, unic
         ("rss_mb", "rss"),
     ]:
         if key in latest:
-            lines.append(_fit(f"  {label:<13} {_format_value(latest[key])}", width))
+            prefix = "*" if key in changed else " "
+            suffix = f" (was {_format_value(previous[key])})" if key in changed and key in previous else ""
+            lines.append(_fit(f"  {prefix} {label:<13} {_format_value(latest[key])}{suffix}", width))
 
     lines.extend(["", "Diagnostics:"])
     if diagnostics:
@@ -63,6 +67,14 @@ def _latest_state(records: list[dict[str, Any]]) -> dict[str, Any]:
             if value is not None:
                 state[key] = value
     return state
+
+
+def _changed_fields(latest: dict[str, Any], previous: dict[str, Any]) -> set[str]:
+    return {
+        key
+        for key, value in latest.items()
+        if key in previous and previous[key] != value
+    }
 
 
 def _updated_suffix(records: list[dict[str, Any]]) -> str:

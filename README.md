@@ -117,8 +117,9 @@ events.
 
 `tail` prints a current-state summary for run-log files, including compact
 metric sparklines for recent energy, loss, chi, truncation, and memory changes.
-Add `--follow` to keep refreshing a file as a batch job appends events. For
-replay logs, it falls back to the same frame rendering used by `live`.
+Changed current fields are marked with `*` and their previous value. Add
+`--follow` to keep refreshing a file as a batch job appends events. For replay
+logs, it falls back to the same frame rendering used by `live`.
 
 `diagnose` prints deterministic warnings for run-log events such as energy
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,

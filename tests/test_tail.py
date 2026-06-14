@@ -39,6 +39,21 @@ class TailTests(unittest.TestCase):
         self.assertIn("loss", output)
         self.assertIn("latest=0.1", output)
 
+    def test_render_run_log_tail_marks_changed_fields(self) -> None:
+        output = render_run_log_tail(
+            [
+                {"event": "optimizer_step", "step": 1, "loss": 0.5, "rss_mb": 100},
+                {"event": "optimizer_step", "step": 2, "loss": 0.25, "rss_mb": 120},
+            ],
+            width=120,
+            unicode=False,
+        )
+
+        self.assertIn("* step", output)
+        self.assertIn("* loss", output)
+        self.assertIn("(was 0.5)", output)
+        self.assertIn("* rss", output)
+
 
 if __name__ == "__main__":
     unittest.main()
