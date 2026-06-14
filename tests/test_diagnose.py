@@ -55,6 +55,23 @@ class DiagnoseTests(unittest.TestCase):
 
         self.assertTrue(_has(diagnostics, "optimizer_stagnation"))
 
+    def test_nonfinite_metric_rule(self) -> None:
+        diagnostics = diagnose_events([{"event": "optimizer_step", "loss": float("nan")}])
+
+        self.assertTrue(_has(diagnostics, "nonfinite_metric"))
+
+    def test_canonical_form_drift_rule(self) -> None:
+        diagnostics = diagnose_events([{"event": "sweep_end", "canonical_error": 2e-8}])
+
+        self.assertTrue(_has(diagnostics, "canonical_form_drift"))
+
+    def test_entropy_growth_rule(self) -> None:
+        diagnostics = diagnose_events(
+            [{"event": "sweep_end", "entropy_max": value} for value in [1.0, 1.1, 1.25, 1.4, 1.6]]
+        )
+
+        self.assertTrue(_has(diagnostics, "entropy_growth"))
+
 
 def _has(diagnostics: list[object], code: str) -> bool:
     return any(getattr(diagnostic, "code", None) == code for diagnostic in diagnostics)

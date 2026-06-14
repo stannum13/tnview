@@ -52,6 +52,13 @@ run_end
 Run-log files are validated and diagnosed directly, while replay rendering uses
 the visual telemetry events below.
 
+Useful run-log metric fields include `energy`, `delta_energy`, `loss`,
+`max_chi`, `chi_max_configured`, `max_trunc_err`, `entropy_max`,
+`canonical_error`, `wall_s`, `step_wall_s`, and `rss_mb`. Diagnostics use these
+fields to detect plateaus, chi saturation, truncation floors, runtime
+regressions, memory growth, optimizer stagnation, non-finite values,
+canonical-form drift, and sustained entropy growth.
+
 ## Common Types
 
 - `step`: integer simulation step.

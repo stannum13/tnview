@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from math import isfinite
 from statistics import median
 from typing import Any
 
@@ -23,6 +24,9 @@ def diagnose_events(events: list[dict[str, Any]]) -> list[Diagnostic]:
     diagnostics.extend(_runtime_regression(events))
     diagnostics.extend(_memory_growth(events))
     diagnostics.extend(_optimizer_stagnation(events))
+    diagnostics.extend(_nonfinite_metrics(events))
+    diagnostics.extend(_canonical_form_drift(events))
+    diagnostics.extend(_entropy_growth(events))
     return diagnostics
 
 
@@ -138,6 +142,69 @@ def _optimizer_stagnation(events: list[dict[str, Any]]) -> list[Diagnostic]:
                 severity="warn",
                 message="Optimizer loss has stagnated over the last 10 steps.",
                 evidence={"loss_start": recent[0], "loss_latest": recent[-1]},
+            )
+        ]
+    return []
+
+
+def _nonfinite_metrics(events: list[dict[str, Any]]) -> list[Diagnostic]:
+    keys = [
+        "energy",
+        "delta_energy",
+        "loss",
+        "max_trunc_err",
+        "entropy_max",
+        "entropy_mean",
+        "wall_s",
+        "step_wall_s",
+        "rss_mb",
+        "canonical_error",
+    ]
+    for event in events:
+        for key in keys:
+            value = event.get(key)
+            if isinstance(value, float) and not isfinite(value):
+                return [
+                    Diagnostic(
+                        code="nonfinite_metric",
+                        severity="error",
+                        message="A run metric became NaN or infinite.",
+                        evidence={"event": event.get("event"), "field": key, "value": value},
+                    )
+                ]
+    return []
+
+
+def _canonical_form_drift(events: list[dict[str, Any]]) -> list[Diagnostic]:
+    for event in reversed(_progress_events(events)):
+        error = _number(event.get("canonical_error"))
+        if error is None:
+            error = _number(event.get("norm_err"))
+        if error is None:
+            continue
+        if error > 1e-8:
+            return [
+                Diagnostic(
+                    code="canonical_form_drift",
+                    severity="warn",
+                    message="Canonical-form or norm error is above the expected tolerance.",
+                    evidence={"canonical_error": error},
+                )
+            ]
+        return []
+    return []
+
+
+def _entropy_growth(events: list[dict[str, Any]]) -> list[Diagnostic]:
+    values = [_number(event.get("entropy_max")) for event in _progress_events(events)]
+    recent = [value for value in values if value is not None][-5:]
+    if len(recent) == 5 and recent[0] > 0 and all(left <= right for left, right in zip(recent, recent[1:])) and recent[-1] >= 1.5 * recent[0]:
+        return [
+            Diagnostic(
+                code="entropy_growth",
+                severity="warn",
+                message="Entanglement entropy is growing steadily across recent progress events.",
+                evidence={"entropy_start": recent[0], "entropy_latest": recent[-1]},
             )
         ]
     return []
