@@ -207,6 +207,15 @@ source .venv/bin/activate
 tnview demo --interactive
 ```
 
+Development and release checks:
+
+```bash
+make check
+make runlog-demo
+```
+
+See [docs/release.md](docs/release.md) for the release checklist.
+
 ## Interactive Keys
 
 ```text

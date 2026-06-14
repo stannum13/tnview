@@ -1,4 +1,4 @@
-.PHONY: setup install test compile validate replay replay-interactive runlog-demo compare clean
+.PHONY: setup install test compile check validate replay replay-interactive runlog-demo compare clean
 
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
 PIP ?= $(PYTHON) -m pip
@@ -12,6 +12,8 @@ test:
 
 compile:
 	$(PYTHON) -m compileall tnview tests
+
+check: test compile
 
 validate:
 	$(TNVIEW) validate examples/tebd_run.jsonl
