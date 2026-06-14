@@ -1,4 +1,4 @@
-.PHONY: setup install test compile validate replay replay-interactive compare clean
+.PHONY: setup install test compile validate replay replay-interactive runlog-demo compare clean
 
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
 PIP ?= $(PYTHON) -m pip
@@ -21,6 +21,9 @@ replay:
 
 replay-interactive:
 	$(TNVIEW) replay examples/tebd_run.jsonl --interactive
+
+runlog-demo:
+	TNVIEW="$(TNVIEW)" ./scripts/demo_runlog.sh
 
 compare:
 	$(TNVIEW) compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl

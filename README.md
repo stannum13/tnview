@@ -50,6 +50,12 @@ tnview demo
 tnview demo --interactive
 ```
 
+Or run the terminal diagnostics tour:
+
+```bash
+make runlog-demo
+```
+
 If `tnview` is not on your shell path, run the module directly:
 
 ```bash
@@ -98,6 +104,19 @@ tnview search examples/tebd_run.jsonl tensor:A2
 tnview compare examples/*.jsonl --sort risk
 tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generated.jsonl
 ```
+
+## Terminal Demo
+
+For a quick tour of the run-diagnostics flow:
+
+```bash
+make runlog-demo
+```
+
+The script lists built-in examples, tails a healthy optimizer run, replays a
+specific historical event, diagnoses a stalled DMRG-style run, and compares the
+two run logs. It is intentionally plain terminal output so it works over SSH and
+is easy to record with tools such as `script` or `asciinema`.
 
 ## Command Guide
 
@@ -244,7 +263,7 @@ with RunLogger("run.jsonl") as log:
         chi_max=128,
         trunc_error=1e-10,
     )
-    rec.checkpoint(step=10, time=0.1, max_entropy=0.8, max_chi=64)
+    log.checkpoint(step=10, time=0.1, max_entropy=0.8, max_chi=64)
 ```
 
 Then inspect it with:
