@@ -298,6 +298,15 @@ with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
     # qtn.TNOptimizer(..., callback=callback)
 ```
 
+A tiny dependency-optional example script is included:
+
+```bash
+python -m pip install quimb
+python examples/quimb_tnoptimizer_example.py
+tnview tail runs/quimb_tnoptimizer.jsonl
+tnview replay-runlog runs/quimb_tnoptimizer.jsonl --interactive
+```
+
 For TeNPy DMRG-style runs, emit sweep summaries from the engine's
 `sweep_stats` dictionary:
 
