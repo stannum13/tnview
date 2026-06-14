@@ -5,11 +5,34 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tnview"
 version = "0.1.0"
-description = "Terminal-native viewer for tensor-network dynamics telemetry."
+description = "Terminal diagnostics and replay for tensor-network simulation runs."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "TNView contributors" }]
+license = { file = "LICENSE" }
 dependencies = []
+keywords = ["tensor-networks", "dmrg", "tebd", "terminal", "telemetry", "quimb", "tenpy"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: System :: Logging",
+]
+
+[project.optional-dependencies]
+quimb = ["quimb>=1.0"]
+tenpy = ["physics-tenpy>=1.0"]
+dev = ["build>=1.2", "twine>=5.0"]
 
 [project.scripts]
 tnview = "tnview.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/stannum13/tnview"
+Repository = "https://github.com/stannum13/tnview"
+Issues = "https://github.com/stannum13/tnview/issues"

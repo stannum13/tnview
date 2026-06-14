@@ -3,7 +3,7 @@
 This example is dependency-optional. Install TNView with the quimb extra before
 running it:
 
-    python -m pip install quimb
+    python -m pip install -e ".[quimb]"
     python examples/quimb_tnoptimizer_example.py
 
 Then inspect the generated log:
@@ -23,7 +23,7 @@ def main() -> int:
     try:
         import quimb.tensor as qtn
     except ImportError:
-        print("quimb is not installed. Install with: python -m pip install quimb")
+        print("quimb is not installed. Install with: python -m pip install -e '.[quimb]'")
         return 0
 
     output = Path("runs/quimb_tnoptimizer.jsonl")

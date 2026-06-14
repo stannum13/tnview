@@ -301,7 +301,7 @@ with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
 A tiny dependency-optional example script is included:
 
 ```bash
-python -m pip install quimb
+python -m pip install -e ".[quimb]"
 python examples/quimb_tnoptimizer_example.py
 tnview tail runs/quimb_tnoptimizer.jsonl
 tnview replay-runlog runs/quimb_tnoptimizer.jsonl --interactive
