@@ -320,6 +320,13 @@ with RunLogger("runs/tenpy_dmrg.jsonl", run_id="tenpy-dmrg") as log:
     observer.sweep_end(engine)
 ```
 
+The example script exits cleanly if TeNPy is not installed:
+
+```bash
+python examples/tenpy_dmrg_observer_example.py
+tnview tail runs/tenpy_dmrg.jsonl
+```
+
 ## Non-goals for v0
 
 - full quantum object inspection across every library
