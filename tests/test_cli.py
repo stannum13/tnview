@@ -285,6 +285,73 @@ class CliTests(unittest.TestCase):
         self.assertIn("Selected bond b3", result.stdout)
         self.assertIn("viewport b2-b4 of 7 bonds", result.stdout)
 
+    def test_focus_command_lists_strategies(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "focus",
+                "--list",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Focus strategies", result.stdout)
+        self.assertIn("bottleneck", result.stdout)
+        self.assertIn("entropy", result.stdout)
+
+    def test_focus_command_renders_strategy_view(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "focus",
+                "examples/ladder_snake_mismatch.jsonl",
+                "--strategy",
+                "entropy",
+                "--window",
+                "3",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Focus: max entropy", result.stdout)
+        self.assertIn("Selected bond", result.stdout)
+        self.assertIn("viewport", result.stdout)
+
+    def test_focus_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "focus",
+                "examples/ladder_snake_mismatch.jsonl",
+                "--strategy",
+                "bottleneck",
+                "--window",
+                "3",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["selection"]["reason"], "truncation/chi bottleneck")
+        self.assertEqual(payload["selection"]["bond"], 3)
+        self.assertEqual(payload["snapshot"]["selected_bond"]["bond"], 3)
+
     def test_replay_can_export_snapshot(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "snapshot.json"

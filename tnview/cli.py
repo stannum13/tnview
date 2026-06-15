@@ -31,6 +31,7 @@ from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_records_csv, export_replay_csv, export_replay_jsonl
 from tnview.fixtures import generate_chain_fixture
 from tnview.focus import choose_focus, choose_focus_for_bond
+from tnview.focus_report import FOCUS_STRATEGIES, apply_focus, focus_payload, render_focus_strategies, render_focus_view
 from tnview.interactive import run_interactive
 from tnview.preview import complexity_preview, render_preview
 from tnview.render import RenderOptions, render_run
@@ -87,6 +88,8 @@ def main(argv: list[str] | None = None) -> int:
             return _init(args)
         if args.command == "doctor":
             return _doctor(args)
+        if args.command == "focus":
+            return _focus(args)
     except CliError as exc:
         if getattr(args, "json", False):
             write_json(error_payload(exc), stream=sys.stderr)
@@ -229,6 +232,16 @@ def _parser() -> argparse.ArgumentParser:
     inspect.add_argument("--window", type=int, default=12, help="number of bonds to show around focus")
     inspect.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
     inspect.add_argument("--width", type=int, help="render width in columns")
+
+    focus = subparsers.add_parser("focus", help="render or report a non-interactive replay focus view")
+    focus.add_argument("path", nargs="?", help="JSONL replay file")
+    focus.add_argument("--list", action="store_true", help="list focus strategies")
+    focus.add_argument("--checkpoint", default="latest", help="checkpoint index to focus, or 'latest'")
+    focus.add_argument("--strategy", choices=tuple(FOCUS_STRATEGIES), default="bottleneck", help="focus strategy")
+    focus.add_argument("--window", type=int, default=12, help="number of bonds to show around focus")
+    focus.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    focus.add_argument("--width", type=int, help="render width in columns")
+    focus.add_argument("--json", action="store_true", help="write stable machine-readable focus JSON")
 
     search = subparsers.add_parser("search", help="search bonds by bond, site, tag, or status")
     search.add_argument("path", help="JSONL replay file")
@@ -583,6 +596,30 @@ def _inspect(args: argparse.Namespace) -> int:
     print(f"Focus: {focus.reason}" + (f" at b{focus.bond}" if focus.bond is not None else ""))
     print()
     print(render_run(state, options))
+    return 0
+
+
+def _focus(args: argparse.Namespace) -> int:
+    if args.list:
+        if args.json:
+            write_json({"strategies": FOCUS_STRATEGIES})
+        else:
+            write_text(render_focus_strategies())
+        return 0
+    if args.path is None:
+        raise CliError(
+            code="FOCUS_PATH_REQUIRED",
+            message="focus requires a replay path unless --list is used",
+            suggestions=("tnview focus --list", "tnview focus examples/tebd_run.jsonl --strategy entropy"),
+            exit_code=2,
+        )
+    events = _read_events(_iter_lines(args.path))
+    state = _state_at_checkpoint(events, args.checkpoint)
+    selection = apply_focus(state, strategy=args.strategy, window=args.window)
+    if args.json:
+        write_json(focus_payload(state, selection))
+    else:
+        write_text(render_focus_view(state, selection, width=args.width, unicode=not args.ascii))
     return 0
 
 

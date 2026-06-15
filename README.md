@@ -196,6 +196,8 @@ tnview replay examples/tebd_run.jsonl --interactive
 
 tnview preview examples/ladder_snake_mismatch.jsonl
 tnview inspect examples/ladder_snake_mismatch.jsonl
+tnview focus --list
+tnview focus examples/ladder_snake_mismatch.jsonl --strategy entropy --window 12
 tnview replay examples/ladder_snake_mismatch.jsonl --focus bottleneck --window 12
 
 tnview search examples/tebd_run.jsonl tensor:A2
@@ -246,6 +248,10 @@ contraction risk, and ansatz suggestions.
 `inspect` chooses a useful starting point, selects that bond, and shows a
 smaller window around it. Focus strategies include `bottleneck`, `entropy`,
 `front`, `compute`, and `center`.
+
+`focus` exposes the same focus strategies without entering the interactive
+keyboard UI. Use `focus --list` to see strategies, or add `--json` to inspect
+the selected bond and rendered snapshot data from scripts.
 
 `search` locates bonds by `bond:`, `site:`, `tag:`, or `status:`. Tensor-name
 search also works with `tensor:A2`; it scans `ansatz_layout.tensors` and
