@@ -19,6 +19,7 @@ RUN_LOG_EVENTS = {
     "warning",
     "error",
     "diagnostic",
+    "heartbeat",
 }
 
 

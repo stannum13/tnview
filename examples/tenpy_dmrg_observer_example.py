@@ -29,13 +29,13 @@ def main() -> int:
     options = {"max_sweeps": 4, "trunc_params": {"chi_max": 32, "svd_min": 1e-10}}
 
     with RunLogger(output, run_id="tenpy-dmrg") as log:
-        log.emit("run_start", library="tenpy", algorithm="dmrg", model="TFIChain", sites=model.lat.N_sites)
+        log.start(library="tenpy", algorithm="dmrg", model="TFIChain", sites=model.lat.N_sites)
         observer = DMRGObserver(log)
         engine = dmrg.TwoSiteDMRGEngine(psi, model, options)
         energy, _psi = engine.run()
         observer.emit_new_sweeps(engine, chi_max_configured=options["trunc_params"]["chi_max"])
-        log.emit("observable", library="tenpy", algorithm="dmrg", name="final_energy", value=energy)
-        log.emit("run_end", library="tenpy", algorithm="dmrg", status="complete")
+        log.observable("final_energy", energy, library="tenpy", algorithm="dmrg")
+        log.end(status="complete", library="tenpy", algorithm="dmrg")
 
     print(f"wrote {output}")
     print(f"try: tnview tail {output}")

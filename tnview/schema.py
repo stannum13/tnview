@@ -23,6 +23,7 @@ RUN_LOG_EVENT_ORDER: tuple[str, ...] = (
     "warning",
     "error",
     "diagnostic",
+    "heartbeat",
 )
 
 RUN_LOG_METADATA: tuple[str, ...] = ("schema_version", "run_id", "timestamp or time")

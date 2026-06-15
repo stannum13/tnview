@@ -47,6 +47,7 @@ optimizer_step
 observable
 warning
 diagnostic
+heartbeat
 run_end
 ```
 

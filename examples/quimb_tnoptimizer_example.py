@@ -30,7 +30,7 @@ def main() -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
 
     with RunLogger(output, run_id="quimb-tnoptimizer") as log:
-        log.emit("run_start", library="quimb", algorithm="tnoptimizer", example="tiny-norm-minimize")
+        log.start(library="quimb", algorithm="tnoptimizer", example="tiny-norm-minimize")
         tn = qtn.TN_rand_reg(4, 2, 2, seed=7)
 
         def loss_fn(candidate):
@@ -46,10 +46,10 @@ def main() -> int:
         try:
             opt.optimize(8, jac=False)
         except Exception as exc:  # quimb autodiff/backend availability can vary.
-            log.emit("error", library="quimb", algorithm="tnoptimizer", message=str(exc))
+            log.error("optimizer_failed", str(exc), library="quimb", algorithm="tnoptimizer")
             raise
         finally:
-            log.emit("run_end", library="quimb", algorithm="tnoptimizer", status="complete")
+            log.end(status="complete", library="quimb", algorithm="tnoptimizer")
 
     print(f"wrote {output}")
     print(f"try: tnview tail {output}")

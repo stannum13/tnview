@@ -1354,7 +1354,7 @@ class CliTests(unittest.TestCase):
 
         self.assertIn("Wrote", result.stdout)
         self.assertIn("tnview tail runs/example.jsonl", result.stdout)
-        self.assertIn("sweep_end", content)
+        self.assertIn("log.sweep(", content)
 
     def test_init_command_refuses_existing_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

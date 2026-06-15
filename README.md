@@ -98,18 +98,17 @@ Record a run:
 from tnview import RunLogger
 
 with RunLogger("runs/dmrg.jsonl", run_id="dmrg-001") as log:
-    log.emit("run_start", library="my-code", algorithm="dmrg")
+    log.start(library="my-code", algorithm="dmrg", model="ising", sites=128)
     for sweep in range(4):
-        log.emit(
-            "sweep_end",
+        log.sweep(
             sweep=sweep,
             energy=-1.0 - sweep * 0.01,
             delta_energy=1e-9,
             max_chi=128,
-            chi_max_configured=128,
+            chi_max=128,
             max_trunc_err=2e-7,
         )
-    log.emit("run_end", status="complete")
+    log.end(status="complete")
 ```
 
 Inspect it from the terminal:
@@ -329,10 +328,10 @@ from tnview import RunLogger
 from tnview.adapters.quimb import emit_mps_snapshot
 
 with RunLogger("runs/quimb_mps.jsonl", run_id="quimb-mps") as log:
-    log.emit("run_start", library="quimb", algorithm="mps_snapshot")
+    log.start(library="quimb", algorithm="mps_snapshot")
     for step, psi in enumerate(states):
         emit_mps_snapshot(log, psi, step=step, chi_max=64)
-    log.emit("run_end", library="quimb", algorithm="mps_snapshot", status="complete")
+    log.end(status="complete")
 ```
 
 For quimb `TNOptimizer`, use the callback helper:
@@ -353,12 +352,12 @@ from tnview import RunLogger
 from tnview.adapters.tenpy import DMRGObserver
 
 with RunLogger("runs/tenpy_dmrg.jsonl", run_id="tenpy-dmrg") as log:
-    log.emit("run_start", library="tenpy", algorithm="dmrg")
+    log.start(library="tenpy", algorithm="dmrg")
     observer = DMRGObserver(log)
     energy, psi = engine.run()
     observer.emit_new_sweeps(engine, chi_max_configured=32)
-    log.emit("observable", library="tenpy", algorithm="dmrg", name="final_energy", value=energy)
-    log.emit("run_end", library="tenpy", algorithm="dmrg", status="complete")
+    log.observable("final_energy", energy, library="tenpy", algorithm="dmrg")
+    log.end(status="complete")
 ```
 
 `emit_new_sweeps()` records every available row in TeNPy's `sweep_stats` and

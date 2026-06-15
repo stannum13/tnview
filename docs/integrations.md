@@ -12,18 +12,17 @@ metrics.
 from tnview import RunLogger
 
 with RunLogger("runs/dmrg.jsonl", run_id="dmrg-001") as log:
-    log.emit("run_start", library="my-code", algorithm="dmrg")
+    log.start(library="my-code", algorithm="dmrg")
     for sweep in range(8):
-        log.emit(
-            "sweep_end",
+        log.sweep(
             sweep=sweep,
             energy=-1.0 - 0.01 * sweep,
             delta_energy=1e-5 / (sweep + 1),
             max_chi=128,
-            chi_max_configured=256,
+            chi_max=256,
             max_trunc_err=1e-9,
         )
-    log.emit("run_end", status="complete")
+    log.end(status="complete")
 ```
 
 Inspect it:
@@ -44,10 +43,10 @@ from tnview import RunLogger
 from tnview.adapters.quimb import emit_mps_snapshot
 
 with RunLogger("runs/quimb_mps.jsonl", run_id="quimb-mps") as log:
-    log.emit("run_start", library="quimb", algorithm="mps_snapshot")
+    log.start(library="quimb", algorithm="mps_snapshot")
     for step, psi in enumerate(states):
         emit_mps_snapshot(log, psi, step=step, chi_max=64)
-    log.emit("run_end", status="complete")
+    log.end(status="complete")
 ```
 
 Inspect it:
@@ -70,10 +69,10 @@ from tnview import RunLogger
 from tnview.adapters.quimb import tnoptimizer_callback
 
 with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
-    log.emit("run_start", library="quimb", algorithm="tnoptimizer")
+    log.start(library="quimb", algorithm="tnoptimizer")
     opt = qtn.TNOptimizer(tn, loss_fn, callback=tnoptimizer_callback(log))
     opt.optimize(100)
-    log.emit("run_end", status="complete")
+    log.end(status="complete")
 ```
 
 Inspect it:
@@ -94,12 +93,12 @@ from tnview import RunLogger
 from tnview.adapters.tenpy import DMRGObserver
 
 with RunLogger("runs/tenpy_dmrg.jsonl", run_id="tenpy-dmrg") as log:
-    log.emit("run_start", library="tenpy", algorithm="dmrg")
+    log.start(library="tenpy", algorithm="dmrg")
     observer = DMRGObserver(log)
     energy, psi = engine.run()
     observer.emit_new_sweeps(engine, chi_max_configured=chi_max)
-    log.emit("observable", library="tenpy", algorithm="dmrg", name="final_energy", value=energy)
-    log.emit("run_end", status="complete")
+    log.observable("final_energy", energy, library="tenpy", algorithm="dmrg")
+    log.end(status="complete")
 ```
 
 Inspect it:

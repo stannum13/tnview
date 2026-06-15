@@ -194,7 +194,13 @@ def tnoptimizer_callback(logger: Any):
             if numeric_losses:
                 record.setdefault("loss_best", min(numeric_losses))
 
-        logger.emit("optimizer_step", **{key: value for key, value in record.items() if value is not None})
+        record = {key: value for key, value in record.items() if value is not None}
+        optimizer_step = getattr(logger, "optimizer_step", None)
+        if callable(optimizer_step) and record.get("step") is not None:
+            step = int(record.pop("step"))
+            optimizer_step(step=step, **record)
+        else:
+            logger.emit("optimizer_step", **record)
 
     return callback
 

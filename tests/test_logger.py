@@ -73,6 +73,73 @@ class RunLoggerTests(unittest.TestCase):
         self.assertIn("timestamp", record)
         self.assertTrue(record["time"].endswith("Z"))
 
+    def test_logger_run_log_helpers_emit_canonical_events(self) -> None:
+        handle = StringIO()
+
+        with RunLogger(handle, run_id="run-1") as logger:
+            logger.start(library="manual", algorithm="dmrg", model="ising", sites=12, parameters={"J": 1.0}, tags=["test"])
+            logger.sweep_start(sweep=1, direction="left")
+            logger.sweep(
+                sweep=1,
+                energy=-1.2,
+                delta_energy=1e-5,
+                max_chi=64,
+                chi_max=128,
+                max_trunc_err=1e-9,
+                entropy_max=0.8,
+                entropy_mean=0.4,
+                wall_s=12.0,
+                rss_mb=512.0,
+            )
+            logger.step_start(step=2)
+            logger.step(step=2, loss=0.25, step_wall_s=0.5, status="ok")
+            logger.optimizer_step(step=3, loss=0.1, loss_best=0.1, wall_s=3.2)
+            logger.observable("energy", -1.25, error=1e-8)
+            logger.warning("chi_pressure", "central bonds are growing", sweep=1)
+            logger.error("nan_loss", "loss became NaN", step=3)
+            logger.diagnostic("plateau", "loss stopped improving", severity="warning")
+            logger.heartbeat(step=3)
+            logger.end(status="complete")
+
+        records = [json.loads(line) for line in handle.getvalue().splitlines()]
+
+        self.assertEqual(
+            [record["event"] for record in records],
+            [
+                "run_start",
+                "sweep_start",
+                "sweep_end",
+                "step_start",
+                "step_end",
+                "optimizer_step",
+                "observable",
+                "warning",
+                "error",
+                "diagnostic",
+                "heartbeat",
+                "run_end",
+            ],
+        )
+        self.assertEqual(records[0]["parameters"], {"J": 1.0})
+        self.assertEqual(records[2]["chi_max_configured"], 128)
+        self.assertEqual(records[4]["status"], "ok")
+        self.assertEqual(records[6]["name"], "energy")
+        self.assertEqual(records[7]["code"], "chi_pressure")
+        self.assertEqual(records[-1]["status"], "complete")
+        self.assertTrue(all(record["run_id"] == "run-1" for record in records))
+
+    def test_logger_run_log_helpers_omit_none_fields_and_keep_extras(self) -> None:
+        handle = StringIO()
+
+        with RunLogger(handle) as logger:
+            logger.sweep(sweep=1, energy=None, custom="value")
+
+        record = json.loads(handle.getvalue())
+
+        self.assertNotIn("energy", record)
+        self.assertEqual(record["custom"], "value")
+        self.assertEqual(record["event"], "sweep_end")
+
     def test_logger_appends_and_creates_parent_directories(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "runs" / "run.jsonl"

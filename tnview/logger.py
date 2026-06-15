@@ -73,6 +73,198 @@ class RunLogger:
         record = {"event": event, **payload}
         self.emit_record(record)
 
+    def start(
+        self,
+        *,
+        library: str | None = None,
+        algorithm: str | None = None,
+        model: str | None = None,
+        sites: int | None = None,
+        parameters: dict[str, Any] | None = None,
+        tags: list[str] | tuple[str, ...] = (),
+        **fields: Any,
+    ) -> None:
+        """Emit a run-log ``run_start`` event."""
+
+        self.emit(
+            "run_start",
+            **_clean(
+                {
+                    "library": library,
+                    "algorithm": algorithm,
+                    "model": model,
+                    "sites": sites,
+                    "parameters": parameters,
+                    "tags": list(tags),
+                    **fields,
+                }
+            ),
+        )
+
+    def end(self, *, status: str = "complete", **fields: Any) -> None:
+        """Emit a run-log ``run_end`` event."""
+
+        self.emit("run_end", **_clean({"status": status, **fields}))
+
+    def step_start(self, *, step: int, **fields: Any) -> None:
+        """Emit a run-log ``step_start`` event."""
+
+        self.emit("step_start", **_clean({"step": step, **fields}))
+
+    def step(
+        self,
+        *,
+        step: int,
+        energy: float | None = None,
+        delta_energy: float | None = None,
+        loss: float | None = None,
+        max_chi: int | None = None,
+        chi_max: int | None = None,
+        max_trunc_err: float | None = None,
+        entropy_max: float | None = None,
+        entropy_mean: float | None = None,
+        wall_s: float | None = None,
+        step_wall_s: float | None = None,
+        rss_mb: float | None = None,
+        status: str | None = None,
+        **fields: Any,
+    ) -> None:
+        """Emit a run-log ``step_end`` event with canonical metric fields."""
+
+        self.emit(
+            "step_end",
+            **_clean(
+                {
+                    "step": step,
+                    "energy": energy,
+                    "delta_energy": delta_energy,
+                    "loss": loss,
+                    "max_chi": max_chi,
+                    "chi_max_configured": chi_max,
+                    "max_trunc_err": max_trunc_err,
+                    "entropy_max": entropy_max,
+                    "entropy_mean": entropy_mean,
+                    "wall_s": wall_s,
+                    "step_wall_s": step_wall_s,
+                    "rss_mb": rss_mb,
+                    "status": status,
+                    **fields,
+                }
+            ),
+        )
+
+    def sweep_start(self, *, sweep: int, **fields: Any) -> None:
+        """Emit a run-log ``sweep_start`` event."""
+
+        self.emit("sweep_start", **_clean({"sweep": sweep, **fields}))
+
+    def sweep(
+        self,
+        *,
+        sweep: int,
+        energy: float | None = None,
+        delta_energy: float | None = None,
+        max_chi: int | None = None,
+        chi_max: int | None = None,
+        max_trunc_err: float | None = None,
+        entropy_max: float | None = None,
+        entropy_mean: float | None = None,
+        wall_s: float | None = None,
+        step_wall_s: float | None = None,
+        rss_mb: float | None = None,
+        status: str | None = None,
+        **fields: Any,
+    ) -> None:
+        """Emit a run-log ``sweep_end`` event with canonical metric fields."""
+
+        self.emit(
+            "sweep_end",
+            **_clean(
+                {
+                    "sweep": sweep,
+                    "energy": energy,
+                    "delta_energy": delta_energy,
+                    "max_chi": max_chi,
+                    "chi_max_configured": chi_max,
+                    "max_trunc_err": max_trunc_err,
+                    "entropy_max": entropy_max,
+                    "entropy_mean": entropy_mean,
+                    "wall_s": wall_s,
+                    "step_wall_s": step_wall_s,
+                    "rss_mb": rss_mb,
+                    "status": status,
+                    **fields,
+                }
+            ),
+        )
+
+    def optimizer_step(
+        self,
+        *,
+        step: int,
+        loss: float | None = None,
+        loss_best: float | None = None,
+        wall_s: float | None = None,
+        step_wall_s: float | None = None,
+        rss_mb: float | None = None,
+        status: str | None = None,
+        **fields: Any,
+    ) -> None:
+        """Emit a run-log ``optimizer_step`` event."""
+
+        self.emit(
+            "optimizer_step",
+            **_clean(
+                {
+                    "step": step,
+                    "loss": loss,
+                    "loss_best": loss_best,
+                    "wall_s": wall_s,
+                    "step_wall_s": step_wall_s,
+                    "rss_mb": rss_mb,
+                    "status": status,
+                    **fields,
+                }
+            ),
+        )
+
+    def observable(
+        self,
+        name: str,
+        value: Any,
+        *,
+        site: int | None = None,
+        bond: int | None = None,
+        error: float | None = None,
+        **fields: Any,
+    ) -> None:
+        """Emit a run-log ``observable`` event."""
+
+        self.emit(
+            "observable",
+            **_clean({"name": name, "value": value, "site": site, "bond": bond, "error": error, **fields}),
+        )
+
+    def warning(self, code: str, message: str, **fields: Any) -> None:
+        """Emit a run-log ``warning`` event."""
+
+        self.emit("warning", **_clean({"code": code, "message": message, **fields}))
+
+    def error(self, code: str, message: str, **fields: Any) -> None:
+        """Emit a run-log ``error`` event."""
+
+        self.emit("error", **_clean({"code": code, "message": message, **fields}))
+
+    def diagnostic(self, code: str, message: str, *, severity: str = "info", **fields: Any) -> None:
+        """Emit a run-log ``diagnostic`` event."""
+
+        self.emit("diagnostic", **_clean({"code": code, "severity": severity, "message": message, **fields}))
+
+    def heartbeat(self, **fields: Any) -> None:
+        """Emit a run-log ``heartbeat`` event for long-running jobs."""
+
+        self.emit("heartbeat", **_clean(fields))
+
     def emit_record(self, record: dict[str, Any]) -> None:
         try:
             handle = self._require_handle()
@@ -272,3 +464,7 @@ class RunLogger:
 
 def _utc_timestamp() -> str:
     return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def _clean(record: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in record.items() if value is not None}

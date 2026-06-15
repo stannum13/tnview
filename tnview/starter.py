@@ -39,18 +39,17 @@ _RUNLOG_TEMPLATE = dedent(
 
     def main():
         with RunLogger("runs/example.jsonl", run_id="example") as log:
-            log.emit("run_start", library="my-code", algorithm="dmrg")
+            log.start(library="my-code", algorithm="dmrg")
             for sweep in range(4):
-                log.emit(
-                    "sweep_end",
+                log.sweep(
                     sweep=sweep,
                     energy=-1.0 - 0.01 * sweep,
                     delta_energy=1e-5 / (sweep + 1),
                     max_chi=64,
-                    chi_max_configured=128,
+                    chi_max=128,
                     max_trunc_err=1e-9,
                 )
-            log.emit("run_end", status="complete")
+            log.end(status="complete")
 
 
     if __name__ == "__main__":
@@ -68,11 +67,11 @@ _QUIMB_TEMPLATE = dedent(
 
     def main():
         with RunLogger("runs/quimb_mps.jsonl", run_id="quimb-mps") as log:
-            log.emit("run_start", library="quimb", algorithm="mps_snapshot")
+            log.start(library="quimb", algorithm="mps_snapshot")
             for step, bond_dim in enumerate([2, 4, 8], start=1):
                 psi = qtn.MPS_rand_state(8, bond_dim, phys_dim=2)
                 emit_mps_snapshot(log, psi, step=step, chi_max=8)
-            log.emit("run_end", status="complete")
+            log.end(status="complete")
 
 
     if __name__ == "__main__":
@@ -89,12 +88,12 @@ _TENPY_TEMPLATE = dedent(
     def attach_tnview(engine, output="runs/tenpy_dmrg.jsonl", chi_max=128):
         log = RunLogger(output, run_id="tenpy-dmrg")
         log.open()
-        log.emit("run_start", library="tenpy", algorithm="dmrg")
+        log.start(library="tenpy", algorithm="dmrg")
         observer = DMRGObserver(log)
         energy, psi = engine.run()
         observer.emit_new_sweeps(engine, chi_max_configured=chi_max)
-        log.emit("observable", library="tenpy", algorithm="dmrg", name="final_energy", value=energy)
-        log.emit("run_end", status="complete")
+        log.observable("final_energy", energy, library="tenpy", algorithm="dmrg")
+        log.end(status="complete")
         log.close()
         return energy, psi
     """
