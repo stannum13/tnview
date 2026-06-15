@@ -35,6 +35,7 @@ from tnview.preview import complexity_preview, render_preview
 from tnview.render import RenderOptions, render_run
 from tnview.runreplay import render_run_log_replay, run_interactive_run_log
 from tnview.runlog import RUN_LOG_EVENTS, read_jsonl_records
+from tnview.schema import render_schema, schema_payload
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
@@ -75,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
             return _examples(args)
         if args.command == "fixture":
             return _fixture(args)
+        if args.command == "schema":
+            return _schema(args)
     except CliError as exc:
         if getattr(args, "json", False):
             write_json(error_payload(exc), stream=sys.stderr)
@@ -249,6 +252,10 @@ def _parser() -> argparse.ArgumentParser:
     fixture.add_argument("--chi-max", type=int, default=256, help="maximum bond dimension")
     fixture.add_argument("--profile", choices=["easy", "hard"], default="hard", help="complexity profile")
     fixture.add_argument("--output", "-o", help="write generated JSONL to a file")
+
+    schema = subparsers.add_parser("schema", help="show supported telemetry event schemas")
+    schema.add_argument("--json", action="store_true", help="write stable machine-readable schema JSON")
+    schema.add_argument("--width", type=int, default=100, help="render width in columns")
 
     return parser
 
@@ -583,6 +590,14 @@ def _fixture(args: argparse.Namespace) -> int:
         _write_output(output.rstrip("\n"), args.output)
         return 0
     raise EventParseError(f"unsupported fixture kind {args.kind!r}")
+
+
+def _schema(args: argparse.Namespace) -> int:
+    if args.json:
+        write_json(schema_payload())
+    else:
+        write_text(render_schema(width=args.width))
+    return 0
 
 
 def _read_events(lines: Iterable[str]) -> list[TelemetryEvent]:

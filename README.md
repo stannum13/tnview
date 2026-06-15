@@ -118,6 +118,8 @@ python -m tnview.cli demo
 tnview demo
 tnview demo --interactive
 tnview examples
+tnview schema
+tnview schema --json
 
 tnview tail examples/dmrg_bad_run.jsonl
 tnview tail examples/dmrg_bad_run.jsonl --follow
@@ -194,6 +196,9 @@ contraction-path step operands.
 state summaries; run logs show latest energy, loss, chi, truncation, memory, and
 diagnostic codes. Add `--metric loss` or another run-log metric to sort the
 table. Add `--json` for stable machine-readable comparison output.
+
+`schema` prints the supported replay and run-log telemetry schemas. Add `--json`
+to feed schema metadata into emitters, tests, or integration tooling.
 
 ## Python Object Interfaces
 

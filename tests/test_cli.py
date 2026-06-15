@@ -954,6 +954,46 @@ class CliTests(unittest.TestCase):
         self.assertIn("easy_chain.jsonl", result.stdout)
         self.assertIn("tnview compare", result.stdout)
 
+    def test_schema_command_renders_human_summary(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "schema",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView telemetry schema", result.stdout)
+        self.assertIn("Run-log events", result.stdout)
+        self.assertIn("optimizer_step", result.stdout)
+        self.assertIn("Replay events", result.stdout)
+        self.assertIn("bond_updated", result.stdout)
+
+    def test_schema_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "schema",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["schema_version"], "0.1")
+        self.assertIn("sweep_end", payload["run_log"]["events"])
+        self.assertIn("rss_mb", payload["run_log"]["metrics"])
+        self.assertIn("bond_updated", payload["replay"]["events"])
+        self.assertIn("trunc_error", payload["replay"]["required_fields"]["bond_updated"])
+
 
 if __name__ == "__main__":
     unittest.main()

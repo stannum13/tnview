@@ -7,6 +7,7 @@ TNView reads newline-delimited JSON. Each line is one event object with an
 python run_tebd.py | tnview live -
 tnview replay run.jsonl
 tnview validate run.jsonl
+tnview schema
 ```
 
 TNView accepts two related JSONL shapes:
