@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
+import traceback
 from time import sleep
 from typing import Iterable, TextIO
 
+from tnview import __version__
 from tnview.commands import diagnose_run_log
 from tnview.compare import (
     comparison_payload,
@@ -80,11 +82,35 @@ def main(argv: list[str] | None = None) -> int:
             write_text(render_error(exc), stream=sys.stderr)
         return exc.exit_code
     except EventParseError as exc:
-        print(f"tnview: {exc}", file=sys.stderr)
-        return 2
+        error = CliError(
+            code="TELEMETRY_PARSE_ERROR",
+            message="Could not read telemetry",
+            reason=str(exc),
+            suggestions=("tnview validate PATH", "Use --verbose for a traceback."),
+            exit_code=2,
+        )
+        if getattr(args, "json", False):
+            write_json(error_payload(error), stream=sys.stderr)
+        else:
+            write_text(render_error(error), stream=sys.stderr)
+        if getattr(args, "verbose", False):
+            traceback.print_exc(file=sys.stderr)
+        return error.exit_code
     except OSError as exc:
-        print(f"tnview: {exc}", file=sys.stderr)
-        return 1
+        error = CliError(
+            code="IO_ERROR",
+            message="Could not read or write a file",
+            reason=str(exc),
+            suggestions=("Check that the path exists and permissions allow access.", "Use --verbose for a traceback."),
+            exit_code=1,
+        )
+        if getattr(args, "json", False):
+            write_json(error_payload(error), stream=sys.stderr)
+        else:
+            write_text(render_error(error), stream=sys.stderr)
+        if getattr(args, "verbose", False):
+            traceback.print_exc(file=sys.stderr)
+        return error.exit_code
 
     parser.print_help()
     return 2
@@ -95,6 +121,8 @@ def _parser() -> argparse.ArgumentParser:
         prog="tnview",
         description="Terminal-native viewer for tensor-network dynamics and complexity telemetry.",
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument("--verbose", action="store_true", help="show tracebacks for expected CLI errors")
     subparsers = parser.add_subparsers(dest="command")
 
     replay = subparsers.add_parser("replay", help="render a JSONL telemetry replay")

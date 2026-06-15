@@ -7,6 +7,60 @@ from pathlib import Path
 
 
 class CliTests(unittest.TestCase):
+    def test_version_flag_reports_package_version(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "tnview.cli", "--version"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.stdout.strip(), "tnview 0.4.0")
+
+    def test_parse_errors_are_structured_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bad.jsonl"
+            path.write_text("{bad json}", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "tnview.cli", "replay", str(path)],
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Could not read telemetry", result.stderr)
+        self.assertIn("Reason:", result.stderr)
+        self.assertIn("Try:", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_verbose_parse_errors_include_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bad.jsonl"
+            path.write_text("{bad json}", encoding="utf-8")
+
+            result = subprocess.run(
+                [sys.executable, "-m", "tnview.cli", "--verbose", "replay", str(path)],
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Could not read telemetry", result.stderr)
+        self.assertIn("Traceback", result.stderr)
+
+    def test_missing_file_errors_are_structured(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "tnview.cli", "tail", "missing.jsonl"],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Could not read or write a file", result.stderr)
+        self.assertIn("Try:", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_replay_can_render_earlier_checkpoint(self) -> None:
         result = subprocess.run(
             [
