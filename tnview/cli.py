@@ -41,7 +41,7 @@ from tnview.search import is_tensor_query, render_search, render_tensor_search, 
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
 from tnview.starter import KINDS, starter_script, write_starter
-from tnview.tail import render_run_log_tail
+from tnview.tail import render_run_log_tail, run_log_tail_payload
 from tnview.terminal import supports_color
 from tnview.validate import render_validation, validate_lines, validation_payload
 
@@ -174,6 +174,7 @@ def _parser() -> argparse.ArgumentParser:
     tail.add_argument("--max-refreshes", type=int, help="stop after N refreshes, useful for scripted checks")
     tail.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     tail.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
+    tail.add_argument("--json", action="store_true", help="write stable machine-readable latest run-log JSON")
     _render_args(tail)
 
     watch = subparsers.add_parser("watch", help="watch a TNView run log with a live terminal dashboard")
@@ -350,12 +351,23 @@ def _live(args: argparse.Namespace) -> int:
 
 
 def _tail(args: argparse.Namespace) -> int:
+    if args.follow and args.json:
+        raise CliError(
+            code="TAIL_JSON_FOLLOW_UNSUPPORTED",
+            message="tail --json cannot be combined with --follow",
+            reason="The JSON output mode describes one latest run-log state.",
+            suggestions=("Use `tnview tail PATH --json` for one snapshot.", "Use `tnview watch PATH` for live monitoring."),
+            exit_code=2,
+        )
     if args.follow:
         return _tail_follow(args)
     lines = list(_iter_lines(args.path))
     report = read_jsonl_records(lines)
     run_records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
     if run_records:
+        if args.json:
+            write_json(run_log_tail_payload(run_records))
+            return 0 if not report.errors else 2
         print(
             render_run_log_tail(
                 run_records,
@@ -365,6 +377,14 @@ def _tail(args: argparse.Namespace) -> int:
             )
         )
         return 0 if not report.errors else 2
+    if args.json:
+        raise CliError(
+            code="TAIL_JSON_REQUIRES_RUN_LOG",
+            message="tail --json requires run-log telemetry",
+            reason="Replay telemetry should use `tnview replay --snapshot` or `tnview export`.",
+            suggestions=(f"tnview replay {args.path} --snapshot", f"tnview export {args.path} --format manifest"),
+            exit_code=2,
+        )
     return _render_live_lines(lines, args)
 
 

@@ -75,6 +75,29 @@ def render_run_log_tail(
     return "\n".join(lines)
 
 
+def run_log_tail_payload(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return stable machine-readable latest run-log state."""
+
+    latest = _latest_state(records)
+    diagnostics = diagnose_events(records)
+    return {
+        "ok": not any(diagnostic.severity == "error" for diagnostic in diagnostics),
+        "kind": "run-log-tail",
+        "event_count": len(records),
+        "current": latest,
+        "diagnostics": [
+            {
+                "code": diagnostic.code,
+                "severity": diagnostic.severity,
+                "message": diagnostic.message,
+                "evidence": diagnostic.evidence,
+            }
+            for diagnostic in diagnostics
+        ],
+        "recent_events": records[-5:],
+    }
+
+
 def _latest_state(records: list[dict[str, Any]]) -> dict[str, Any]:
     state: dict[str, Any] = {}
     for record in records:

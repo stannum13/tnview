@@ -837,6 +837,63 @@ class CliTests(unittest.TestCase):
         self.assertIn("Pressure:", result.stdout)
         self.assertIn("Events:", result.stdout)
 
+    def test_tail_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "tail",
+                "examples/quimb_tnoptimizer_run.jsonl",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["kind"], "run-log-tail")
+        self.assertEqual(payload["current"]["run_id"], "quimb-opt")
+        self.assertEqual(payload["current"]["loss"], 0.07)
+        self.assertEqual(len(payload["recent_events"]), 5)
+
+    def test_tail_json_rejects_replay_logs(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "tail",
+                "examples/tebd_run.jsonl",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("tail --json requires run-log telemetry", result.stderr)
+
+    def test_tail_json_rejects_follow_mode(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "tail",
+                "examples/quimb_tnoptimizer_run.jsonl",
+                "--follow",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("tail --json cannot be combined with --follow", result.stderr)
+
     def test_tail_follow_renders_once_for_run_logs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "run.jsonl"

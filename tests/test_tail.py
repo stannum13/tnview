@@ -1,6 +1,6 @@
 import unittest
 
-from tnview.tail import render_run_log_tail
+from tnview.tail import render_run_log_tail, run_log_tail_payload
 
 
 class TailTests(unittest.TestCase):
@@ -73,6 +73,22 @@ class TailTests(unittest.TestCase):
         self.assertIn("run=r1", output)
         self.assertIn("Events:", output)
         self.assertIn("optimizer_step", output)
+
+    def test_run_log_tail_payload_reports_current_state(self) -> None:
+        payload = run_log_tail_payload(
+            [
+                {"event": "run_start", "run_id": "r1", "library": "quimb", "algorithm": "tnoptimizer"},
+                {"event": "optimizer_step", "step": 1, "loss": 0.5},
+                {"event": "optimizer_step", "step": 2, "loss": 0.25},
+            ]
+        )
+
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["kind"], "run-log-tail")
+        self.assertEqual(payload["event_count"], 3)
+        self.assertEqual(payload["current"]["run_id"], "r1")
+        self.assertEqual(payload["current"]["loss"], 0.25)
+        self.assertEqual(len(payload["recent_events"]), 3)
 
 
 if __name__ == "__main__":

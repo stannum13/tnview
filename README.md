@@ -177,6 +177,7 @@ tnview init emit_quimb.py --kind quimb
 
 tnview watch examples/dmrg_bad_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/dmrg_bad_run.jsonl
+tnview tail examples/dmrg_bad_run.jsonl --json
 tnview tail examples/dmrg_bad_run.jsonl --follow
 tnview replay-runlog examples/dmrg_bad_run.jsonl --interactive
 tnview diagnose examples/dmrg_bad_run.jsonl
@@ -222,9 +223,10 @@ events.
 current metrics, pressure meters, trends, diagnostics, and recent event ticker.
 It is the main command for attaching to a running batch job.
 
-`tail` prints the same current-state summary once. Add `--follow` to keep
-refreshing a file as a batch job appends events. For replay logs, it falls back
-to the same frame rendering used by `live`.
+`tail` prints the same current-state summary once. Add `--json` for a stable
+machine-readable latest run-log state. Add `--follow` to keep refreshing a file
+as a batch job appends events. For replay logs, it falls back to the same frame
+rendering used by `live`.
 
 `diagnose` prints deterministic warnings for run-log events such as energy
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
