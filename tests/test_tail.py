@@ -93,9 +93,11 @@ class TailTests(unittest.TestCase):
     def test_render_run_log_dashboard_uses_watch_panels(self) -> None:
         output = render_run_log_dashboard(
             [
-                {"event": "run_start", "run_id": "r1", "library": "quimb", "algorithm": "tnoptimizer"},
-                {"event": "optimizer_step", "step": 1, "loss": 0.5, "rss_mb": 100},
-                {"event": "optimizer_step", "step": 2, "loss": 0.25, "rss_mb": 120},
+                {"event": "run_start", "run_id": "r1", "library": "quimb", "algorithm": "dmrg"},
+                {"event": "sweep_end", "sweep": 1, "delta_energy": 1e-9},
+                {"event": "sweep_end", "sweep": 2, "delta_energy": 1e-9},
+                {"event": "sweep_end", "sweep": 3, "delta_energy": 1e-9},
+                {"event": "sweep_end", "sweep": 4, "delta_energy": 1e-9},
             ],
             width=100,
             unicode=False,
@@ -106,6 +108,7 @@ class TailTests(unittest.TestCase):
         self.assertIn("Signals", output)
         self.assertIn("Diagnostics", output)
         self.assertIn("Recent events", output)
+        self.assertIn("try: inspect chi_saturation", output)
         self.assertIn("q/ctrl-c stop", output)
 
 

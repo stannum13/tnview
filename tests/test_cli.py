@@ -928,6 +928,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("energy_plateau", result.stdout)
         self.assertIn("chi_saturation", result.stdout)
         self.assertIn("truncation_floor", result.stdout)
+        self.assertIn("Try:", result.stdout)
 
     def test_diagnose_command_can_emit_json(self) -> None:
         result = subprocess.run(
@@ -949,6 +950,8 @@ class CliTests(unittest.TestCase):
         self.assertFalse(payload["ok"])
         self.assertGreater(payload["warning_count"], 0)
         self.assertEqual(payload["error_count"], 0)
+        self.assertIn("suggestions", payload["diagnostics"][0])
+        self.assertGreater(len(payload["diagnostics"][0]["suggestions"]), 0)
 
     def test_diagnose_command_accepts_threshold_flags(self) -> None:
         result = subprocess.run(

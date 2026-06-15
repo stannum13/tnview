@@ -14,6 +14,7 @@ class Diagnostic:
     severity: str
     message: str
     evidence: dict[str, Any] = field(default_factory=dict)
+    suggestions: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,9 @@ def render_diagnostics(diagnostics: list[Diagnostic]) -> str:
         evidence = _evidence_text(diagnostic.evidence)
         suffix = f" ({evidence})" if evidence else ""
         lines.append(f"{diagnostic.severity.upper()} {diagnostic.code}: {diagnostic.message}{suffix}")
+        if diagnostic.suggestions:
+            lines.append("  Try:")
+            lines.extend(f"    - {suggestion}" for suggestion in diagnostic.suggestions)
     return "\n".join(lines)
 
 
@@ -69,6 +73,11 @@ def _energy_plateau(events: list[dict[str, Any]], thresholds: DiagnosticThreshol
                 severity="warn",
                 message="Energy appears plateaued; check truncation error and chi saturation.",
                 evidence={"recent_delta_energy": recent},
+                suggestions=(
+                    "inspect chi_saturation and truncation_floor diagnostics",
+                    "compare against a larger chi_max run",
+                    "stop early if observables are stable",
+                ),
             )
         ]
     return []
@@ -90,6 +99,11 @@ def _chi_saturation(events: list[dict[str, Any]]) -> list[Diagnostic]:
                 severity="warn",
                 message="Bond dimension has saturated for 3 consecutive progress events.",
                 evidence={"max_chi": latest.get("max_chi"), "chi_max_configured": latest.get("chi_max_configured")},
+                suggestions=(
+                    "increase chi_max for a short comparison run",
+                    "check whether the saturated bonds align with the physical cut",
+                    "try a different site ordering before only increasing chi",
+                ),
             )
         ]
     return []
@@ -108,6 +122,11 @@ def _truncation_floor(events: list[dict[str, Any]], thresholds: DiagnosticThresh
                     severity="warn",
                     message="Truncation error remains high while energy improvement is small.",
                     evidence={"max_trunc_err": trunc, "delta_energy": delta},
+                    suggestions=(
+                        "increase chi_max or reduce truncation tolerance",
+                        "compare observables against a higher-accuracy run",
+                        "inspect the bonds with the largest truncation error",
+                    ),
                 )
             ]
         return []
@@ -128,6 +147,11 @@ def _runtime_regression(events: list[dict[str, Any]], thresholds: DiagnosticThre
                 severity="warn",
                 message="Runtime increased sharply compared with recent progress events.",
                 evidence={"latest_runtime": latest, "recent_median": baseline},
+                suggestions=(
+                    "check whether chi or tensor dimensions jumped at the same step",
+                    "inspect memory pressure and backend thread settings",
+                    "compare wall time against a lower-chi pilot run",
+                ),
             )
         ]
     return []
@@ -143,6 +167,11 @@ def _memory_growth(events: list[dict[str, Any]], thresholds: DiagnosticThreshold
                 severity="warn",
                 message="RSS memory is growing steadily across recent progress events.",
                 evidence={"rss_mb_start": recent[0], "rss_mb_latest": recent[-1]},
+                suggestions=(
+                    "confirm tensors or environments are not being retained accidentally",
+                    "checkpoint and restart the run if memory pressure is near the job limit",
+                    "compare RSS growth across parameter variants",
+                ),
             )
         ]
     return []
@@ -158,6 +187,11 @@ def _optimizer_stagnation(events: list[dict[str, Any]], thresholds: DiagnosticTh
                 severity="warn",
                 message="Optimizer loss has stagnated over the last 10 steps.",
                 evidence={"loss_start": recent[0], "loss_latest": recent[-1]},
+                suggestions=(
+                    "try a different optimizer or learning-rate schedule",
+                    "restart from the best checkpoint with tighter tolerances",
+                    "check gradients and loss scaling if available",
+                ),
             )
         ]
     return []
@@ -186,6 +220,11 @@ def _nonfinite_metrics(events: list[dict[str, Any]]) -> list[Diagnostic]:
                         severity="error",
                         message="A run metric became NaN or infinite.",
                         evidence={"event": event.get("event"), "field": key, "value": value},
+                        suggestions=(
+                            "stop the run and inspect the first non-finite event",
+                            "check normalization, optimizer step size, and input tensors",
+                            "restart from the last finite checkpoint",
+                        ),
                     )
                 ]
     return []
@@ -205,6 +244,11 @@ def _canonical_form_drift(events: list[dict[str, Any]], thresholds: DiagnosticTh
                     severity="warn",
                     message="Canonical-form or norm error is above the expected tolerance.",
                     evidence={"canonical_error": error},
+                    suggestions=(
+                        "recanonicalize or renormalize before continuing",
+                        "tighten canonicalization tolerances",
+                        "inspect whether truncation or optimizer steps destabilized the state",
+                    ),
                 )
             ]
         return []
@@ -221,6 +265,11 @@ def _entropy_growth(events: list[dict[str, Any]], thresholds: DiagnosticThreshol
                 severity="warn",
                 message="Entanglement entropy is growing steadily across recent progress events.",
                 evidence={"entropy_start": recent[0], "entropy_latest": recent[-1]},
+                suggestions=(
+                    "watch central bonds for upcoming chi saturation",
+                    "increase chi_max only after checking geometry/order effects",
+                    "run a short higher-chi pilot to estimate required capacity",
+                ),
             )
         ]
     return []

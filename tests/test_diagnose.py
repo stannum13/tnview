@@ -19,6 +19,7 @@ class DiagnoseTests(unittest.TestCase):
         diagnostics = diagnose_events([{"event": "sweep_end", "delta_energy": 1e-9} for _ in range(4)])
 
         self.assertTrue(_has(diagnostics, "energy_plateau"))
+        self.assertIn("compare against a larger chi_max run", diagnostics[0].suggestions)
 
     def test_chi_saturation_rule(self) -> None:
         diagnostics = diagnose_events(
@@ -79,6 +80,13 @@ class DiagnoseTests(unittest.TestCase):
         )
 
         self.assertFalse(_has(diagnostics, "energy_plateau"))
+
+    def test_render_diagnostics_includes_suggestions(self) -> None:
+        diagnostics = diagnose_events([{"event": "sweep_end", "delta_energy": 1e-9} for _ in range(4)])
+        output = render_diagnostics(diagnostics)
+
+        self.assertIn("Try:", output)
+        self.assertIn("compare against a larger chi_max run", output)
 
 
 def _has(diagnostics: list[object], code: str) -> bool:

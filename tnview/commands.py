@@ -41,6 +41,7 @@ def diagnose_run_log(
                     "severity": diagnostic.severity,
                     "message": diagnostic.message,
                     "evidence": diagnostic.evidence,
+                    "suggestions": list(diagnostic.suggestions),
                 }
                 for diagnostic in diagnostics
             ],

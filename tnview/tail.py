@@ -146,6 +146,7 @@ def run_log_tail_payload(records: list[dict[str, Any]]) -> dict[str, Any]:
                 "severity": diagnostic.severity,
                 "message": diagnostic.message,
                 "evidence": diagnostic.evidence,
+                "suggestions": list(diagnostic.suggestions),
             }
             for diagnostic in diagnostics
         ],
@@ -303,6 +304,8 @@ def _dashboard_diagnostic_lines(diagnostics: list[Any]) -> list[str]:
     for diagnostic in diagnostics[:5]:
         evidence = f"  {diagnostic.evidence}" if diagnostic.evidence else ""
         lines.append(f"{diagnostic.severity.upper()} {diagnostic.code}: {diagnostic.message}{evidence}")
+        if diagnostic.suggestions:
+            lines.append(f"try: {diagnostic.suggestions[0]}")
     return lines
 
 
