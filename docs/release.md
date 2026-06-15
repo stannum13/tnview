@@ -29,6 +29,7 @@ TNView is still alpha. Use this checklist before tagging a release.
 5. Build the package from a clean tree:
 
    ```bash
+   rm -rf dist *.egg-info
    python -m build
    ```
 
@@ -41,6 +42,6 @@ TNView is still alpha. Use this checklist before tagging a release.
 7. Tag after verification:
 
    ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
+   git tag v0.4.0
+   git push origin v0.4.0
    ```
