@@ -8,12 +8,55 @@ surfaces deterministic diagnostics, and renders compact terminal views for
 entropy growth, bond-dimension pressure, truncation hotspots, update history,
 and run comparisons.
 
-The immediate goal is a lively TUI for runs that are too dynamic for static
-logs but do not need a heavier GUI. The longer-term research direction is to
-make the same telemetry useful for comparing toy models, spotting ansatz
-pressure, and debugging complexity growth.
+It is designed for SSH, tmux, and batch jobs: record a run, attach from a
+terminal, replay it after a crash, and compare variants without a browser
+dashboard.
 
-## Quick Start
+## Install
+
+From this repo:
+
+```bash
+make setup
+source .venv/bin/activate
+```
+
+Or install into an active environment:
+
+```bash
+python -m pip install -e .
+```
+
+Optional integration extras:
+
+```bash
+python -m pip install -e ".[quimb]"
+python -m pip install -e ".[tenpy]"
+```
+
+## 30-Second Demo
+
+Run the terminal diagnostics tour:
+
+```bash
+make runlog-demo
+```
+
+The script lists built-in examples, tails a healthy optimizer run, replays a
+specific historical event, diagnoses a stalled DMRG-style run, and compares the
+two run logs. It is intentionally plain terminal output so it works over SSH and
+is easy to record with tools such as `script` or `asciinema`.
+
+Try individual commands:
+
+```bash
+tnview tail examples/quimb_tnoptimizer_run.jsonl
+tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii
+tnview diagnose examples/dmrg_bad_run.jsonl
+tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
+```
+
+## Record a Run
 
 Record a run:
 
@@ -42,18 +85,11 @@ tnview tail runs/dmrg.jsonl
 tnview diagnose runs/dmrg.jsonl
 ```
 
-Try the visual replay demo:
+For a visual MPS/TEBD replay demo:
 
 ```bash
-make setup
 tnview demo
 tnview demo --interactive
-```
-
-Or run the terminal diagnostics tour:
-
-```bash
-make runlog-demo
 ```
 
 If `tnview` is not on your shell path, run the module directly:
@@ -104,19 +140,6 @@ tnview search examples/tebd_run.jsonl tensor:A2
 tnview compare examples/*.jsonl --sort risk
 tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generated.jsonl
 ```
-
-## Terminal Demo
-
-For a quick tour of the run-diagnostics flow:
-
-```bash
-make runlog-demo
-```
-
-The script lists built-in examples, tails a healthy optimizer run, replays a
-specific historical event, diagnoses a stalled DMRG-style run, and compares the
-two run logs. It is intentionally plain terminal output so it works over SSH and
-is easy to record with tools such as `script` or `asciinema`.
 
 ## Command Guide
 
@@ -183,29 +206,7 @@ Path("mps.jsonl").write_text(mps_to_jsonl(psi), encoding="utf-8")
 The adapter reads MPS structure such as site count, bond dimensions, tensor
 shapes, and singular values when the object exposes them.
 
-## Setup
-
-From the repo root:
-
-```bash
-make setup
-```
-
-If a conda or virtualenv environment is active, `make setup` installs into that
-environment. Otherwise it creates a local `.venv`.
-
-Manual install into the active environment:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-If `make setup` created `.venv`, activate it before running `tnview` directly:
-
-```bash
-source .venv/bin/activate
-tnview demo --interactive
-```
+## Development
 
 Development and release checks:
 
