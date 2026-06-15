@@ -45,7 +45,8 @@ make runlog-demo
 The script lists built-in examples, tails a healthy optimizer run, replays a
 specific historical event, diagnoses a stalled DMRG-style run, and compares the
 two run logs. It is intentionally plain terminal output so it works over SSH and
-is easy to record with tools such as `script` or `asciinema`.
+is easy to record with tools such as `script` or `asciinema`. A checked-in
+transcript is available at [docs/demo/runlog-demo.txt](docs/demo/runlog-demo.txt).
 
 Try individual commands:
 
