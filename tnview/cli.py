@@ -46,6 +46,7 @@ from tnview.state import RunState
 from tnview.starter import KINDS, starter_script, write_starter
 from tnview.tail import render_run_log_dashboard, render_run_log_tail, run_log_tail_payload
 from tnview.terminal import supports_color
+from tnview.tour import render_tour
 from tnview.validate import render_validation, validate_lines, validation_payload
 
 
@@ -94,6 +95,8 @@ def main(argv: list[str] | None = None) -> int:
             return _doctor(args)
         if args.command == "focus":
             return _focus(args)
+        if args.command == "tour":
+            return _tour(args)
     except CliError as exc:
         if getattr(args, "json", False):
             write_json(error_payload(exc), stream=sys.stderr)
@@ -312,6 +315,8 @@ def _parser() -> argparse.ArgumentParser:
     doctor = subparsers.add_parser("doctor", help="check TNView install, examples, and optional integrations")
     doctor.add_argument("--examples-root", default="examples", help="examples directory to validate")
     doctor.add_argument("--json", action="store_true", help="write stable machine-readable doctor JSON")
+
+    subparsers.add_parser("tour", help="show the motivated first-run tour")
 
     return parser
 
@@ -825,6 +830,11 @@ def _doctor(args: argparse.Namespace) -> int:
     else:
         write_text(render_doctor(report))
     return 0 if report.ok else 2
+
+
+def _tour(args: argparse.Namespace) -> int:
+    write_text(render_tour())
+    return 0
 
 
 def _starter_log_path(kind: str) -> str:

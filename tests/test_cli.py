@@ -17,6 +17,19 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result.stdout.strip(), "tnview 1.1.0")
 
+    def test_tour_command_shows_motivated_onboarding(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "tnview.cli", "tour"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView tour", result.stdout)
+        self.assertIn("Why this exists", result.stdout)
+        self.assertIn("tnview sketch --wizard", result.stdout)
+        self.assertIn("tnview watch", result.stdout)
+
     def test_parse_errors_are_structured_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.jsonl"

@@ -42,6 +42,12 @@ python -m pip install -e ".[tenpy]"
 
 ## 30-Second Demo
 
+Start with the motivated CLI tour:
+
+```bash
+tnview tour
+```
+
 Run the terminal diagnostics tour:
 
 ```bash
@@ -57,6 +63,7 @@ transcript is available at [docs/demo/runlog-demo.txt](docs/demo/runlog-demo.txt
 Try individual commands:
 
 ```bash
+tnview tour
 tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
 tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/quimb_tnoptimizer_run.jsonl
@@ -171,6 +178,7 @@ additive when practical.
 ## Common Commands
 
 ```bash
+tnview tour
 tnview demo
 tnview demo --interactive
 tnview sketch --list
