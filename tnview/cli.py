@@ -8,6 +8,7 @@ import sys
 from time import sleep
 from typing import Iterable, TextIO
 
+from tnview.commands import diagnose_run_log
 from tnview.compare import (
     render_comparison,
     render_comparison_csv,
@@ -18,7 +19,7 @@ from tnview.compare import (
     summarize_run,
     summarize_run_log,
 )
-from tnview.diagnose import diagnose_events, render_diagnostics
+from tnview.cli_output import CliError, error_payload, render_error, result_payload, write_json, write_text
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_records_csv, export_replay_csv, export_replay_jsonl
@@ -69,6 +70,12 @@ def main(argv: list[str] | None = None) -> int:
             return _examples(args)
         if args.command == "fixture":
             return _fixture(args)
+    except CliError as exc:
+        if getattr(args, "json", False):
+            write_json(error_payload(exc), stream=sys.stderr)
+        else:
+            write_text(render_error(exc), stream=sys.stderr)
+        return exc.exit_code
     except EventParseError as exc:
         print(f"tnview: {exc}", file=sys.stderr)
         return 2
@@ -179,6 +186,7 @@ def _parser() -> argparse.ArgumentParser:
 
     diagnose = subparsers.add_parser("diagnose", help="print run-log diagnostics")
     diagnose.add_argument("path", help="JSONL run log, or '-' for stdin")
+    diagnose.add_argument("--json", action="store_true", help="write stable machine-readable diagnostics JSON")
 
     export = subparsers.add_parser("export", help="export normalized replay JSONL or manifest JSON")
     export.add_argument("path", help="JSONL replay file, or '-' for stdin")
@@ -433,15 +441,12 @@ def _validate(args: argparse.Namespace) -> int:
 
 
 def _diagnose(args: argparse.Namespace) -> int:
-    report = read_jsonl_records(_iter_lines(args.path))
-    if report.errors:
-        print("TNView diagnostics")
-        print("errors:")
-        for error in report.errors:
-            print(f"- {error}")
-        return 2
-    print(render_diagnostics(diagnose_events(list(report.records))))
-    return 0
+    result = diagnose_run_log(_iter_lines(args.path), path=args.path)
+    if args.json:
+        write_json(result_payload(result))
+    else:
+        write_text(result.text)
+    return result.exit_code
 
 
 def _export(args: argparse.Namespace) -> int:

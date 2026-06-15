@@ -122,6 +122,7 @@ tnview tail examples/dmrg_bad_run.jsonl
 tnview tail examples/dmrg_bad_run.jsonl --follow
 tnview replay-runlog examples/dmrg_bad_run.jsonl --interactive
 tnview diagnose examples/dmrg_bad_run.jsonl
+tnview diagnose examples/dmrg_bad_run.jsonl --json
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 tnview export examples/quimb_tnoptimizer_run.jsonl --format csv
 
@@ -166,7 +167,7 @@ logs, it falls back to the same frame rendering used by `live`.
 `diagnose` prints deterministic warnings for run-log events such as energy
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
 optimizer stagnation, non-finite metrics, canonical-form drift, and sustained
-entropy growth.
+entropy growth. Add `--json` for stable machine-readable diagnostics.
 
 `preview` reads setup telemetry such as `model_geometry` and `ansatz_layout` and
 reports interaction range, expected lightcone, early chi-pressure risk,

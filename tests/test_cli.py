@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import tempfile
@@ -543,6 +544,74 @@ class CliTests(unittest.TestCase):
         self.assertIn("energy_plateau", result.stdout)
         self.assertIn("chi_saturation", result.stdout)
         self.assertIn("truncation_floor", result.stdout)
+
+    def test_diagnose_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "diagnose",
+                "examples/dmrg_bad_run.jsonl",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertIn("diagnostics", payload)
+        self.assertFalse(payload["ok"])
+        self.assertGreater(payload["warning_count"], 0)
+        self.assertEqual(payload["error_count"], 0)
+
+    def test_diagnose_command_renders_structured_parse_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bad.jsonl"
+            path.write_text("{bad json}", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "diagnose",
+                    str(path),
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("Could not read run log", result.stderr)
+        self.assertIn("Path:", result.stderr)
+        self.assertIn("Reason:", result.stderr)
+        self.assertIn("Try:", result.stderr)
+
+    def test_diagnose_command_can_emit_json_parse_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "bad.jsonl"
+            path.write_text("{bad json}", encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "diagnose",
+                    str(path),
+                    "--json",
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+        payload = json.loads(result.stderr)
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"]["code"], "RUN_LOG_PARSE_ERROR")
 
     def test_tail_command_renders_run_log_summary(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
