@@ -40,6 +40,8 @@ class RenderOptions:
     show_diagnostics: bool = True
     bond_start: int | None = None
     bond_limit: int | None = None
+    history_time_min: float | None = None
+    history_time_max: float | None = None
 
 
 def render_run(state: RunState, options: RenderOptions | None = None) -> str:
@@ -180,7 +182,9 @@ def _heatmap(state: RunState, width: int, options: RenderOptions) -> str:
     if not state.history:
         return ""
 
-    rows = state.history[-options.history_limit :]
+    rows = _history_rows(state, options)
+    if not rows:
+        return ""
     bonds = [bond.bond for bond in _visible_bonds(state, options)]
     if not bonds:
         return ""
@@ -194,6 +198,15 @@ def _heatmap(state: RunState, width: int, options: RenderOptions) -> str:
         cells = " ".join(_bucket(row.entropy_by_bond.get(bond, 0.0), max_entropy, glyphs) for bond in bonds)
         lines.append(_fit(f"t={row.time:<5g} {cells}", width))
     return "\n".join(lines)
+
+
+def _history_rows(state: RunState, options: RenderOptions):
+    rows = state.history
+    if options.history_time_min is not None:
+        rows = [row for row in rows if row.time >= options.history_time_min]
+    if options.history_time_max is not None:
+        rows = [row for row in rows if row.time <= options.history_time_max]
+    return rows[-options.history_limit :]
 
 
 def _pressure_rows(state: RunState, width: int, options: RenderOptions) -> str:

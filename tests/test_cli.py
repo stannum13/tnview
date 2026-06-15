@@ -138,6 +138,35 @@ class CliTests(unittest.TestCase):
         self.assertIn("step          2", result.stdout)
         self.assertIn("loss          0.42", result.stdout)
 
+    def test_animate_renders_scripted_replay_frames(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "animate",
+                "examples/tebd_run.jsonl",
+                "--frames",
+                "2",
+                "--window",
+                "0",
+                "--interval",
+                "0",
+                "--no-clear",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView oscilloscope frame 1/2", result.stdout)
+        self.assertIn("TNView oscilloscope frame 2/2", result.stdout)
+        self.assertIn("window=[0, 0]", result.stdout)
+        self.assertIn("Entanglement heatmap", result.stdout)
+
     def test_replay_runlog_rejects_missing_event(self) -> None:
         result = subprocess.run(
             [

@@ -10,6 +10,7 @@ from time import sleep
 from typing import Iterable, TextIO
 
 from tnview import __version__
+from tnview.animate import animation_frame_indices, checkpoint_count, render_animation_frame
 from tnview.commands import diagnose_run_log
 from tnview.compare import (
     comparison_payload,
@@ -59,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
             return _replay(args)
         if args.command == "replay-runlog":
             return _replay_runlog(args)
+        if args.command == "animate":
+            return _animate(args)
         if args.command == "live":
             return _live(args)
         if args.command == "tail":
@@ -171,6 +174,21 @@ def _parser() -> argparse.ArgumentParser:
     replay_runlog.add_argument("--interactive", action="store_true", help="open an interactive run-log replay shell")
     replay_runlog.add_argument("--ascii", action="store_true", help="use ASCII sparklines")
     replay_runlog.add_argument("--width", type=int, default=100, help="render width in columns")
+
+    animate = subparsers.add_parser("animate", help="render an oscilloscope-style replay animation")
+    animate.add_argument("path", help="JSONL replay file")
+    animate.add_argument("--frames", type=int, help="number of checkpoint frames to render")
+    animate.add_argument("--window", type=float, default=1.0, help="time radius around active frame T")
+    animate.add_argument("--interval", type=float, default=0.2, help="sleep interval between frames")
+    animate.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
+    animate.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    animate.add_argument("--width", type=int, help="render width in columns")
+    animate.add_argument(
+        "--focus",
+        choices=["none", "bottleneck", "entropy", "front", "compute", "center"],
+        default="bottleneck",
+        help="select an interesting bond for each frame",
+    )
 
     live = subparsers.add_parser("live", help="stream JSONL telemetry and refresh on checkpoints")
     live.add_argument("path", nargs="?", default="-", help="JSONL source, default stdin")
@@ -374,6 +392,41 @@ def _replay_runlog(args: argparse.Namespace) -> int:
         return 0
     index = _run_log_index(args.index, len(records))
     print(render_run_log_replay(records, index=index, width=args.width, unicode=not args.ascii))
+    return 0
+
+
+def _animate(args: argparse.Namespace) -> int:
+    if args.window < 0:
+        raise EventParseError("--window must be non-negative")
+    if args.interval < 0:
+        raise EventParseError("--interval must be non-negative")
+    if args.frames is not None and args.frames <= 0:
+        raise EventParseError("--frames must be positive")
+
+    events = _read_events(_iter_lines(args.path))
+    count = checkpoint_count(events)
+    if count == 0:
+        raise EventParseError("animate requires at least one checkpoint event")
+
+    indices = animation_frame_indices(count, args.frames)
+    total = len(indices)
+    for position, checkpoint_index in enumerate(indices, start=1):
+        if not args.no_clear and sys.stdout.isatty():
+            print("\033[2J\033[H", end="")
+        frame = render_animation_frame(
+            events,
+            checkpoint_index=checkpoint_index,
+            frame_number=position,
+            frame_count=total,
+            window_radius=args.window,
+            width=args.width,
+            unicode=not args.ascii,
+            focus=args.focus,
+        )
+        print(frame.text)
+        print(flush=True)
+        if position < total and args.interval:
+            sleep(args.interval)
     return 0
 
 

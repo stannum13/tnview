@@ -11,6 +11,7 @@ class TourTests(unittest.TestCase):
         self.assertIn("Why this exists", output)
         self.assertIn("Tensor-network runs often fail slowly", output)
         self.assertIn("tnview sketch --wizard", output)
+        self.assertIn("tnview animate", output)
         self.assertIn("tnview watch", output)
         self.assertIn("tnview init", output)
 
