@@ -18,25 +18,27 @@ TNView is still alpha. Use this checklist before tagging a release.
    tnview diagnose examples/dmrg_bad_run.jsonl
    ```
 
-3. Update version strings:
+3. Confirm GitHub Actions is green on `main`.
+
+4. Update version strings:
 
    - `pyproject.toml`
    - `tnview/__init__.py`
    - `CHANGELOG.md`
 
-4. Build the package from a clean tree:
+5. Build the package from a clean tree:
 
    ```bash
    python -m build
    ```
 
-5. Inspect artifacts:
+6. Inspect artifacts:
 
    ```bash
    python -m twine check dist/*
    ```
 
-6. Tag after verification:
+7. Tag after verification:
 
    ```bash
    git tag v0.1.0
