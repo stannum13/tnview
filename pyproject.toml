@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tnview"
-version = "0.4.0"
+version = "1.0.0"
 description = "Terminal diagnostics and replay for tensor-network simulation runs."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,7 +14,7 @@ license-files = ["LICENSE"]
 dependencies = []
 keywords = ["tensor-networks", "dmrg", "tebd", "terminal", "telemetry", "quimb", "tenpy"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 5 - Production/Stable",
   "Environment :: Console",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",

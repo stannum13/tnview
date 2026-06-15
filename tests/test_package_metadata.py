@@ -8,6 +8,8 @@ class PackageMetadataTests(unittest.TestCase):
         data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
         project = data["project"]
 
+        self.assertEqual(project["version"], "1.0.0")
+        self.assertIn("Development Status :: 5 - Production/Stable", project["classifiers"])
         self.assertEqual(project["scripts"]["tnview"], "tnview.cli:main")
         self.assertEqual(project["license"], "MIT")
         self.assertEqual(project["license-files"], ["LICENSE"])

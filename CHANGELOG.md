@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.0 - 2026-06-15
+
+Stable CLI and integration contract release.
+
+- Added `tnview --version` and structured expected-error rendering across the
+  CLI, with tracebacks behind `--verbose`.
+- Added `tnview schema` with human and JSON output for supported run-log and
+  visual replay event contracts.
+- Added `tnview init` starter emitters for stdlib `RunLogger`, quimb snapshots,
+  and TeNPy observer integration.
+- Kept the v0.4 run-diagnostics surface stable: `tail`, `diagnose`, `compare`,
+  `validate --strict --json`, configurable thresholds, quimb helpers, and TeNPy
+  full sweep-history emission.
+- Marked the package metadata as a stable console release.
+
 ## 0.4.0 - 2026-06-15
 
 Run-diagnostics and integration readiness release.

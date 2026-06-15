@@ -42,6 +42,6 @@ TNView is still alpha. Use this checklist before tagging a release.
 7. Tag after verification:
 
    ```bash
-   git tag v0.4.0
-   git push origin v0.4.0
+   git tag v1.0.0
+   git push origin v1.0.0
    ```
