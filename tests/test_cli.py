@@ -1124,6 +1124,66 @@ class CliTests(unittest.TestCase):
         self.assertIn("emit_mps_snapshot", result.stdout)
         self.assertIn("MPS_rand_state", result.stdout)
 
+    def test_doctor_command_reports_install_health(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "doctor",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView doctor", result.stdout)
+        self.assertIn("version:", result.stdout)
+        self.assertIn("Examples:", result.stdout)
+        self.assertIn("Optional integrations:", result.stdout)
+
+    def test_doctor_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "doctor",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["version"], "1.1.0")
+        self.assertGreater(payload["examples"]["files"], 0)
+        self.assertIn("quimb", {item["name"] for item in payload["integrations"]})
+
+    def test_doctor_command_reports_missing_examples_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            missing = Path(directory) / "missing"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "doctor",
+                    "--examples-root",
+                    str(missing),
+                    "--json",
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(payload["ok"])
+        self.assertIn("does not exist", payload["examples"]["errors"][0])
+
 
 if __name__ == "__main__":
     unittest.main()

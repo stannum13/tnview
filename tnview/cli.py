@@ -25,6 +25,7 @@ from tnview.compare import (
 )
 from tnview.cli_output import CliError, error_payload, render_error, result_payload, write_json, write_text
 from tnview.diagnose import DiagnosticThresholds
+from tnview.doctor import doctor_payload, render_doctor, run_doctor
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_records_csv, export_replay_csv, export_replay_jsonl
@@ -84,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
             return _schema(args)
         if args.command == "init":
             return _init(args)
+        if args.command == "doctor":
+            return _doctor(args)
     except CliError as exc:
         if getattr(args, "json", False):
             write_json(error_payload(exc), stream=sys.stderr)
@@ -278,6 +281,10 @@ def _parser() -> argparse.ArgumentParser:
     init.add_argument("--kind", choices=KINDS, default="runlog", help="starter template kind")
     init.add_argument("--force", action="store_true", help="overwrite an existing file")
     init.add_argument("--dry-run", action="store_true", help="print the starter script without writing it")
+
+    doctor = subparsers.add_parser("doctor", help="check TNView install, examples, and optional integrations")
+    doctor.add_argument("--examples-root", default="examples", help="examples directory to validate")
+    doctor.add_argument("--json", action="store_true", help="write stable machine-readable doctor JSON")
 
     return parser
 
@@ -666,6 +673,15 @@ def _init(args: argparse.Namespace) -> int:
         ) from exc
     write_text(f"Wrote {path}\nTry:\n  python {path}\n  tnview tail {_starter_log_path(args.kind)}")
     return 0
+
+
+def _doctor(args: argparse.Namespace) -> int:
+    report = run_doctor(examples_root=args.examples_root)
+    if args.json:
+        write_json(doctor_payload(report))
+    else:
+        write_text(render_doctor(report))
+    return 0 if report.ok else 2
 
 
 def _starter_log_path(kind: str) -> str:

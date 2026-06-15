@@ -35,6 +35,7 @@ jobs:
         run: |
           tnview --help
           tnview --version
+          tnview doctor --json
           tnview schema --json
           tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 100
           tnview diagnose examples/dmrg_bad_run.jsonl --json

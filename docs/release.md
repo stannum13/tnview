@@ -15,6 +15,7 @@ Use this checklist before tagging a public release.
    ```bash
    tnview --help
    tnview --version
+   tnview doctor --json
    tnview schema --json
    tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
    tnview tail examples/quimb_tnoptimizer_run.jsonl

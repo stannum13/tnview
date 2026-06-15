@@ -167,6 +167,8 @@ additive when practical.
 ```bash
 tnview demo
 tnview demo --interactive
+tnview doctor
+tnview doctor --json
 tnview examples
 tnview schema
 tnview schema --json
@@ -258,6 +260,10 @@ to feed schema metadata into emitters, tests, or integration tooling.
 `init` writes a small starter emitter script. Use `--dry-run` to preview the
 file, `--force` to overwrite, and `--kind quimb` or `--kind tenpy` for adapter
 starter snippets.
+
+`doctor` checks the local TNView install, validates built-in examples, and
+reports whether optional quimb and TeNPy integrations are importable. Add
+`--json` for support logs or CI checks.
 
 ## Python Object Interfaces
 
