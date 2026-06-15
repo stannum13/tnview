@@ -40,7 +40,8 @@ from tnview.runlog import RUN_LOG_EVENTS, read_jsonl_records
 from tnview.schema import render_schema, schema_payload
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.snapshot import snapshot_json
-from tnview.sketch import generate_sketch_replay, parse_sketch_prompt, render_sketch_list
+from tnview.sketch import SketchSpec, generate_sketch_replay, parse_sketch_prompt, render_sketch_list
+from tnview.sketch_wizard import run_sketch_wizard
 from tnview.state import RunState
 from tnview.starter import KINDS, starter_script, write_starter
 from tnview.tail import render_run_log_dashboard, render_run_log_tail, run_log_tail_payload
@@ -205,6 +206,7 @@ def _parser() -> argparse.ArgumentParser:
     sketch = subparsers.add_parser("sketch", help="build and render a deterministic tensor-network sketch")
     sketch.add_argument("prompt", nargs="?", help='sketch prompt such as "mps sites=32 chi=128 profile=hard"')
     sketch.add_argument("--list", action="store_true", help="list supported sketch prompts")
+    sketch.add_argument("--wizard", action="store_true", help="ask questions to build a sketch prompt")
     sketch.add_argument("--output", "-o", help="write generated replay JSONL to a file")
     sketch.add_argument("--interactive", action="store_true", help="open the generated sketch in the interactive shell")
     sketch.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
@@ -528,6 +530,19 @@ def _sketch(args: argparse.Namespace) -> int:
     if args.list:
         write_text(render_sketch_list())
         return 0
+    if args.wizard:
+        if args.prompt:
+            raise CliError(
+                code="SKETCH_WIZARD_CONFLICT",
+                message="sketch --wizard cannot be combined with a prompt",
+                reason="The wizard builds the prompt interactively.",
+                suggestions=("tnview sketch --wizard", 'tnview sketch "mps sites=32 chi=128 profile=hard"'),
+                exit_code=2,
+            )
+        result = run_sketch_wizard()
+        args.prompt = result.prompt
+        args.interactive = result.interactive
+        args.output = result.output
     if not args.prompt:
         raise CliError(
             code="SKETCH_PROMPT_REQUIRED",
@@ -548,6 +563,10 @@ def _sketch(args: argparse.Namespace) -> int:
             exit_code=2,
         ) from exc
 
+    return _render_sketch(spec, replay, args)
+
+
+def _render_sketch(spec: SketchSpec, replay: str, args: argparse.Namespace) -> int:
     if args.output:
         _write_output(replay.rstrip("\n"), args.output)
         write_text(f"Wrote {args.output}\nTry:\n  tnview replay {args.output} --interactive")

@@ -118,6 +118,7 @@ For a visual MPS/TEBD replay demo:
 ```bash
 tnview demo
 tnview demo --interactive
+tnview sketch --wizard
 tnview sketch "mps sites=48 chi=128 profile=hard"
 tnview sketch "mps sites=48 chi=128 profile=hard" --output sketch.jsonl
 ```
@@ -173,6 +174,7 @@ additive when practical.
 tnview demo
 tnview demo --interactive
 tnview sketch --list
+tnview sketch --wizard
 tnview sketch "mps sites=48 chi=128 profile=hard"
 tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
 tnview doctor
@@ -221,7 +223,9 @@ Use this first to see the terminal view without preparing data.
 `sketch` is the deterministic prompt-like builder for synthetic visual
 telemetry. It currently supports MPS sketches such as
 `tnview sketch "mps sites=48 chi=128 profile=hard"`. Add `--interactive` to pan
-around the generated replay or `--output sketch.jsonl` to save the JSONL.
+around the generated replay or `--output sketch.jsonl` to save the JSONL. Use
+`tnview sketch --wizard` for a question-driven parameter flow that prints the
+equivalent prompt before rendering or saving.
 
 `replay` renders JSONL telemetry from disk. Add `--interactive` for keyboard
 navigation, or use `--focus bottleneck --window N` to frame the interesting

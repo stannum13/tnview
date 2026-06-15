@@ -463,6 +463,67 @@ class CliTests(unittest.TestCase):
             self.assertIn("tnview replay", result.stdout)
             self.assertIn('"event":"checkpoint"', output.read_text(encoding="utf-8"))
 
+    def test_sketch_wizard_renders_with_piped_answers(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "sketch",
+                "--wizard",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            input="\n12\n32\n4\nhard\n8\nn\nn\n",
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("Generated sketch:", result.stdout)
+        self.assertIn("mps sites=12 chi=32 profile=hard checkpoints=4 window=8", result.stdout)
+        self.assertIn("TNView sketch | mps sites=12 chi=32 profile=hard", result.stdout)
+
+    def test_sketch_wizard_can_write_output(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "wizard.jsonl"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "sketch",
+                    "--wizard",
+                    "--ascii",
+                ],
+                input=f"\n8\n16\n2\nhard\n4\nn\ny\n{output}\n",
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Equivalent command:", result.stdout)
+            self.assertIn("Wrote", result.stdout)
+            self.assertIn('"event":"checkpoint"', output.read_text(encoding="utf-8"))
+
+    def test_sketch_wizard_rejects_prompt_conflict(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "sketch",
+                "mps sites=8",
+                "--wizard",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("sketch --wizard cannot be combined with a prompt", result.stderr)
+
     def test_sketch_command_reports_prompt_errors(self) -> None:
         result = subprocess.run(
             [
