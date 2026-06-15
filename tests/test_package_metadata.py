@@ -11,6 +11,7 @@ class PackageMetadataTests(unittest.TestCase):
         self.assertEqual(project["scripts"]["tnview"], "tnview.cli:main")
         self.assertEqual(project["license"], {"file": "LICENSE"})
         self.assertIn("quimb", project["optional-dependencies"])
+        self.assertIn("networkx>=3.0", project["optional-dependencies"]["quimb"])
         self.assertIn("physics-tenpy>=1.0", project["optional-dependencies"]["tenpy"])
         self.assertIn("https://github.com/stannum13/tnview", project["urls"]["Repository"])
 

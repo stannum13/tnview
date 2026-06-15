@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-quimb = ["quimb>=1.0"]
+quimb = ["autograd>=1.6", "networkx>=3.0", "quimb>=1.0"]
 tenpy = ["physics-tenpy>=1.0"]
 dev = ["build>=1.2", "twine>=5.0"]
 
