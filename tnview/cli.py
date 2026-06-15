@@ -255,10 +255,24 @@ def _replay(args: argparse.Namespace) -> int:
 def _replay_runlog(args: argparse.Namespace) -> int:
     report = read_jsonl_records(_iter_lines(args.path))
     if report.errors:
-        raise EventParseError("; ".join(report.errors))
+        raise CliError(
+            code="RUN_LOG_PARSE_ERROR",
+            message="Could not read run log",
+            path=args.path,
+            reason="; ".join(report.errors),
+            suggestions=(f"tnview validate {args.path}",),
+            exit_code=2,
+        )
     records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
     if not records:
-        raise EventParseError("no run-log events found")
+        raise CliError(
+            code="NO_RUN_LOG_EVENTS",
+            message="No run-log events found",
+            path=args.path,
+            reason="The file did not contain events such as sweep_end, optimizer_step, or run_start.",
+            suggestions=(f"tnview validate {args.path}", f"tnview replay {args.path}"),
+            exit_code=2,
+        )
     if args.interactive:
         run_interactive_run_log(records, ascii_mode=args.ascii)
         return 0
@@ -385,10 +399,25 @@ def _compare(args: argparse.Namespace) -> int:
     has_run_logs = [bool(records) for _, records in run_log_inputs]
     if any(has_run_logs):
         if not all(has_run_logs):
-            raise EventParseError("compare cannot mix replay telemetry and run-log telemetry")
+            raise CliError(
+                code="MIXED_TELEMETRY_SCHEMAS",
+                message="Cannot compare replay telemetry and run-log telemetry together",
+                reason="All inputs to one compare command must use the same telemetry schema.",
+                suggestions=(
+                    "Run replay comparisons and run-log comparisons separately.",
+                    "Use `tnview examples` to inspect built-in example types.",
+                ),
+                exit_code=2,
+            )
         errors = [f"{path}: {error}" for path, report in raw_reports for error in report.errors]
         if errors:
-            raise EventParseError("; ".join(errors))
+            raise CliError(
+                code="COMPARE_PARSE_ERROR",
+                message="Could not read one or more comparison inputs",
+                reason="; ".join(errors),
+                suggestions=("tnview validate PATH",),
+                exit_code=2,
+            )
         summaries = [summarize_run_log(path, records) for path, records in run_log_inputs]
         summaries = sort_run_log_summaries(summaries, args.sort, metric=args.metric)
         if args.json:
@@ -401,7 +430,13 @@ def _compare(args: argparse.Namespace) -> int:
         )
         return 0
     if args.metric:
-        raise EventParseError("--metric is only supported for run-log comparisons")
+        raise CliError(
+            code="UNSUPPORTED_METRIC_SORT",
+            message="--metric is only supported for run-log comparisons",
+            reason="Replay comparisons use --sort values such as risk, max-entropy, trunc, or chi.",
+            suggestions=("Remove --metric or compare run-log files.",),
+            exit_code=2,
+        )
     summaries = []
     for path, lines in sources:
         events = _read_events(lines)
@@ -577,9 +612,21 @@ def _run_log_index(index: str, count: int) -> int | None:
     except ValueError as exc:
         raise EventParseError("--index must be an integer index or 'latest'") from exc
     if target < 0:
-        raise EventParseError("--index must be non-negative")
+        raise CliError(
+            code="RUN_LOG_INDEX_INVALID",
+            message="Run-log index must be non-negative",
+            reason=f"Received index {target}.",
+            suggestions=("Use --index latest or a non-negative event index.",),
+            exit_code=2,
+        )
     if target >= count:
-        raise EventParseError(f"--index {target} out of range; run log has {count} events")
+        raise CliError(
+            code="RUN_LOG_INDEX_OUT_OF_RANGE",
+            message="Run-log index is out of range",
+            reason=f"Received index {target}, but the run log has {count} events.",
+            suggestions=(f"Use --index latest or an index between 0 and {max(0, count - 1)}.",),
+            exit_code=2,
+        )
     return target
 
 

@@ -87,7 +87,8 @@ class CliTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 2)
-        self.assertIn("out of range", result.stderr)
+        self.assertIn("Run-log index is out of range", result.stderr)
+        self.assertIn("Try:", result.stderr)
 
     def test_replay_view_toggles_hide_sections(self) -> None:
         result = subprocess.run(
@@ -458,6 +459,28 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["kind"], "replay")
         self.assertEqual(len(payload["runs"]), 2)
         self.assertEqual(payload["runs"][0]["name"], "easy_chain.jsonl")
+
+    def test_compare_metric_error_is_structured_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "compare",
+                "examples/easy_chain.jsonl",
+                "examples/long_range_chi_limited.jsonl",
+                "--metric",
+                "loss",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stderr)
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"]["code"], "UNSUPPORTED_METRIC_SORT")
 
     def test_preview_command_renders_setup_risk(self) -> None:
         result = subprocess.run(
