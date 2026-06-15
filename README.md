@@ -120,6 +120,8 @@ tnview demo --interactive
 tnview examples
 tnview schema
 tnview schema --json
+tnview init emit_tnview.py
+tnview init emit_quimb.py --kind quimb
 
 tnview tail examples/dmrg_bad_run.jsonl
 tnview tail examples/dmrg_bad_run.jsonl --follow
@@ -199,6 +201,10 @@ table. Add `--json` for stable machine-readable comparison output.
 
 `schema` prints the supported replay and run-log telemetry schemas. Add `--json`
 to feed schema metadata into emitters, tests, or integration tooling.
+
+`init` writes a small starter emitter script. Use `--dry-run` to preview the
+file, `--force` to overwrite, and `--kind quimb` or `--kind tenpy` for adapter
+starter snippets.
 
 ## Python Object Interfaces
 

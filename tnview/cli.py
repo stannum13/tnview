@@ -39,6 +39,7 @@ from tnview.schema import render_schema, schema_payload
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
+from tnview.starter import KINDS, starter_script, write_starter
 from tnview.tail import render_run_log_tail
 from tnview.validate import render_validation, validate_lines, validation_payload
 
@@ -78,6 +79,8 @@ def main(argv: list[str] | None = None) -> int:
             return _fixture(args)
         if args.command == "schema":
             return _schema(args)
+        if args.command == "init":
+            return _init(args)
     except CliError as exc:
         if getattr(args, "json", False):
             write_json(error_payload(exc), stream=sys.stderr)
@@ -256,6 +259,12 @@ def _parser() -> argparse.ArgumentParser:
     schema = subparsers.add_parser("schema", help="show supported telemetry event schemas")
     schema.add_argument("--json", action="store_true", help="write stable machine-readable schema JSON")
     schema.add_argument("--width", type=int, default=100, help="render width in columns")
+
+    init = subparsers.add_parser("init", help="write a starter TNView telemetry emitter")
+    init.add_argument("path", help="starter script path to create")
+    init.add_argument("--kind", choices=KINDS, default="runlog", help="starter template kind")
+    init.add_argument("--force", action="store_true", help="overwrite an existing file")
+    init.add_argument("--dry-run", action="store_true", help="print the starter script without writing it")
 
     return parser
 
@@ -598,6 +607,33 @@ def _schema(args: argparse.Namespace) -> int:
     else:
         write_text(render_schema(width=args.width))
     return 0
+
+
+def _init(args: argparse.Namespace) -> int:
+    if args.dry_run:
+        write_text(starter_script(args.kind).rstrip("\n"))
+        return 0
+    try:
+        path = write_starter(args.path, kind=args.kind, force=args.force)
+    except FileExistsError as exc:
+        raise CliError(
+            code="OUTPUT_EXISTS",
+            message="Starter file already exists",
+            path=str(exc),
+            reason="TNView will not overwrite files unless --force is set.",
+            suggestions=(f"tnview init {args.path} --force", f"tnview init {args.path} --dry-run"),
+            exit_code=2,
+        ) from exc
+    write_text(f"Wrote {path}\nTry:\n  python {path}\n  tnview tail {_starter_log_path(args.kind)}")
+    return 0
+
+
+def _starter_log_path(kind: str) -> str:
+    if kind == "quimb":
+        return "runs/quimb_mps.jsonl"
+    if kind == "tenpy":
+        return "runs/tenpy_dmrg.jsonl"
+    return "runs/example.jsonl"
 
 
 def _read_events(lines: Iterable[str]) -> list[TelemetryEvent]:

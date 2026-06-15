@@ -994,6 +994,89 @@ class CliTests(unittest.TestCase):
         self.assertIn("bond_updated", payload["replay"]["events"])
         self.assertIn("trunc_error", payload["replay"]["required_fields"]["bond_updated"])
 
+    def test_init_command_dry_run_prints_starter(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "init",
+                "starter.py",
+                "--dry-run",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("from tnview import RunLogger", result.stdout)
+        self.assertIn('RunLogger("runs/example.jsonl"', result.stdout)
+
+    def test_init_command_writes_starter(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "emit.py"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "init",
+                    str(path),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            content = path.read_text(encoding="utf-8")
+
+        self.assertIn("Wrote", result.stdout)
+        self.assertIn("tnview tail runs/example.jsonl", result.stdout)
+        self.assertIn("sweep_end", content)
+
+    def test_init_command_refuses_existing_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "emit.py"
+            path.write_text("keep me", encoding="utf-8")
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "init",
+                    str(path),
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+            content = path.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(content, "keep me")
+        self.assertIn("Starter file already exists", result.stderr)
+        self.assertIn("--force", result.stderr)
+
+    def test_init_command_can_write_quimb_starter(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "init",
+                "starter.py",
+                "--kind",
+                "quimb",
+                "--dry-run",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("emit_mps_snapshot", result.stdout)
+        self.assertIn("MPS_rand_state", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
