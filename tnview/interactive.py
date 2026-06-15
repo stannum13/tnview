@@ -27,6 +27,7 @@ class ReplayController:
     bond_start: int = 0
     bond_limit: int = 24
     scroll_offset: int = 0
+    column_offset: int = 0
 
     def __post_init__(self) -> None:
         count = self.checkpoint_count
@@ -84,6 +85,10 @@ class ReplayController:
             self.scroll_down(10)
         elif key in {"KEY_PPAGE"}:
             self.scroll_up(10)
+        elif key in {"KEY_SRIGHT", "KEY_CRIGHT", ">"}:
+            self.scroll_right(12)
+        elif key in {"KEY_SLEFT", "KEY_CLEFT", "<"}:
+            self.scroll_left(12)
         elif key in {"KEY_HOME", "0"}:
             self.scroll_top()
         elif key in {"KEY_END", "$"}:
@@ -218,9 +223,18 @@ class ReplayController:
     def scroll_bottom(self) -> None:
         self.scroll_offset = 10**9
 
-    def clamp_scroll(self, *, content_lines: int, viewport_lines: int) -> None:
-        max_scroll = max(0, content_lines - max(1, viewport_lines))
+    def scroll_right(self, amount: int) -> None:
+        self.column_offset = max(0, self.column_offset + max(1, amount))
+
+    def scroll_left(self, amount: int) -> None:
+        self.column_offset = max(0, self.column_offset - max(1, amount))
+
+    def clamp_scroll(self, *, lines: list[str], viewport_lines: int, viewport_columns: int) -> None:
+        max_scroll = max(0, len(lines) - max(1, viewport_lines))
+        max_column = max((len(line) - max(1, viewport_columns) for line in lines), default=0)
+        max_column = max(0, max_column)
         self.scroll_offset = min(max(0, self.scroll_offset), max_scroll)
+        self.column_offset = min(max(0, self.column_offset), max_column)
 
     def _center_window_on_bond(self, bond: int) -> None:
         bonds = [bond_state.bond for bond_state in self.state().ordered_bonds]
@@ -257,6 +271,7 @@ class ReplayController:
 
     def _reset_scroll(self) -> None:
         self.scroll_offset = 0
+        self.column_offset = 0
 
 
 def run_interactive(events: list[TelemetryEvent], *, ascii_mode: bool = False) -> None:
@@ -270,18 +285,50 @@ def _main(stdscr: object, controller: ReplayController, ascii_mode: bool) -> Non
     while True:
         stdscr.erase()
         height, width = stdscr.getmaxyx()
-        content = controller.render(width=max(60, width), unicode=not ascii_mode)
+        content = controller.render(width=_canvas_width(width, controller), unicode=not ascii_mode)
         lines = content.splitlines()
         footer = _footer(controller)
         viewport_lines = max(0, height - 2)
-        controller.clamp_scroll(content_lines=len(lines), viewport_lines=viewport_lines)
-        for row, line in enumerate(lines[controller.scroll_offset : controller.scroll_offset + viewport_lines]):
-            stdscr.addnstr(row, 0, line, max(0, width - 1))
+        viewport_columns = max(0, width - 1)
+        controller.clamp_scroll(
+            lines=lines,
+            viewport_lines=viewport_lines,
+            viewport_columns=viewport_columns,
+        )
+        for row, line in enumerate(
+            _viewport_lines(
+                lines,
+                row_offset=controller.scroll_offset,
+                column_offset=controller.column_offset,
+                viewport_lines=viewport_lines,
+                viewport_columns=viewport_columns,
+            )
+        ):
+            stdscr.addnstr(row, 0, line, viewport_columns)
         stdscr.addnstr(max(0, height - 1), 0, footer, max(0, width - 1), curses.A_REVERSE)
         stdscr.refresh()
         key = stdscr.getkey()
         if not controller.handle_key(key):
             break
+
+
+def _canvas_width(terminal_width: int, controller: ReplayController) -> int:
+    viewport_width = max(60, terminal_width)
+    return max(120, viewport_width * 2, viewport_width + controller.column_offset + 1)
+
+
+def _viewport_lines(
+    lines: list[str],
+    *,
+    row_offset: int,
+    column_offset: int,
+    viewport_lines: int,
+    viewport_columns: int,
+) -> list[str]:
+    if viewport_lines <= 0 or viewport_columns <= 0:
+        return []
+    visible = lines[row_offset : row_offset + viewport_lines]
+    return [line[column_offset : column_offset + viewport_columns] for line in visible]
 
 
 def _footer(controller: ReplayController) -> str:
@@ -300,7 +347,8 @@ def _footer(controller: ReplayController) -> str:
     return (
         f"checkpoint {checkpoint}/{max(0, controller.checkpoint_count - 1)}  "
         f"bond {bond}  window b{controller.bond_start}+{controller.bond_limit}  "
-        f"scroll {controller.scroll_offset}  pgup/pgdn scroll  [/] bonds  "
+        f"scroll {controller.scroll_offset},{controller.column_offset}  "
+        f"pgup/pgdn up/down  </> left/right  [/] bonds  "
         f"f/m/x focus  {toggles}  ? help  q quit"
     )
 
@@ -321,7 +369,9 @@ def _help_text() -> str:
             "  k, up           previous bond",
             "  g               jump to checkpoint index",
             "  b               jump to bond index",
-            "  pgup/pgdn       scroll view",
+            "  pgup/pgdn       scroll up/down",
+            "  shift-left/right scroll left/right when supported",
+            "  </>             scroll left/right",
             "  home/end, 0/$    top/bottom of view",
             "  [, ]            previous/next bond viewport",
             "  f               focus truncation/chi bottleneck",

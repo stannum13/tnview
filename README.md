@@ -357,7 +357,8 @@ n/p       next/previous checkpoint
 j/k       next/previous bond
 g         jump to checkpoint
 b         jump to bond
-pgup/pgdn scroll view
+pgup/pgdn scroll up/down
+shift-left/right or </> scroll left/right
 home/end  top/bottom of view
 [ / ]     previous/next bond viewport
 f/m/x     focus bottleneck / max entropy / slowest compute
