@@ -42,7 +42,7 @@ from tnview.search import is_tensor_query, render_search, render_tensor_search, 
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
 from tnview.starter import KINDS, starter_script, write_starter
-from tnview.tail import render_run_log_tail, run_log_tail_payload
+from tnview.tail import render_run_log_dashboard, render_run_log_tail, run_log_tail_payload
 from tnview.terminal import supports_color
 from tnview.validate import render_validation, validate_lines, validation_payload
 
@@ -443,13 +443,13 @@ def _tail_snapshot(args: argparse.Namespace, *, live: bool = False) -> tuple[str
     report = read_jsonl_records(lines)
     run_records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
     if run_records:
+        renderer = render_run_log_dashboard if live else render_run_log_tail
         return (
-            render_run_log_tail(
+            renderer(
                 run_records,
                 width=args.width or 100,
                 unicode=not args.ascii,
                 color=_color_enabled(args),
-                live=live,
             ),
             0 if not report.errors else 2,
         )

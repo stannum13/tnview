@@ -1,6 +1,6 @@
 import unittest
 
-from tnview.tail import render_run_log_tail, run_log_tail_payload
+from tnview.tail import render_run_log_dashboard, render_run_log_tail, run_log_tail_payload
 
 
 class TailTests(unittest.TestCase):
@@ -89,6 +89,24 @@ class TailTests(unittest.TestCase):
         self.assertEqual(payload["current"]["run_id"], "r1")
         self.assertEqual(payload["current"]["loss"], 0.25)
         self.assertEqual(len(payload["recent_events"]), 3)
+
+    def test_render_run_log_dashboard_uses_watch_panels(self) -> None:
+        output = render_run_log_dashboard(
+            [
+                {"event": "run_start", "run_id": "r1", "library": "quimb", "algorithm": "tnoptimizer"},
+                {"event": "optimizer_step", "step": 1, "loss": 0.5, "rss_mb": 100},
+                {"event": "optimizer_step", "step": 2, "loss": 0.25, "rss_mb": 120},
+            ],
+            width=100,
+            unicode=False,
+        )
+
+        self.assertIn("TNView watch", output)
+        self.assertIn("Run", output)
+        self.assertIn("Signals", output)
+        self.assertIn("Diagnostics", output)
+        self.assertIn("Recent events", output)
+        self.assertIn("q/ctrl-c stop", output)
 
 
 if __name__ == "__main__":

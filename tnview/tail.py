@@ -75,6 +75,61 @@ def render_run_log_tail(
     return "\n".join(lines)
 
 
+def render_run_log_dashboard(
+    records: list[dict[str, Any]],
+    *,
+    width: int = 100,
+    unicode: bool = True,
+    color: bool = False,
+) -> str:
+    """Render a live-dashboard view for ``tnview watch``."""
+
+    width = max(72, width)
+    latest = _latest_state(records)
+    previous = _latest_state(records[:-1])
+    changed = _changed_fields(latest, previous)
+    diagnostics = diagnose_events(records)
+    status = "error" if any(record.get("event") == "error" for record in records) else "warning" if diagnostics else "live"
+    title = _dashboard_title(records, latest, diagnostics, status=status, unicode=unicode, color=color)
+
+    left_width = max(34, min(48, width // 2 - 2))
+    right_width = max(34, width - left_width - 3)
+    run_panel = _panel(
+        "Run",
+        _dashboard_metric_lines(latest, previous, changed),
+        width=left_width,
+        unicode=unicode,
+    )
+    signal_panel = _panel(
+        "Signals",
+        _dashboard_signal_lines(records, latest, diagnostics, width=right_width - 4, unicode=unicode, color=color),
+        width=right_width,
+        unicode=unicode,
+    )
+    output = [_fit(title, width), ""]
+    output.extend(_join_panels(run_panel, signal_panel, gap="   "))
+    output.append("")
+    output.extend(
+        _panel(
+            "Diagnostics",
+            _dashboard_diagnostic_lines(diagnostics),
+            width=width,
+            unicode=unicode,
+        )
+    )
+    output.append("")
+    output.extend(
+        _panel(
+            "Recent events",
+            _event_ticker(records[-6:], width=width - 4),
+            width=width,
+            unicode=unicode,
+        )
+    )
+    output.append(_fit("q/ctrl-c stop  tail PATH snapshot  diagnose PATH explain warnings", width))
+    return "\n".join(output)
+
+
 def run_log_tail_payload(records: list[dict[str, Any]]) -> dict[str, Any]:
     """Return stable machine-readable latest run-log state."""
 
@@ -169,6 +224,113 @@ def _status_line(
     if records:
         parts.append(f"events={len(records)}")
     return "  ".join(parts)
+
+
+def _dashboard_title(
+    records: list[dict[str, Any]],
+    latest: dict[str, Any],
+    diagnostics: list[Any],
+    *,
+    status: str,
+    unicode: bool,
+    color: bool,
+) -> str:
+    dot = render_status_dot(status, unicode=unicode, color=color)
+    parts = [f"{dot} TNView watch", f"status={status}", f"events={len(records)}"]
+    for key, label in [
+        ("run_id", "run"),
+        ("library", "lib"),
+        ("algorithm", "algo"),
+        ("sweep", "sweep"),
+        ("step", "step"),
+    ]:
+        if latest.get(key) is not None:
+            parts.append(f"{label}={_format_value(latest[key])}")
+    if diagnostics:
+        parts.append(f"diagnostics={len(diagnostics)}")
+    return "  ".join(parts)
+
+
+def _dashboard_metric_lines(
+    latest: dict[str, Any],
+    previous: dict[str, Any],
+    changed: set[str],
+) -> list[str]:
+    rows = []
+    for key, label in [
+        ("energy", "energy"),
+        ("delta_energy", "delta E"),
+        ("loss", "loss"),
+        ("max_chi", "max chi"),
+        ("chi_max_configured", "chi limit"),
+        ("max_trunc_err", "trunc err"),
+        ("entropy_max", "entropy"),
+        ("wall_s", "wall s"),
+        ("step_wall_s", "step s"),
+        ("rss_mb", "rss MB"),
+    ]:
+        if key not in latest:
+            continue
+        marker = "*" if key in changed else " "
+        suffix = ""
+        if key in changed and key in previous:
+            suffix = f" was {_format_value(previous[key])}"
+        rows.append(f"{marker} {label:<10} {_format_value(latest[key])}{suffix}")
+    return rows or ["no metrics yet"]
+
+
+def _dashboard_signal_lines(
+    records: list[dict[str, Any]],
+    latest: dict[str, Any],
+    diagnostics: list[Any],
+    *,
+    width: int,
+    unicode: bool,
+    color: bool,
+) -> list[str]:
+    lines = _pressure_lines(records, latest, diagnostics, width=width, unicode=unicode, color=color)
+    trends = _trend_lines(records, width=width, unicode=unicode)
+    if trends:
+        lines.append("")
+        lines.extend(trends[:4])
+    return lines or ["waiting for signal metrics"]
+
+
+def _dashboard_diagnostic_lines(diagnostics: list[Any]) -> list[str]:
+    if not diagnostics:
+        return ["no warnings"]
+    lines = []
+    for diagnostic in diagnostics[:5]:
+        evidence = f"  {diagnostic.evidence}" if diagnostic.evidence else ""
+        lines.append(f"{diagnostic.severity.upper()} {diagnostic.code}: {diagnostic.message}{evidence}")
+    return lines
+
+
+def _panel(title: str, lines: list[str], *, width: int, unicode: bool) -> list[str]:
+    width = max(12, width)
+    top_left, top_right, bottom_left, bottom_right = ("┌", "┐", "└", "┘") if unicode else ("+", "+", "+", "+")
+    horizontal = "─" if unicode else "-"
+    vertical = "│" if unicode else "|"
+    label = f" {title} "
+    border_width = max(0, width - 2)
+    label = label[:border_width]
+    top = top_left + label + horizontal * max(0, border_width - len(label)) + top_right
+    content_width = max(0, width - 4)
+    body = [vertical + " " + _fit(line, content_width).ljust(content_width) + " " + vertical for line in lines]
+    bottom = bottom_left + horizontal * border_width + bottom_right
+    return [top, *body, bottom]
+
+
+def _join_panels(left: list[str], right: list[str], *, gap: str) -> list[str]:
+    left_width = max((len(line) for line in left), default=0)
+    right_width = max((len(line) for line in right), default=0)
+    rows = max(len(left), len(right))
+    output = []
+    for index in range(rows):
+        left_line = left[index] if index < len(left) else " " * left_width
+        right_line = right[index] if index < len(right) else " " * right_width
+        output.append(left_line.ljust(left_width) + gap + right_line.ljust(right_width))
+    return output
 
 
 def _pressure_lines(

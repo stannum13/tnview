@@ -1024,10 +1024,10 @@ class CliTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn("* live", result.stdout)
-        self.assertIn("TNView run tail", result.stdout)
-        self.assertIn("Pressure:", result.stdout)
-        self.assertIn("Events:", result.stdout)
+        self.assertIn("* TNView watch", result.stdout)
+        self.assertIn("Run", result.stdout)
+        self.assertIn("Signals", result.stdout)
+        self.assertIn("Recent events", result.stdout)
 
     def test_watch_rejects_stdin(self) -> None:
         result = subprocess.run(

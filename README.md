@@ -64,20 +64,22 @@ tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 ```
 
-The demo output is intentionally plain terminal text:
+`watch` is the live dashboard: a compact, lazygit-style terminal cockpit for
+the latest run state, pressure signals, diagnostics, and recent events. `tail`
+keeps the plainer one-shot summary for scripts and logs:
 
 ```text
-TNView run tail | run_id=quimb-opt library=quimb algorithm=tnoptimizer
-events=6 updated=2026-06-10T01:00:11.000Z
+* TNView watch  status=live  events=6  run=quimb-opt  lib=quimb  algo=tnoptimizer  step=4
 
-Current:
-    step          4
-    loss          0.07
-    wall time     2.3
-    rss           526
++ Run -----------------------------------+   + Signals ------------------------------------------+
+| * loss       0.07 was 0.12             |   |   health    [###.......] ok                       |
+| * wall s     2.3 was 1.9               |   |   progress  [###.......] ok                       |
+| * rss MB     526 was 522               |   |   loss      #*+-.  latest=0.07 change=-0.05       |
++----------------------------------------+   +----------------------------------------------------+
 
-Diagnostics:
-  no warnings
++ Diagnostics --------------------------------------------------------------------------+
+| no warnings                                                                            |
++---------------------------------------------------------------------------------------+
 ```
 
 ## Record a Run
