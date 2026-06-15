@@ -3,7 +3,7 @@ from io import StringIO
 import unittest
 
 from tnview import RunLogger
-from tnview.adapters.tenpy import DMRGObserver, dmrg_sweep_record, emit_dmrg_sweep
+from tnview.adapters.tenpy import DMRGObserver, dmrg_sweep_record, dmrg_sweep_records, emit_dmrg_sweep
 
 
 class FakeDMRGEngine:
@@ -38,6 +38,15 @@ class TenpyAdapterTests(unittest.TestCase):
         self.assertEqual(record["max_chi"], 96)
         self.assertEqual(record["canonical_error"], 3e-12)
 
+    def test_dmrg_sweep_records_maps_all_sweep_stats(self) -> None:
+        records = dmrg_sweep_records(FakeDMRGEngine(), chi_max_configured=128)
+
+        self.assertEqual(len(records), 3)
+        self.assertEqual([record["sweep"] for record in records], [0, 1, 2])
+        self.assertEqual(records[0]["energy"], -1.0)
+        self.assertEqual(records[1]["wall_s"], 2.4)
+        self.assertEqual(records[2]["chi_max_configured"], 128)
+
     def test_emit_dmrg_sweep_writes_run_log_event(self) -> None:
         handle = StringIO()
         with RunLogger(handle, run_id="tenpy-run") as logger:
@@ -60,6 +69,18 @@ class TenpyAdapterTests(unittest.TestCase):
         self.assertEqual(record["sweep"], 3)
         self.assertEqual(record["energy"], -2.0)
         self.assertEqual(record["chi_max_configured"], 256)
+
+    def test_dmrg_observer_emits_new_sweeps_without_duplicates(self) -> None:
+        handle = StringIO()
+        with RunLogger(handle, run_id="tenpy-run") as logger:
+            observer = DMRGObserver(logger)
+            self.assertEqual(observer.emit_new_sweeps(FakeDMRGEngine(), chi_max_configured=128), 3)
+            self.assertEqual(observer.emit_new_sweeps(FakeDMRGEngine(), chi_max_configured=128), 0)
+
+        records = [json.loads(line) for line in handle.getvalue().splitlines()]
+        self.assertEqual(len(records), 3)
+        self.assertEqual([record["sweep"] for record in records], [0, 1, 2])
+        self.assertEqual(records[-1]["max_chi"], 96)
 
     def test_dmrg_sweep_record_rejects_missing_stats(self) -> None:
         with self.assertRaises(TypeError):

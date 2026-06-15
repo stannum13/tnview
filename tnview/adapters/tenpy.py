@@ -19,28 +19,48 @@ def dmrg_sweep_record(
 ) -> dict[str, Any]:
     """Build a ``sweep_end`` event from TeNPy-like DMRG sweep statistics."""
 
+    records = dmrg_sweep_records(engine, stats=stats, library=library, algorithm=algorithm, **extra)
+    if not records:
+        raise TypeError("TeNPy DMRG adapter needs at least one sweep statistic row")
+    return records[-1]
+
+
+def dmrg_sweep_records(
+    engine: Any | None = None,
+    *,
+    stats: dict[str, Any] | None = None,
+    library: str = "tenpy",
+    algorithm: str = "dmrg",
+    **extra: Any,
+) -> list[dict[str, Any]]:
+    """Build all available ``sweep_end`` events from TeNPy sweep statistics."""
+
     source = stats if stats is not None else getattr(engine, "sweep_stats", None)
     if not isinstance(source, dict):
         raise TypeError("TeNPy DMRG adapter needs a sweep_stats dictionary")
 
-    record: dict[str, Any] = {
-        "event": "sweep_end",
-        "library": library,
-        "algorithm": algorithm,
-        "sweep": _stat(source, "sweep"),
-        "energy": _stat(source, "E"),
-        "delta_energy": _stat(source, "Delta_E"),
-        "entropy_mean": _stat(source, "S"),
-        "entropy_delta": _stat(source, "Delta_S"),
-        "entropy_max": _stat(source, "max_S"),
-        "wall_s": _stat(source, "time"),
-        "max_trunc_err": _stat(source, "max_trunc_err"),
-        "max_energy_trunc": _stat(source, "max_E_trunc"),
-        "max_chi": _stat(source, "max_chi"),
-        "canonical_error": _stat(source, "norm_err"),
-    }
-    record.update(extra)
-    return {key: value for key, value in record.items() if value is not None}
+    rows = _stat_count(source)
+    records: list[dict[str, Any]] = []
+    for index in range(rows):
+        record: dict[str, Any] = {
+            "event": "sweep_end",
+            "library": library,
+            "algorithm": algorithm,
+            "sweep": _stat_at(source, "sweep", index),
+            "energy": _stat_at(source, "E", index),
+            "delta_energy": _stat_at(source, "Delta_E", index),
+            "entropy_mean": _stat_at(source, "S", index),
+            "entropy_delta": _stat_at(source, "Delta_S", index),
+            "entropy_max": _stat_at(source, "max_S", index),
+            "wall_s": _stat_at(source, "time", index),
+            "max_trunc_err": _stat_at(source, "max_trunc_err", index),
+            "max_energy_trunc": _stat_at(source, "max_E_trunc", index),
+            "max_chi": _stat_at(source, "max_chi", index),
+            "canonical_error": _stat_at(source, "norm_err", index),
+        }
+        record.update(extra)
+        records.append({key: value for key, value in record.items() if value is not None})
+    return records
 
 
 def emit_dmrg_sweep(logger: Any, engine: Any | None = None, *, stats: dict[str, Any] | None = None, **extra: Any) -> None:
@@ -63,6 +83,7 @@ class DMRGObserver:
         self.logger = logger
         self.library = library
         self.algorithm = algorithm
+        self._emitted_sweep_rows = 0
 
     def __call__(self, engine: Any | None = None, **kwargs: Any) -> None:
         self.sweep_end(engine, **kwargs)
@@ -77,11 +98,47 @@ class DMRGObserver:
             **extra,
         )
 
+    def emit_new_sweeps(
+        self,
+        engine: Any | None = None,
+        *,
+        stats: dict[str, Any] | None = None,
+        **extra: Any,
+    ) -> int:
+        """Emit sweep rows that have appeared since the previous call."""
 
-def _stat(stats: dict[str, Any], key: str) -> Any:
+        records = dmrg_sweep_records(
+            engine,
+            stats=stats,
+            library=self.library,
+            algorithm=self.algorithm,
+            **extra,
+        )
+        if len(records) < self._emitted_sweep_rows:
+            self._emitted_sweep_rows = 0
+
+        emitted = 0
+        for record in records[self._emitted_sweep_rows :]:
+            event = str(record.pop("event"))
+            self.logger.emit(event, **record)
+            emitted += 1
+        self._emitted_sweep_rows = len(records)
+        return emitted
+
+
+def _stat_count(stats: dict[str, Any]) -> int:
+    lengths = [len(value) for value in stats.values() if isinstance(value, list | tuple)]
+    if lengths:
+        return max(lengths)
+    return 1 if stats else 0
+
+
+def _stat_at(stats: dict[str, Any], key: str, index: int) -> Any:
     value = stats.get(key)
     if isinstance(value, list | tuple):
-        return _json_scalar(value[-1]) if value else None
+        if index >= len(value):
+            return None
+        return _json_scalar(value[index])
     return _json_scalar(value)
 
 

@@ -216,6 +216,24 @@ Path("mps.jsonl").write_text(mps_to_jsonl(psi), encoding="utf-8")
 The adapter reads MPS structure such as site count, bond dimensions, tensor
 shapes, and singular values when the object exposes them.
 
+For TeNPy DMRG runs, attach the observer to the engine sweep statistics:
+
+```python
+from tnview import RunLogger
+from tnview.adapters.tenpy import DMRGObserver
+
+with RunLogger("runs/tenpy_dmrg.jsonl", run_id="tenpy-dmrg") as log:
+    log.emit("run_start", library="tenpy", algorithm="dmrg")
+    observer = DMRGObserver(log)
+    energy, psi = engine.run()
+    observer.emit_new_sweeps(engine, chi_max_configured=32)
+    log.emit("observable", library="tenpy", algorithm="dmrg", name="final_energy", value=energy)
+    log.emit("run_end", library="tenpy", algorithm="dmrg", status="complete")
+```
+
+`emit_new_sweeps()` records every available row in TeNPy's `sweep_stats` and
+suppresses duplicates on later calls.
+
 ## Development
 
 Development and release checks:

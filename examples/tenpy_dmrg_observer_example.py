@@ -33,7 +33,7 @@ def main() -> int:
         observer = DMRGObserver(log)
         engine = dmrg.TwoSiteDMRGEngine(psi, model, options)
         energy, _psi = engine.run()
-        observer.sweep_end(engine, chi_max_configured=options["trunc_params"]["chi_max"])
+        observer.emit_new_sweeps(engine, chi_max_configured=options["trunc_params"]["chi_max"])
         log.emit("observable", library="tenpy", algorithm="dmrg", name="final_energy", value=energy)
         log.emit("run_end", library="tenpy", algorithm="dmrg", status="complete")
 
