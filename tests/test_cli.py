@@ -403,6 +403,83 @@ class CliTests(unittest.TestCase):
         self.assertIn("Entanglement heatmap", result.stdout)
         self.assertIn("Selected bond", result.stdout)
 
+    def test_sketch_command_lists_supported_prompts(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "sketch",
+                "--list",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView sketches", result.stdout)
+        self.assertIn("mps sites=32", result.stdout)
+
+    def test_sketch_command_renders_prompt(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "sketch",
+                "mps sites=12 chi=32 profile=hard checkpoints=4",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView sketch | mps sites=12 chi=32 profile=hard", result.stdout)
+        self.assertIn("Entanglement heatmap", result.stdout)
+        self.assertIn("Selected bond", result.stdout)
+
+    def test_sketch_command_writes_output(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "sketch.jsonl"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "sketch",
+                    "mps sites=8 chi=16 checkpoints=2",
+                    "--output",
+                    str(output),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("Wrote", result.stdout)
+            self.assertIn("tnview replay", result.stdout)
+            self.assertIn('"event":"checkpoint"', output.read_text(encoding="utf-8"))
+
+    def test_sketch_command_reports_prompt_errors(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "sketch",
+                "peps width=4 height=4",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Could not parse sketch prompt", result.stderr)
+        self.assertIn("tnview sketch --list", result.stderr)
+
     def test_compare_renders_summary_table(self) -> None:
         result = subprocess.run(
             [

@@ -57,6 +57,7 @@ transcript is available at [docs/demo/runlog-demo.txt](docs/demo/runlog-demo.txt
 Try individual commands:
 
 ```bash
+tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
 tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/quimb_tnoptimizer_run.jsonl
 tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii
@@ -117,6 +118,8 @@ For a visual MPS/TEBD replay demo:
 ```bash
 tnview demo
 tnview demo --interactive
+tnview sketch "mps sites=48 chi=128 profile=hard"
+tnview sketch "mps sites=48 chi=128 profile=hard" --output sketch.jsonl
 ```
 
 If `tnview` is not on your shell path, run the module directly:
@@ -169,6 +172,9 @@ additive when practical.
 ```bash
 tnview demo
 tnview demo --interactive
+tnview sketch --list
+tnview sketch "mps sites=48 chi=128 profile=hard"
+tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
 tnview doctor
 tnview doctor --json
 tnview examples
@@ -211,6 +217,11 @@ tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generate
 
 `demo` generates an in-memory MPS/TEBD-style replay and renders it immediately.
 Use this first to see the terminal view without preparing data.
+
+`sketch` is the deterministic prompt-like builder for synthetic visual
+telemetry. It currently supports MPS sketches such as
+`tnview sketch "mps sites=48 chi=128 profile=hard"`. Add `--interactive` to pan
+around the generated replay or `--output sketch.jsonl` to save the JSONL.
 
 `replay` renders JSONL telemetry from disk. Add `--interactive` for keyboard
 navigation, or use `--focus bottleneck --window N` to frame the interesting

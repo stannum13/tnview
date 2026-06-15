@@ -40,6 +40,7 @@ from tnview.runlog import RUN_LOG_EVENTS, read_jsonl_records
 from tnview.schema import render_schema, schema_payload
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.snapshot import snapshot_json
+from tnview.sketch import generate_sketch_replay, parse_sketch_prompt, render_sketch_list
 from tnview.state import RunState
 from tnview.starter import KINDS, starter_script, write_starter
 from tnview.tail import render_run_log_dashboard, render_run_log_tail, run_log_tail_payload
@@ -64,6 +65,8 @@ def main(argv: list[str] | None = None) -> int:
             return _watch(args)
         if args.command == "demo":
             return _demo(args)
+        if args.command == "sketch":
+            return _sketch(args)
         if args.command == "compare":
             return _compare(args)
         if args.command == "preview":
@@ -198,6 +201,14 @@ def _parser() -> argparse.ArgumentParser:
     demo.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
     demo.add_argument("--width", type=int, help="render width in columns")
     demo.add_argument("--window", type=int, default=16, help="number of bonds to show around the bottleneck")
+
+    sketch = subparsers.add_parser("sketch", help="build and render a deterministic tensor-network sketch")
+    sketch.add_argument("prompt", nargs="?", help='sketch prompt such as "mps sites=32 chi=128 profile=hard"')
+    sketch.add_argument("--list", action="store_true", help="list supported sketch prompts")
+    sketch.add_argument("--output", "-o", help="write generated replay JSONL to a file")
+    sketch.add_argument("--interactive", action="store_true", help="open the generated sketch in the interactive shell")
+    sketch.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    sketch.add_argument("--width", type=int, help="render width in columns")
 
     compare = subparsers.add_parser("compare", help="compare multiple JSONL telemetry replays")
     compare.add_argument("paths", nargs="+", help="JSONL replay files")
@@ -500,6 +511,62 @@ def _demo(args: argparse.Namespace) -> int:
     print("Tip: run `tnview demo --interactive` for keyboard navigation.")
     print()
     print(
+        render_run(
+            state,
+            RenderOptions(
+                width=args.width,
+                unicode=not args.ascii,
+                bond_start=focus.bond_start,
+                bond_limit=focus.bond_limit,
+            ),
+        )
+    )
+    return 0
+
+
+def _sketch(args: argparse.Namespace) -> int:
+    if args.list:
+        write_text(render_sketch_list())
+        return 0
+    if not args.prompt:
+        raise CliError(
+            code="SKETCH_PROMPT_REQUIRED",
+            message="sketch requires a prompt unless --list is used",
+            reason='For example: "mps sites=32 chi=128 profile=hard".',
+            suggestions=("tnview sketch --list", 'tnview sketch "mps sites=32 chi=128 profile=hard"'),
+            exit_code=2,
+        )
+    try:
+        spec = parse_sketch_prompt(args.prompt)
+        replay = generate_sketch_replay(spec)
+    except ValueError as exc:
+        raise CliError(
+            code="SKETCH_PARSE_ERROR",
+            message="Could not parse sketch prompt",
+            reason=str(exc),
+            suggestions=("tnview sketch --list", 'tnview sketch "mps sites=32 chi=128 profile=hard"'),
+            exit_code=2,
+        ) from exc
+
+    if args.output:
+        _write_output(replay.rstrip("\n"), args.output)
+        write_text(f"Wrote {args.output}\nTry:\n  tnview replay {args.output} --interactive")
+
+    events = _read_events(replay.splitlines())
+    if args.interactive:
+        run_interactive(events, ascii_mode=args.ascii)
+        return 0
+    if args.output:
+        return 0
+
+    state = _state_at_checkpoint(events, "latest")
+    focus = choose_focus(state, strategy="bottleneck", window=spec.window)
+    if focus.bond is not None:
+        state.select_bond(focus.bond)
+    write_text(f"TNView sketch | {spec.topology} sites={spec.sites} chi={spec.chi_max} profile={spec.profile}")
+    write_text("Tip: add --interactive for keyboard navigation or --output sketch.jsonl to save the replay.")
+    write_text("")
+    write_text(
         render_run(
             state,
             RenderOptions(
