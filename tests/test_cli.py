@@ -165,6 +165,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("TNView oscilloscope frame 1/2", result.stdout)
         self.assertIn("TNView oscilloscope frame 2/2", result.stdout)
         self.assertIn("window=[0, 0]", result.stdout)
+        self.assertIn("Oscilloscope signals", result.stdout)
         self.assertIn("Entanglement heatmap", result.stdout)
 
     def test_replay_runlog_rejects_missing_event(self) -> None:

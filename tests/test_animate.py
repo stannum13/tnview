@@ -26,6 +26,9 @@ class AnimateTests(unittest.TestCase):
 
         self.assertEqual(checkpoint_count(events), 3)
         self.assertIn("TNView oscilloscope frame 1/1", frame.text)
+        self.assertIn("Oscilloscope signals", frame.text)
+        self.assertIn("entropy", frame.text)
+        self.assertIn("front", frame.text)
         self.assertIn("T=0.2", frame.text)
         self.assertIn("t=0.2", frame.text)
         self.assertNotIn("t=0  ", frame.text)

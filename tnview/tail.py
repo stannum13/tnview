@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from tnview.diagnose import diagnose_events
-from tnview.terminal import compact_event_time, render_meter, render_status_dot
+from tnview.terminal import compact_event_time, render_meter, render_sparkline, render_status_dot
 
 
 def render_run_log_tail(
@@ -425,21 +425,10 @@ def _trend_lines(records: list[dict[str, Any]], *, width: int, unicode: bool) ->
         series = [value for value in values if value is not None][-24:]
         if len(series) < 2:
             continue
-        sparkline = _sparkline(series, unicode=unicode)
+        sparkline = render_sparkline(series, unicode=unicode)
         change = series[-1] - series[-2]
         lines.append(_fit(f"  {label:<8} {sparkline}  latest={_format_value(series[-1])} change={_format_value(change)}", width))
     return lines
-
-
-def _sparkline(values: list[float], *, unicode: bool) -> str:
-    marks = "▁▂▃▄▅▆▇█" if unicode else "._:-=+*#"
-    low = min(values)
-    high = max(values)
-    if high == low:
-        return marks[0] * len(values)
-    span = high - low
-    scale = len(marks) - 1
-    return "".join(marks[int((value - low) / span * scale)] for value in values)
 
 
 def _number(value: Any) -> float | None:

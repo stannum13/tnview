@@ -182,6 +182,7 @@ def _parser() -> argparse.ArgumentParser:
     animate.add_argument("--interval", type=float, default=0.2, help="sleep interval between frames")
     animate.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     animate.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    animate.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     animate.add_argument("--width", type=int, help="render width in columns")
     animate.add_argument(
         "--focus",
@@ -421,6 +422,7 @@ def _animate(args: argparse.Namespace) -> int:
             window_radius=args.window,
             width=args.width,
             unicode=not args.ascii,
+            color=_color_enabled(args),
             focus=args.focus,
         )
         print(frame.text)

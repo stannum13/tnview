@@ -243,8 +243,9 @@ region automatically.
 
 `animate` replays visual telemetry as an oscilloscope-style moving time window.
 The active time `T` advances over checkpoint events while the heatmap is clipped
-to `[T - window, T + window]`, making entanglement fronts and bottlenecks easier
-to see. Use `--frames N --no-clear` when you want a transcript-friendly render.
+to `[T - window, T + window]`. Compact signal strips track entropy, max chi,
+truncation, and front span so evolving bottlenecks are easier to see. Use
+`--frames N --no-clear` when you want a transcript-friendly render.
 
 `replay-runlog` steps through run-log events after a run has completed or
 crashed. Use `--index N` for a static point-in-time view or `--interactive` for

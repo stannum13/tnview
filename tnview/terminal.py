@@ -89,6 +89,21 @@ def render_meter(
     return f"{label:<9} [{ansi(bar, color=color_name, enabled=color)}] {severity}"
 
 
+def render_sparkline(values: list[float], *, unicode: bool = True) -> str:
+    """Render a compact trend line for a short numeric series."""
+
+    marks = "▁▂▃▄▅▆▇█" if unicode else "._:-=+*#"
+    if not values:
+        return ""
+    low = min(values)
+    high = max(values)
+    if high == low:
+        return marks[0] * len(values)
+    span = high - low
+    scale = len(marks) - 1
+    return "".join(marks[int((value - low) / span * scale)] for value in values)
+
+
 def compact_event_time(record: dict[str, object]) -> str:
     """Return a compact timestamp/time label for an event record."""
 
