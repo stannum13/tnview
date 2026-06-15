@@ -10,10 +10,12 @@ from typing import Iterable, TextIO
 
 from tnview.commands import diagnose_run_log
 from tnview.compare import (
+    comparison_payload,
     render_comparison,
     render_comparison_csv,
     render_run_log_comparison,
     render_run_log_comparison_csv,
+    run_log_comparison_payload,
     sort_run_log_summaries,
     sort_summaries,
     summarize_run,
@@ -157,6 +159,7 @@ def _parser() -> argparse.ArgumentParser:
         help="sort run-log comparisons by a specific metric",
     )
     compare.add_argument("--csv", action="store_true", help="write comparison as CSV")
+    compare.add_argument("--json", action="store_true", help="write stable machine-readable comparison JSON")
 
     preview = subparsers.add_parser("preview", help="preview model/ansatz complexity from setup telemetry")
     preview.add_argument("path", help="JSONL replay or setup metadata file")
@@ -380,6 +383,9 @@ def _compare(args: argparse.Namespace) -> int:
             raise EventParseError("; ".join(errors))
         summaries = [summarize_run_log(path, records) for path, records in run_log_inputs]
         summaries = sort_run_log_summaries(summaries, args.sort, metric=args.metric)
+        if args.json:
+            write_json(run_log_comparison_payload(summaries))
+            return 0
         print(
             render_run_log_comparison_csv(summaries)
             if args.csv
@@ -394,6 +400,9 @@ def _compare(args: argparse.Namespace) -> int:
         state = _state_at_checkpoint(events, "latest")
         summaries.append(summarize_run(path, state))
     summaries = sort_summaries(summaries, args.sort)
+    if args.json:
+        write_json(comparison_payload(summaries))
+        return 0
     print(render_comparison_csv(summaries) if args.csv else render_comparison(summaries, width=args.width))
     return 0
 

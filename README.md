@@ -125,6 +125,7 @@ tnview replay-runlog examples/dmrg_bad_run.jsonl --interactive
 tnview diagnose examples/dmrg_bad_run.jsonl
 tnview diagnose examples/dmrg_bad_run.jsonl --json
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
+tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --json
 tnview export examples/quimb_tnoptimizer_run.jsonl --format csv
 
 tnview validate examples/tebd_run.jsonl
@@ -190,7 +191,7 @@ contraction-path step operands.
 `compare` summarizes multiple runs side by side. Replay logs show tensor-network
 state summaries; run logs show latest energy, loss, chi, truncation, memory, and
 diagnostic codes. Add `--metric loss` or another run-log metric to sort the
-table.
+table. Add `--json` for stable machine-readable comparison output.
 
 ## Python Object Interfaces
 

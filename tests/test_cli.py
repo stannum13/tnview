@@ -415,6 +415,50 @@ class CliTests(unittest.TestCase):
         self.assertIn("high.jsonl,high", lines[1])
         self.assertIn("low.jsonl,low", lines[2])
 
+    def test_compare_run_log_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "compare",
+                "examples/dmrg_bad_run.jsonl",
+                "examples/quimb_tnoptimizer_run.jsonl",
+                "--sort",
+                "risk",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "run-log")
+        self.assertEqual(payload["runs"][0]["name"], "dmrg_bad_run.jsonl")
+        self.assertIn("energy_plateau", payload["runs"][0]["diagnostics"])
+
+    def test_compare_replay_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "compare",
+                "examples/easy_chain.jsonl",
+                "examples/long_range_chi_limited.jsonl",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "replay")
+        self.assertEqual(len(payload["runs"]), 2)
+        self.assertEqual(payload["runs"][0]["name"], "easy_chain.jsonl")
+
     def test_preview_command_renders_setup_risk(self) -> None:
         result = subprocess.run(
             [

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
+from dataclasses import asdict
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -250,6 +251,25 @@ def render_comparison_csv(summaries: list[RunSummary]) -> str:
             ]
         )
     return handle.getvalue().rstrip("\r\n")
+
+
+def comparison_payload(summaries: list[RunSummary]) -> dict[str, Any]:
+    return {
+        "kind": "replay",
+        "runs": [asdict(summary) for summary in summaries],
+    }
+
+
+def run_log_comparison_payload(summaries: list[RunLogSummary]) -> dict[str, Any]:
+    payload = {
+        "kind": "run-log",
+        "runs": [],
+    }
+    for summary in summaries:
+        row = asdict(summary)
+        row["diagnostics"] = list(summary.diagnostics)
+        payload["runs"].append(row)
+    return payload
 
 
 def render_run_log_comparison_csv(summaries: list[RunLogSummary]) -> str:
