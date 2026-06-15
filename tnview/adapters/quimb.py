@@ -118,6 +118,56 @@ def view_mps(mps: Any, *, width: int | None = None, unicode: bool = True, **kwar
     return render_run(state, RenderOptions(width=width, unicode=unicode))
 
 
+def mps_snapshot_record(
+    mps: Any,
+    *,
+    library: str = "quimb",
+    algorithm: str = "mps_snapshot",
+    step: int | None = None,
+    time: float | None = None,
+    chi_max: int | None = None,
+    energy: float | None = None,
+    delta_energy: float | None = None,
+    max_trunc_err: float | None = None,
+    **extra: Any,
+) -> dict[str, Any]:
+    """Build a run-log snapshot from a quimb-style MPS object."""
+
+    sites = _site_count(mps)
+    chis = [_bond_size(mps, bond) for bond in range(max(0, sites - 1))]
+    entropies = [_bond_entropy(mps, bond) for bond in range(max(0, sites - 1))]
+    max_chi = max(chis, default=1)
+    configured_chi = chi_max or max_chi
+    record: dict[str, Any] = {
+        "event": "diagnostic",
+        "library": library,
+        "algorithm": algorithm,
+        "step": step,
+        "time": time,
+        "sites": sites,
+        "max_chi": max_chi,
+        "chi_max_configured": configured_chi,
+        "num_saturated_bonds": sum(1 for chi in chis if chi >= configured_chi),
+        "entropy_max": max(entropies, default=0.0),
+        "entropy_mean": sum(entropies) / len(entropies) if entropies else 0.0,
+        "energy": _json_scalar(energy),
+        "delta_energy": _json_scalar(delta_energy),
+        "max_trunc_err": _json_scalar(max_trunc_err),
+        "bond_chis": chis,
+        "bond_entropies": entropies,
+    }
+    record.update(extra)
+    return {key: value for key, value in record.items() if value is not None}
+
+
+def emit_mps_snapshot(logger: Any, mps: Any, **kwargs: Any) -> None:
+    """Emit a quimb-style MPS snapshot through a ``RunLogger``."""
+
+    record = mps_snapshot_record(mps, **kwargs)
+    event = str(record.pop("event"))
+    logger.emit(event, **record)
+
+
 def tnoptimizer_callback(logger: Any):
     """Return a quimb ``TNOptimizer`` callback that emits optimizer telemetry."""
 

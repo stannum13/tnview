@@ -216,6 +216,30 @@ Path("mps.jsonl").write_text(mps_to_jsonl(psi), encoding="utf-8")
 The adapter reads MPS structure such as site count, bond dimensions, tensor
 shapes, and singular values when the object exposes them.
 
+To log quimb MPS snapshots into the diagnostics path:
+
+```python
+from tnview import RunLogger
+from tnview.adapters.quimb import emit_mps_snapshot
+
+with RunLogger("runs/quimb_mps.jsonl", run_id="quimb-mps") as log:
+    log.emit("run_start", library="quimb", algorithm="mps_snapshot")
+    for step, psi in enumerate(states):
+        emit_mps_snapshot(log, psi, step=step, chi_max=64)
+    log.emit("run_end", library="quimb", algorithm="mps_snapshot", status="complete")
+```
+
+For quimb `TNOptimizer`, use the callback helper:
+
+```python
+from tnview import RunLogger
+from tnview.adapters.quimb import tnoptimizer_callback
+
+with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
+    optimizer = qtn.TNOptimizer(tn, loss_fn, callback=tnoptimizer_callback(log))
+    optimizer.optimize(100)
+```
+
 For TeNPy DMRG runs, attach the observer to the engine sweep statistics:
 
 ```python

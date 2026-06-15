@@ -3,7 +3,7 @@ from io import StringIO
 import unittest
 
 from tnview import RunLogger
-from tnview.adapters.quimb import mps_to_events, mps_to_jsonl, tnoptimizer_callback, view_mps
+from tnview.adapters.quimb import emit_mps_snapshot, mps_snapshot_record, mps_to_events, mps_to_jsonl, tnoptimizer_callback, view_mps
 from tnview.events import BondUpdated, parse_jsonl
 
 
@@ -58,6 +58,42 @@ class QuimbAdapterTests(unittest.TestCase):
         self.assertIn("MPS topology", output)
         self.assertIn("Selected bond", output)
         self.assertIn("object-inspection", output)
+
+    def test_mps_snapshot_record_emits_run_log_metrics(self) -> None:
+        record = mps_snapshot_record(
+            FakeMPS(),
+            step=4,
+            chi_max=3,
+            energy=-1.25,
+            delta_energy=1e-9,
+            max_trunc_err=2e-8,
+        )
+
+        self.assertEqual(record["event"], "diagnostic")
+        self.assertEqual(record["library"], "quimb")
+        self.assertEqual(record["algorithm"], "mps_snapshot")
+        self.assertEqual(record["step"], 4)
+        self.assertEqual(record["sites"], 4)
+        self.assertEqual(record["max_chi"], 3)
+        self.assertEqual(record["chi_max_configured"], 3)
+        self.assertEqual(record["num_saturated_bonds"], 1)
+        self.assertEqual(record["bond_chis"], [2, 3, 2])
+        self.assertGreater(record["entropy_max"], 0.0)
+        self.assertEqual(record["energy"], -1.25)
+
+    def test_emit_mps_snapshot_writes_run_log_event(self) -> None:
+        handle = StringIO()
+        with RunLogger(handle, run_id="mps-run") as logger:
+            emit_mps_snapshot(logger, FakeMPS(), step=1, chi_max=4)
+
+        record = json.loads(handle.getvalue().strip())
+        self.assertEqual(record["event"], "diagnostic")
+        self.assertEqual(record["run_id"], "mps-run")
+        self.assertEqual(record["library"], "quimb")
+        self.assertEqual(record["step"], 1)
+        self.assertEqual(record["max_chi"], 3)
+        self.assertIn("schema_version", record)
+        self.assertIn("timestamp", record)
 
     def test_tnoptimizer_callback_emits_optimizer_step(self) -> None:
         handle = StringIO()
