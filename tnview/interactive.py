@@ -26,6 +26,7 @@ class ReplayController:
     input_buffer: str = ""
     bond_start: int = 0
     bond_limit: int = 24
+    scroll_offset: int = 0
 
     def __post_init__(self) -> None:
         count = self.checkpoint_count
@@ -78,7 +79,16 @@ class ReplayController:
             return False
         if key in {"?", "H"}:
             self.show_help = not self.show_help
-        if key in {"n", "l", "KEY_RIGHT"}:
+            self._reset_scroll()
+        if key in {"KEY_NPAGE"}:
+            self.scroll_down(10)
+        elif key in {"KEY_PPAGE"}:
+            self.scroll_up(10)
+        elif key in {"KEY_HOME", "0"}:
+            self.scroll_top()
+        elif key in {"KEY_END", "$"}:
+            self.scroll_bottom()
+        elif key in {"n", "l", "KEY_RIGHT"}:
             self.next_checkpoint()
         elif key in {"p", "h", "KEY_LEFT"}:
             self.previous_checkpoint()
@@ -86,9 +96,9 @@ class ReplayController:
             self.next_bond()
         elif key in {"k", "KEY_UP"}:
             self.previous_bond()
-        elif key in {"]", "KEY_NPAGE"}:
+        elif key == "]":
             self.next_bond_window()
-        elif key in {"[", "KEY_PPAGE"}:
+        elif key == "[":
             self.previous_bond_window()
         elif key == "f":
             self.focus("bottleneck")
@@ -98,14 +108,19 @@ class ReplayController:
             self.focus("compute")
         elif key == "u":
             self.show_updates = not self.show_updates
+            self._reset_scroll()
         elif key == "e":
             self.show_entropy = not self.show_entropy
+            self._reset_scroll()
         elif key == "c":
             self.show_pressure = not self.show_pressure
+            self._reset_scroll()
         elif key == "i":
             self.show_inspector = not self.show_inspector
+            self._reset_scroll()
         elif key == "d":
             self.show_diagnostics = not self.show_diagnostics
+            self._reset_scroll()
         elif key == "g":
             self.input_mode = "checkpoint"
             self.input_buffer = ""
@@ -119,12 +134,14 @@ class ReplayController:
         if not count:
             return
         self.checkpoint_index = min(count - 1, max(0, index))
+        self._reset_scroll()
 
     def jump_bond(self, bond: int) -> None:
         bonds = {bond_state.bond for bond_state in self.state().ordered_bonds}
         if bond in bonds:
             self.selected_bond = bond
             self._center_window_on_bond(bond)
+            self._reset_scroll()
 
     def focus(self, strategy: str) -> None:
         focus = choose_focus(self.state(), strategy=strategy, window=self.bond_limit)
@@ -133,6 +150,7 @@ class ReplayController:
         self.selected_bond = focus.bond
         if focus.bond_start is not None:
             self.bond_start = focus.bond_start
+        self._reset_scroll()
 
     def next_checkpoint(self) -> None:
         count = self.checkpoint_count
@@ -140,11 +158,13 @@ class ReplayController:
             return
         current = self.checkpoint_index or 0
         self.checkpoint_index = min(count - 1, current + 1)
+        self._reset_scroll()
 
     def previous_checkpoint(self) -> None:
         if self.checkpoint_index is None:
             return
         self.checkpoint_index = max(0, self.checkpoint_index - 1)
+        self._reset_scroll()
 
     def next_bond(self) -> None:
         bonds = [bond.bond for bond in self.state().ordered_bonds]
@@ -153,10 +173,12 @@ class ReplayController:
         if self.selected_bond not in bonds:
             self.selected_bond = bonds[0]
             self._center_window_on_bond(self.selected_bond)
+            self._reset_scroll()
             return
         index = bonds.index(self.selected_bond)
         self.selected_bond = bonds[min(len(bonds) - 1, index + 1)]
         self._center_window_on_bond(self.selected_bond)
+        self._reset_scroll()
 
     def previous_bond(self) -> None:
         bonds = [bond.bond for bond in self.state().ordered_bonds]
@@ -165,10 +187,12 @@ class ReplayController:
         if self.selected_bond not in bonds:
             self.selected_bond = bonds[0]
             self._center_window_on_bond(self.selected_bond)
+            self._reset_scroll()
             return
         index = bonds.index(self.selected_bond)
         self.selected_bond = bonds[max(0, index - 1)]
         self._center_window_on_bond(self.selected_bond)
+        self._reset_scroll()
 
     def next_bond_window(self) -> None:
         bonds = [bond.bond for bond in self.state().ordered_bonds]
@@ -176,9 +200,27 @@ class ReplayController:
             return
         max_start = max(0, bonds[-1] - self.bond_limit + 1)
         self.bond_start = min(max_start, self.bond_start + self.bond_limit)
+        self._reset_scroll()
 
     def previous_bond_window(self) -> None:
         self.bond_start = max(0, self.bond_start - self.bond_limit)
+        self._reset_scroll()
+
+    def scroll_down(self, amount: int) -> None:
+        self.scroll_offset = max(0, self.scroll_offset + max(1, amount))
+
+    def scroll_up(self, amount: int) -> None:
+        self.scroll_offset = max(0, self.scroll_offset - max(1, amount))
+
+    def scroll_top(self) -> None:
+        self.scroll_offset = 0
+
+    def scroll_bottom(self) -> None:
+        self.scroll_offset = 10**9
+
+    def clamp_scroll(self, *, content_lines: int, viewport_lines: int) -> None:
+        max_scroll = max(0, content_lines - max(1, viewport_lines))
+        self.scroll_offset = min(max(0, self.scroll_offset), max_scroll)
 
     def _center_window_on_bond(self, bond: int) -> None:
         bonds = [bond_state.bond for bond_state in self.state().ordered_bonds]
@@ -213,6 +255,9 @@ class ReplayController:
         self.input_mode = None
         self.input_buffer = ""
 
+    def _reset_scroll(self) -> None:
+        self.scroll_offset = 0
+
 
 def run_interactive(events: list[TelemetryEvent], *, ascii_mode: bool = False) -> None:
     controller = ReplayController(events)
@@ -226,8 +271,11 @@ def _main(stdscr: object, controller: ReplayController, ascii_mode: bool) -> Non
         stdscr.erase()
         height, width = stdscr.getmaxyx()
         content = controller.render(width=max(60, width), unicode=not ascii_mode)
+        lines = content.splitlines()
         footer = _footer(controller)
-        for row, line in enumerate(content.splitlines()[: max(0, height - 2)]):
+        viewport_lines = max(0, height - 2)
+        controller.clamp_scroll(content_lines=len(lines), viewport_lines=viewport_lines)
+        for row, line in enumerate(lines[controller.scroll_offset : controller.scroll_offset + viewport_lines]):
             stdscr.addnstr(row, 0, line, max(0, width - 1))
         stdscr.addnstr(max(0, height - 1), 0, footer, max(0, width - 1), curses.A_REVERSE)
         stdscr.refresh()
@@ -252,6 +300,7 @@ def _footer(controller: ReplayController) -> str:
     return (
         f"checkpoint {checkpoint}/{max(0, controller.checkpoint_count - 1)}  "
         f"bond {bond}  window b{controller.bond_start}+{controller.bond_limit}  "
+        f"scroll {controller.scroll_offset}  pgup/pgdn scroll  [/] bonds  "
         f"f/m/x focus  {toggles}  ? help  q quit"
     )
 
@@ -272,6 +321,8 @@ def _help_text() -> str:
             "  k, up           previous bond",
             "  g               jump to checkpoint index",
             "  b               jump to bond index",
+            "  pgup/pgdn       scroll view",
+            "  home/end, 0/$    top/bottom of view",
             "  [, ]            previous/next bond viewport",
             "  f               focus truncation/chi bottleneck",
             "  m               focus max-entropy bond",

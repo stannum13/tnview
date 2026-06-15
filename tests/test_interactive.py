@@ -87,6 +87,34 @@ class ReplayControllerTests(unittest.TestCase):
         controller.previous_bond_window()
         self.assertEqual(controller.bond_start, 0)
 
+    def test_vertical_scroll_navigation_is_bounded(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+
+        controller.handle_key("KEY_NPAGE")
+        self.assertEqual(controller.scroll_offset, 10)
+        controller.handle_key("KEY_PPAGE")
+        self.assertEqual(controller.scroll_offset, 0)
+
+        controller.scroll_down(99)
+        controller.clamp_scroll(content_lines=30, viewport_lines=10)
+        self.assertEqual(controller.scroll_offset, 20)
+
+        controller.handle_key("KEY_END")
+        controller.clamp_scroll(content_lines=30, viewport_lines=10)
+        self.assertEqual(controller.scroll_offset, 20)
+        controller.handle_key("KEY_HOME")
+        self.assertEqual(controller.scroll_offset, 0)
+
+    def test_navigation_resets_vertical_scroll(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+
+        controller.scroll_down(10)
+        controller.previous_checkpoint()
+
+        self.assertEqual(controller.scroll_offset, 0)
+
     def test_focus_keys_select_hotspots_and_center_window(self) -> None:
         events = parse_jsonl(Path("examples/ladder_snake_mismatch.jsonl").read_text().splitlines())
         controller = ReplayController(events, bond_limit=3)
@@ -121,6 +149,19 @@ class ReplayControllerTests(unittest.TestCase):
 
         self.assertIn("step 20", output)
         self.assertIn("healthy growth", output)
+
+    def test_footer_and_help_advertise_scrolling(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+        controller.scroll_down(5)
+
+        self.assertIn("scroll 5", _footer(controller))
+
+        controller.handle_key("?")
+        output = controller.render(width=100, unicode=False)
+
+        self.assertIn("pgup/pgdn", output)
+        self.assertIn("top/bottom", output)
 
 
 if __name__ == "__main__":
