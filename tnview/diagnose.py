@@ -16,17 +16,33 @@ class Diagnostic:
     evidence: dict[str, Any] = field(default_factory=dict)
 
 
-def diagnose_events(events: list[dict[str, Any]]) -> list[Diagnostic]:
+@dataclass(frozen=True)
+class DiagnosticThresholds:
+    energy_epsilon: float = 1e-8
+    truncation_floor: float = 1e-7
+    runtime_factor: float = 2.0
+    memory_factor: float = 1.25
+    optimizer_loss_epsilon: float = 1e-6
+    canonical_error: float = 1e-8
+    entropy_growth_factor: float = 1.5
+
+
+def diagnose_events(
+    events: list[dict[str, Any]],
+    *,
+    thresholds: DiagnosticThresholds | None = None,
+) -> list[Diagnostic]:
+    limits = thresholds or DiagnosticThresholds()
     diagnostics: list[Diagnostic] = []
-    diagnostics.extend(_energy_plateau(events))
+    diagnostics.extend(_energy_plateau(events, limits))
     diagnostics.extend(_chi_saturation(events))
-    diagnostics.extend(_truncation_floor(events))
-    diagnostics.extend(_runtime_regression(events))
-    diagnostics.extend(_memory_growth(events))
-    diagnostics.extend(_optimizer_stagnation(events))
+    diagnostics.extend(_truncation_floor(events, limits))
+    diagnostics.extend(_runtime_regression(events, limits))
+    diagnostics.extend(_memory_growth(events, limits))
+    diagnostics.extend(_optimizer_stagnation(events, limits))
     diagnostics.extend(_nonfinite_metrics(events))
-    diagnostics.extend(_canonical_form_drift(events))
-    diagnostics.extend(_entropy_growth(events))
+    diagnostics.extend(_canonical_form_drift(events, limits))
+    diagnostics.extend(_entropy_growth(events, limits))
     return diagnostics
 
 
@@ -43,10 +59,10 @@ def render_diagnostics(diagnostics: list[Diagnostic]) -> str:
     return "\n".join(lines)
 
 
-def _energy_plateau(events: list[dict[str, Any]]) -> list[Diagnostic]:
+def _energy_plateau(events: list[dict[str, Any]], thresholds: DiagnosticThresholds) -> list[Diagnostic]:
     values = [_number(event.get("delta_energy")) for event in _progress_events(events)]
     recent = [value for value in values if value is not None][-4:]
-    if len(recent) == 4 and all(abs(value) <= 1e-8 for value in recent):
+    if len(recent) == 4 and all(abs(value) <= thresholds.energy_epsilon for value in recent):
         return [
             Diagnostic(
                 code="energy_plateau",
@@ -79,13 +95,13 @@ def _chi_saturation(events: list[dict[str, Any]]) -> list[Diagnostic]:
     return []
 
 
-def _truncation_floor(events: list[dict[str, Any]]) -> list[Diagnostic]:
+def _truncation_floor(events: list[dict[str, Any]], thresholds: DiagnosticThresholds) -> list[Diagnostic]:
     for event in reversed(_progress_events(events)):
         trunc = _number(event.get("max_trunc_err"))
         delta = _number(event.get("delta_energy"))
         if trunc is None or delta is None:
             continue
-        if trunc > 1e-7 and abs(delta) <= 1e-8:
+        if trunc > thresholds.truncation_floor and abs(delta) <= thresholds.energy_epsilon:
             return [
                 Diagnostic(
                     code="truncation_floor",
@@ -98,14 +114,14 @@ def _truncation_floor(events: list[dict[str, Any]]) -> list[Diagnostic]:
     return []
 
 
-def _runtime_regression(events: list[dict[str, Any]]) -> list[Diagnostic]:
+def _runtime_regression(events: list[dict[str, Any]], thresholds: DiagnosticThresholds) -> list[Diagnostic]:
     values = [_runtime(event) for event in _progress_events(events)]
     runtimes = [value for value in values if value is not None]
     if len(runtimes) < 6:
         return []
     baseline = median(runtimes[-6:-1])
     latest = runtimes[-1]
-    if baseline > 0 and latest >= 2.0 * baseline:
+    if baseline > 0 and latest >= thresholds.runtime_factor * baseline:
         return [
             Diagnostic(
                 code="runtime_regression",
@@ -117,10 +133,10 @@ def _runtime_regression(events: list[dict[str, Any]]) -> list[Diagnostic]:
     return []
 
 
-def _memory_growth(events: list[dict[str, Any]]) -> list[Diagnostic]:
+def _memory_growth(events: list[dict[str, Any]], thresholds: DiagnosticThresholds) -> list[Diagnostic]:
     rss_values = [_number(event.get("rss_mb")) for event in _progress_events(events)]
     recent = [value for value in rss_values if value is not None][-5:]
-    if len(recent) == 5 and all(left <= right for left, right in zip(recent, recent[1:])) and recent[-1] >= 1.25 * recent[0]:
+    if len(recent) == 5 and all(left <= right for left, right in zip(recent, recent[1:])) and recent[-1] >= thresholds.memory_factor * recent[0]:
         return [
             Diagnostic(
                 code="memory_growth",
@@ -132,10 +148,10 @@ def _memory_growth(events: list[dict[str, Any]]) -> list[Diagnostic]:
     return []
 
 
-def _optimizer_stagnation(events: list[dict[str, Any]]) -> list[Diagnostic]:
+def _optimizer_stagnation(events: list[dict[str, Any]], thresholds: DiagnosticThresholds) -> list[Diagnostic]:
     losses = [_number(event.get("loss")) for event in events if event.get("event") == "optimizer_step"]
     recent = [value for value in losses if value is not None][-10:]
-    if len(recent) == 10 and abs(recent[0] - recent[-1]) < 1e-6:
+    if len(recent) == 10 and abs(recent[0] - recent[-1]) < thresholds.optimizer_loss_epsilon:
         return [
             Diagnostic(
                 code="optimizer_stagnation",
@@ -175,14 +191,14 @@ def _nonfinite_metrics(events: list[dict[str, Any]]) -> list[Diagnostic]:
     return []
 
 
-def _canonical_form_drift(events: list[dict[str, Any]]) -> list[Diagnostic]:
+def _canonical_form_drift(events: list[dict[str, Any]], thresholds: DiagnosticThresholds) -> list[Diagnostic]:
     for event in reversed(_progress_events(events)):
         error = _number(event.get("canonical_error"))
         if error is None:
             error = _number(event.get("norm_err"))
         if error is None:
             continue
-        if error > 1e-8:
+        if error > thresholds.canonical_error:
             return [
                 Diagnostic(
                     code="canonical_form_drift",
@@ -195,10 +211,10 @@ def _canonical_form_drift(events: list[dict[str, Any]]) -> list[Diagnostic]:
     return []
 
 
-def _entropy_growth(events: list[dict[str, Any]]) -> list[Diagnostic]:
+def _entropy_growth(events: list[dict[str, Any]], thresholds: DiagnosticThresholds) -> list[Diagnostic]:
     values = [_number(event.get("entropy_max")) for event in _progress_events(events)]
     recent = [value for value in values if value is not None][-5:]
-    if len(recent) == 5 and recent[0] > 0 and all(left <= right for left, right in zip(recent, recent[1:])) and recent[-1] >= 1.5 * recent[0]:
+    if len(recent) == 5 and recent[0] > 0 and all(left <= right for left, right in zip(recent, recent[1:])) and recent[-1] >= thresholds.entropy_growth_factor * recent[0]:
         return [
             Diagnostic(
                 code="entropy_growth",

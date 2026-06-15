@@ -655,6 +655,31 @@ class CliTests(unittest.TestCase):
         self.assertGreater(payload["warning_count"], 0)
         self.assertEqual(payload["error_count"], 0)
 
+    def test_diagnose_command_accepts_threshold_flags(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "diagnose",
+                "examples/dmrg_bad_run.jsonl",
+                "--json",
+                "--energy-eps",
+                "1e-12",
+                "--memory-factor",
+                "2.0",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        codes = {diagnostic["code"] for diagnostic in payload["diagnostics"]}
+        self.assertNotIn("energy_plateau", codes)
+        self.assertNotIn("memory_growth", codes)
+        self.assertIn("chi_saturation", codes)
+
     def test_diagnose_command_renders_structured_parse_error(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.jsonl"

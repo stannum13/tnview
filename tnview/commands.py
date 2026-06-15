@@ -5,11 +5,16 @@ from __future__ import annotations
 from typing import Iterable
 
 from tnview.cli_output import CliError, CommandResult
-from tnview.diagnose import diagnose_events, render_diagnostics
+from tnview.diagnose import DiagnosticThresholds, diagnose_events, render_diagnostics
 from tnview.runlog import read_jsonl_records
 
 
-def diagnose_run_log(lines: Iterable[str], *, path: str) -> CommandResult:
+def diagnose_run_log(
+    lines: Iterable[str],
+    *,
+    path: str,
+    thresholds: DiagnosticThresholds | None = None,
+) -> CommandResult:
     report = read_jsonl_records(lines)
     if report.errors:
         raise CliError(
@@ -25,7 +30,7 @@ def diagnose_run_log(lines: Iterable[str], *, path: str) -> CommandResult:
         )
 
     records = list(report.records)
-    diagnostics = diagnose_events(records)
+    diagnostics = diagnose_events(records, thresholds=thresholds)
     return CommandResult(
         ok=not diagnostics,
         text=render_diagnostics(diagnostics),

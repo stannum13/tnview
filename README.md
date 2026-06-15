@@ -170,7 +170,9 @@ logs, it falls back to the same frame rendering used by `live`.
 `diagnose` prints deterministic warnings for run-log events such as energy
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
 optimizer stagnation, non-finite metrics, canonical-form drift, and sustained
-entropy growth. Add `--json` for stable machine-readable diagnostics.
+entropy growth. Add `--json` for stable machine-readable diagnostics. Thresholds
+can be adjusted with flags such as `--energy-eps`, `--truncation-floor`,
+`--memory-factor`, and `--canonical-error`.
 
 `validate` checks replay and run-log JSONL syntax. Add `--strict` to require
 run-log metadata such as `schema_version`, `run_id`, and timestamp fields. Add

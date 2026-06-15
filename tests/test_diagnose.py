@@ -1,6 +1,6 @@
 import unittest
 
-from tnview.diagnose import diagnose_events, render_diagnostics
+from tnview.diagnose import DiagnosticThresholds, diagnose_events, render_diagnostics
 
 
 class DiagnoseTests(unittest.TestCase):
@@ -71,6 +71,14 @@ class DiagnoseTests(unittest.TestCase):
         )
 
         self.assertTrue(_has(diagnostics, "entropy_growth"))
+
+    def test_thresholds_can_relax_energy_plateau_rule(self) -> None:
+        diagnostics = diagnose_events(
+            [{"event": "sweep_end", "delta_energy": 1e-9} for _ in range(4)],
+            thresholds=DiagnosticThresholds(energy_epsilon=1e-12),
+        )
+
+        self.assertFalse(_has(diagnostics, "energy_plateau"))
 
 
 def _has(diagnostics: list[object], code: str) -> bool:
