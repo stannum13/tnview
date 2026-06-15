@@ -15,7 +15,7 @@ class CliTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertEqual(result.stdout.strip(), "tnview 1.0.0")
+        self.assertEqual(result.stdout.strip(), "tnview 1.1.0")
 
     def test_parse_errors_are_structured_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

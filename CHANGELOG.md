@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 - 2026-06-15
+
+Public release polish and live terminal UX.
+
+- Added `tnview watch` as the primary live run-log dashboard command.
+- Added semantic terminal primitives, pressure meters, a live status line, and
+  compact event ticker output for run-log monitoring.
+- Added pressure-aware replay topology glyphs and a selected-bond marker.
+- Renamed public output headings from toy-focused language to neutral release
+  language.
+- Added a public integration guide for stdlib `RunLogger`, quimb snapshots,
+  quimb `TNOptimizer`, and TeNPy DMRG observers.
+- Clarified stable, experimental, and non-goal surfaces in the README.
+- Added optional integration smoke jobs for quimb and TeNPy in CI.
+- Reclassified package maturity as beta while keeping the core CLI/API contract
+  documented and tested.
+
 ## 1.0.0 - 2026-06-15
 
 Stable CLI and integration contract release.
