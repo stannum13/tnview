@@ -9,7 +9,8 @@ class PackageMetadataTests(unittest.TestCase):
         project = data["project"]
 
         self.assertEqual(project["scripts"]["tnview"], "tnview.cli:main")
-        self.assertEqual(project["license"], {"file": "LICENSE"})
+        self.assertEqual(project["license"], "MIT")
+        self.assertEqual(project["license-files"], ["LICENSE"])
         self.assertIn("quimb", project["optional-dependencies"])
         self.assertIn("networkx>=3.0", project["optional-dependencies"]["quimb"])
         self.assertIn("physics-tenpy>=1.0", project["optional-dependencies"]["tenpy"])
