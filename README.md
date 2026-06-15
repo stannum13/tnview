@@ -128,6 +128,7 @@ tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl 
 tnview export examples/quimb_tnoptimizer_run.jsonl --format csv
 
 tnview validate examples/tebd_run.jsonl
+tnview validate examples/dmrg_bad_run.jsonl --strict --json
 tnview diagnose run.jsonl
 tnview tail run.jsonl
 tnview compare runs/*.jsonl --metric loss
@@ -169,6 +170,10 @@ logs, it falls back to the same frame rendering used by `live`.
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
 optimizer stagnation, non-finite metrics, canonical-form drift, and sustained
 entropy growth. Add `--json` for stable machine-readable diagnostics.
+
+`validate` checks replay and run-log JSONL syntax. Add `--strict` to require
+run-log metadata such as `schema_version`, `run_id`, and timestamp fields. Add
+`--json` for stable machine-readable validation output.
 
 `preview` reads setup telemetry such as `model_geometry` and `ansatz_layout` and
 reports interaction range, expected lightcone, early chi-pressure risk,

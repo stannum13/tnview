@@ -21,7 +21,7 @@ class ValidationReport:
     errors: tuple[str, ...] = field(default_factory=tuple)
 
 
-def validate_lines(lines: list[str]) -> ValidationReport:
+def validate_lines(lines: list[str], *, strict: bool = False) -> ValidationReport:
     events: list[TelemetryEvent] = []
     run_log_records: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -39,6 +39,8 @@ def validate_lines(lines: list[str]) -> ValidationReport:
             events.append(event)
 
     warnings = _warnings(events, run_log_records)
+    run_log_errors = _run_log_errors(run_log_records) if strict else []
+    errors.extend(run_log_errors)
     bonds = {event.bond for event in events if event.__class__.__name__ == "BondUpdated"}
     checkpoints = [event for event in events if isinstance(event, Checkpoint)]
     return ValidationReport(
@@ -70,6 +72,18 @@ def render_validation(report: ValidationReport) -> str:
     return "\n".join(lines)
 
 
+def validation_payload(report: ValidationReport) -> dict[str, Any]:
+    return {
+        "ok": report.valid,
+        "event_count": report.event_count,
+        "run_log_count": report.run_log_count,
+        "checkpoint_count": report.checkpoint_count,
+        "bond_count": report.bond_count,
+        "warnings": list(report.warnings),
+        "errors": list(report.errors),
+    }
+
+
 def _warnings(events: list[TelemetryEvent], run_log_records: list[dict[str, Any]]) -> list[str]:
     warnings: list[str] = []
     if not events and not run_log_records:
@@ -84,6 +98,18 @@ def _warnings(events: list[TelemetryEvent], run_log_records: list[dict[str, Any]
         if not bond_updates:
             warnings.append("no bond updates found")
     return warnings
+
+
+def _run_log_errors(records: list[dict[str, Any]]) -> list[str]:
+    errors: list[str] = []
+    for index, record in enumerate(records, start=1):
+        if not isinstance(record.get("schema_version"), str):
+            errors.append(f"run-log event {index}: schema_version must be a string")
+        if not isinstance(record.get("run_id"), str):
+            errors.append(f"run-log event {index}: run_id must be a string")
+        if not isinstance(record.get("timestamp"), str) and "time" not in record:
+            errors.append(f"run-log event {index}: timestamp or time is required")
+    return errors
 
 
 def _run_log_record(line: str) -> dict[str, Any] | None:

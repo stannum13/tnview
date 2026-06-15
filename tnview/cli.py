@@ -34,7 +34,7 @@ from tnview.search import is_tensor_query, render_search, render_tensor_search, 
 from tnview.snapshot import snapshot_json
 from tnview.state import RunState
 from tnview.tail import render_run_log_tail
-from tnview.validate import render_validation, validate_lines
+from tnview.validate import render_validation, validate_lines, validation_payload
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -183,6 +183,8 @@ def _parser() -> argparse.ArgumentParser:
 
     validate = subparsers.add_parser("validate", help="validate a JSONL telemetry replay")
     validate.add_argument("path", help="JSONL replay file, or '-' for stdin")
+    validate.add_argument("--strict", action="store_true", help="require run-log metadata fields")
+    validate.add_argument("--json", action="store_true", help="write stable machine-readable validation JSON")
 
     diagnose = subparsers.add_parser("diagnose", help="print run-log diagnostics")
     diagnose.add_argument("path", help="JSONL run log, or '-' for stdin")
@@ -435,8 +437,11 @@ def _search(args: argparse.Namespace) -> int:
 
 def _validate(args: argparse.Namespace) -> int:
     lines = list(_iter_lines(args.path))
-    report = validate_lines(lines)
-    print(render_validation(report))
+    report = validate_lines(lines, strict=args.strict)
+    if args.json:
+        write_json(validation_payload(report))
+    else:
+        print(render_validation(report))
     return 0 if report.valid else 2
 
 

@@ -512,6 +512,51 @@ class CliTests(unittest.TestCase):
         self.assertIn("checkpoints:       3", result.stdout)
         self.assertIn("bonds:             3", result.stdout)
 
+    def test_validate_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "validate",
+                "examples/dmrg_bad_run.jsonl",
+                "--strict",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["run_log_count"], 7)
+        self.assertEqual(payload["errors"], [])
+
+    def test_validate_strict_reports_run_log_metadata_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.jsonl"
+            path.write_text('{"event":"sweep_end","sweep":1}', encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "validate",
+                    str(path),
+                    "--strict",
+                    "--json",
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(payload["ok"])
+        self.assertGreaterEqual(len(payload["errors"]), 3)
+
     def test_diagnose_command_reports_run_log_warnings(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "run.jsonl"

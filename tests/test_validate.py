@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from tnview.validate import render_validation, validate_lines
+from tnview.validate import render_validation, validate_lines, validation_payload
 
 
 class ValidationTests(unittest.TestCase):
@@ -32,6 +32,35 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report.event_count, 0)
         self.assertEqual(report.run_log_count, 2)
         self.assertIn("run-log events:    2", render_validation(report))
+
+    def test_strict_validate_requires_run_log_metadata(self) -> None:
+        report = validate_lines(['{"event":"sweep_end","sweep":1}'], strict=True)
+
+        self.assertFalse(report.valid)
+        self.assertIn("schema_version must be a string", "\n".join(report.errors))
+        self.assertIn("run_id must be a string", "\n".join(report.errors))
+        self.assertIn("timestamp or time is required", "\n".join(report.errors))
+
+    def test_validation_payload_is_stable(self) -> None:
+        report = validate_lines(
+            [
+                '{"schema_version":"0.1","run_id":"r1","timestamp":"2026-06-10T00:00:00Z","event":"run_start"}'
+            ],
+            strict=True,
+        )
+
+        self.assertEqual(
+            validation_payload(report),
+            {
+                "ok": True,
+                "event_count": 0,
+                "run_log_count": 1,
+                "checkpoint_count": 0,
+                "bond_count": 0,
+                "warnings": [],
+                "errors": [],
+            },
+        )
 
     def test_all_examples_validate(self) -> None:
         for path in Path("examples").glob("*.jsonl"):
