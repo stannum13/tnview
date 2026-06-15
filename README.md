@@ -1,16 +1,22 @@
 # TNView
 
-TNView is a terminal-first black-box recorder for tensor-network simulations.
+TNView is a terminal-first telemetry and diagnostics tool for tensor-network
+runs.
 
 Long-running DMRG, TEBD, and tensor-network optimization jobs can emit
-append-only JSONL telemetry through `RunLogger`. TNView then tails those logs,
-surfaces deterministic diagnostics, and renders compact terminal views for
-entropy growth, bond-dimension pressure, truncation hotspots, update history,
-and run comparisons.
+append-only JSONL through `RunLogger` or a small adapter. TNView then lets you
+watch the run over SSH, diagnose convergence problems, replay visual telemetry,
+and compare variants without a browser dashboard.
 
-It is designed for SSH, tmux, and batch jobs: record a run, attach from a
-terminal, replay it after a crash, and compare variants without a browser
-dashboard.
+The core workflow is deliberately small:
+
+```text
+RunLogger -> tnview watch -> tnview diagnose -> tnview compare
+```
+
+It is built for tmux, batch jobs, and crash recovery: record observable run
+state, attach from a terminal while the job is alive, then inspect the same log
+afterward.
 
 ## Install
 
@@ -51,10 +57,27 @@ transcript is available at [docs/demo/runlog-demo.txt](docs/demo/runlog-demo.txt
 Try individual commands:
 
 ```bash
+tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/quimb_tnoptimizer_run.jsonl
 tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii
 tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
+```
+
+The demo output is intentionally plain terminal text:
+
+```text
+TNView run tail | run_id=quimb-opt library=quimb algorithm=tnoptimizer
+events=6 updated=2026-06-10T01:00:11.000Z
+
+Current:
+    step          4
+    loss          0.07
+    wall time     2.3
+    rss           526
+
+Diagnostics:
+  no warnings
 ```
 
 ## Record a Run
@@ -82,6 +105,7 @@ with RunLogger("runs/dmrg.jsonl", run_id="dmrg-001") as log:
 Inspect it from the terminal:
 
 ```bash
+tnview watch runs/dmrg.jsonl
 tnview tail runs/dmrg.jsonl
 tnview diagnose runs/dmrg.jsonl
 ```
@@ -112,6 +136,32 @@ python -m tnview.cli demo
 - geometry/ansatz mismatch hints
 - run comparison tables and CSV export
 
+## Stability
+
+The stable public surface is:
+
+- `RunLogger` append-only JSONL logging
+- run-log commands: `watch`, `tail`, `diagnose`, `compare`, `validate`,
+  `schema`, and `init`
+- stable JSON modes for `diagnose`, `compare`, `validate`, and `schema`
+- the documented run-log event names and common metric fields
+
+The visual replay surface is useful and tested, but its richer rendering details
+are allowed to evolve. quimb and TeNPy adapters are dependency-optional and
+duck-typed; they are integration helpers, not replacements for those libraries.
+
+Non-goals for this release:
+
+- tensor serialization
+- full quantum-object inspection
+- full QuTiP/Qiskit support
+- browser dashboards
+- replacing quimb or TeNPy optimizers/engines
+
+Package releases use semantic versions. The telemetry schema is versioned
+separately; the current run-log schema is `0.1`, and schema changes should be
+additive when practical.
+
 ## Common Commands
 
 ```bash
@@ -123,6 +173,7 @@ tnview schema --json
 tnview init emit_tnview.py
 tnview init emit_quimb.py --kind quimb
 
+tnview watch examples/dmrg_bad_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/dmrg_bad_run.jsonl
 tnview tail examples/dmrg_bad_run.jsonl --follow
 tnview replay-runlog examples/dmrg_bad_run.jsonl --interactive
@@ -165,11 +216,13 @@ keyboard navigation through the log.
 `live` streams JSONL telemetry from a file or stdin and refreshes on checkpoint
 events.
 
-`tail` prints a current-state summary for run-log files, including compact
-metric sparklines for recent energy, loss, chi, truncation, and memory changes.
-Changed current fields are marked with `*` and their previous value. Add
-`--follow` to keep refreshing a file as a batch job appends events. For replay
-logs, it falls back to the same frame rendering used by `live`.
+`watch` follows a run-log file with the live terminal dashboard: status line,
+current metrics, pressure meters, trends, diagnostics, and recent event ticker.
+It is the main command for attaching to a running batch job.
+
+`tail` prints the same current-state summary once. Add `--follow` to keep
+refreshing a file as a batch job appends events. For replay logs, it falls back
+to the same frame rendering used by `live`.
 
 `diagnose` prints deterministic warnings for run-log events such as energy
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
@@ -211,6 +264,9 @@ starter snippets.
 TNView can also adapt objects from existing quantum Python libraries. The first
 adapter targets quimb-style matrix product states without making quimb a hard
 dependency.
+
+See [docs/integrations.md](docs/integrations.md) for copy-paste `RunLogger`,
+quimb, and TeNPy examples.
 
 ```python
 from pathlib import Path

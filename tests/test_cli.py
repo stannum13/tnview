@@ -353,7 +353,7 @@ class CliTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn("Toy model comparison", result.stdout)
+        self.assertIn("Replay comparison", result.stdout)
         self.assertIn("easy_chain.jsonl", result.stdout)
         self.assertIn("long_range_chi_limited", result.stdout)
         self.assertIn("ladder_snake_mismatch", result.stdout)
@@ -550,7 +550,7 @@ class CliTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertIn("Toy model complexity preview", result.stdout)
+        self.assertIn("Model complexity preview", result.stdout)
         self.assertIn("geometry:           2D ladder", result.stdout)
         self.assertIn("interaction range:  long-range", result.stdout)
         self.assertIn("contraction risk:   high", result.stdout)
@@ -834,7 +834,8 @@ class CliTests(unittest.TestCase):
 
         self.assertIn("TNView run tail", result.stdout)
         self.assertIn("run_id=r", result.stdout)
-        self.assertIn("Recent events", result.stdout)
+        self.assertIn("Pressure:", result.stdout)
+        self.assertIn("Events:", result.stdout)
 
     def test_tail_follow_renders_once_for_run_logs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -875,6 +876,52 @@ class CliTests(unittest.TestCase):
         self.assertIn("TNView run tail", result.stdout)
         self.assertIn("Trends:", result.stdout)
         self.assertIn("loss", result.stdout)
+
+    def test_watch_renders_live_run_log_dashboard(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "watch",
+                "examples/quimb_tnoptimizer_run.jsonl",
+                "--max-refreshes",
+                "1",
+                "--interval",
+                "0.01",
+                "--no-clear",
+                "--ascii",
+                "--no-color",
+                "--width",
+                "120",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("* live", result.stdout)
+        self.assertIn("TNView run tail", result.stdout)
+        self.assertIn("Pressure:", result.stdout)
+        self.assertIn("Events:", result.stdout)
+
+    def test_watch_rejects_stdin(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "watch",
+                "-",
+                "--max-refreshes",
+                "1",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Follow mode requires a file path", result.stderr)
 
     def test_tail_command_falls_back_to_replay_rendering(self) -> None:
         result = subprocess.run(

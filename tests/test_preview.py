@@ -36,7 +36,7 @@ class ComplexityPreviewTests(unittest.TestCase):
 
         output = render_preview(complexity_preview(state), width=100)
 
-        self.assertIn("Toy model complexity preview", output)
+        self.assertIn("Model complexity preview", output)
         self.assertIn("sites:              8", output)
         self.assertIn("recommended ansatz:", output)
         self.assertIn("suggestions:", output)

@@ -9,7 +9,7 @@ class PackageMetadataTests(unittest.TestCase):
         project = data["project"]
 
         self.assertEqual(project["version"], "1.0.0")
-        self.assertIn("Development Status :: 5 - Production/Stable", project["classifiers"])
+        self.assertIn("Development Status :: 4 - Beta", project["classifiers"])
         self.assertEqual(project["scripts"]["tnview"], "tnview.cli:main")
         self.assertEqual(project["license"], "MIT")
         self.assertEqual(project["license-files"], ["LICENSE"])

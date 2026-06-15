@@ -41,6 +41,7 @@ from tnview.snapshot import snapshot_json
 from tnview.state import RunState
 from tnview.starter import KINDS, starter_script, write_starter
 from tnview.tail import render_run_log_tail
+from tnview.terminal import supports_color
 from tnview.validate import render_validation, validate_lines, validation_payload
 
 
@@ -57,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
             return _live(args)
         if args.command == "tail":
             return _tail(args)
+        if args.command == "watch":
+            return _watch(args)
         if args.command == "demo":
             return _demo(args)
         if args.command == "compare":
@@ -167,7 +170,17 @@ def _parser() -> argparse.ArgumentParser:
     tail.add_argument("--interval", type=float, default=1.0, help="refresh interval in seconds for --follow")
     tail.add_argument("--max-refreshes", type=int, help="stop after N refreshes, useful for scripted checks")
     tail.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
+    tail.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     _render_args(tail)
+
+    watch = subparsers.add_parser("watch", help="watch a TNView run log with a live terminal dashboard")
+    watch.add_argument("path", help="JSONL run log file to watch")
+    watch.add_argument("--interval", type=float, default=1.0, help="refresh interval in seconds")
+    watch.add_argument("--max-refreshes", type=int, help="stop after N refreshes, useful for scripted checks")
+    watch.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
+    watch.add_argument("--ascii", action="store_true", help="use ASCII sparklines and meters")
+    watch.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
+    watch.add_argument("--width", type=int, default=100, help="render width in columns")
 
     demo = subparsers.add_parser("demo", help="render a generated tensor-network dynamics demo")
     demo.add_argument("--sites", type=int, default=32, help="number of sites in the generated chain")
@@ -336,14 +349,32 @@ def _tail(args: argparse.Namespace) -> int:
     report = read_jsonl_records(lines)
     run_records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
     if run_records:
-        print(render_run_log_tail(run_records, width=args.width or 100, unicode=not args.ascii))
+        print(
+            render_run_log_tail(
+                run_records,
+                width=args.width or 100,
+                unicode=not args.ascii,
+                color=_color_enabled(args),
+            )
+        )
         return 0 if not report.errors else 2
     return _render_live_lines(lines, args)
 
 
-def _tail_follow(args: argparse.Namespace) -> int:
+def _watch(args: argparse.Namespace) -> int:
+    args.follow = True
+    return _tail_follow(args, live=True)
+
+
+def _tail_follow(args: argparse.Namespace, *, live: bool = False) -> int:
     if args.path == "-":
-        raise EventParseError("tail --follow requires a file path")
+        raise CliError(
+            code="FOLLOW_REQUIRES_FILE",
+            message="Follow mode requires a file path",
+            reason="stdin cannot be polled for appended events.",
+            suggestions=("Write telemetry to a JSONL file and run `tnview watch path.jsonl`.",),
+            exit_code=2,
+        )
     if args.interval <= 0:
         raise EventParseError("--interval must be positive")
     if args.max_refreshes is not None and args.max_refreshes <= 0:
@@ -353,7 +384,7 @@ def _tail_follow(args: argparse.Namespace) -> int:
     status = 0
     try:
         while args.max_refreshes is None or refreshes < args.max_refreshes:
-            output, status = _tail_snapshot(args)
+            output, status = _tail_snapshot(args, live=live)
             if not args.no_clear and sys.stdout.isatty():
                 print("\033[2J\033[H", end="")
             print(output)
@@ -367,12 +398,21 @@ def _tail_follow(args: argparse.Namespace) -> int:
     return status
 
 
-def _tail_snapshot(args: argparse.Namespace) -> tuple[str, int]:
+def _tail_snapshot(args: argparse.Namespace, *, live: bool = False) -> tuple[str, int]:
     lines = list(_iter_lines(args.path))
     report = read_jsonl_records(lines)
     run_records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
     if run_records:
-        return render_run_log_tail(run_records, width=args.width or 100, unicode=not args.ascii), 0 if not report.errors else 2
+        return (
+            render_run_log_tail(
+                run_records,
+                width=args.width or 100,
+                unicode=not args.ascii,
+                color=_color_enabled(args),
+                live=live,
+            ),
+            0 if not report.errors else 2,
+        )
 
     events = _read_events(lines)
     state = _state_at_checkpoint(events, "latest")
@@ -753,6 +793,10 @@ def _options(args: argparse.Namespace) -> RenderOptions:
         show_inspector=not args.no_inspector,
         show_diagnostics=not args.no_diagnostics,
     )
+
+
+def _color_enabled(args: argparse.Namespace) -> bool:
+    return not getattr(args, "no_color", False) and supports_color(sys.stdout)
 
 
 def _iter_lines(path: str) -> Iterable[str]:

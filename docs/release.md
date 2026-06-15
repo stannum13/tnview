@@ -1,6 +1,6 @@
 # Release Checklist
 
-TNView is still alpha. Use this checklist before tagging a release.
+Use this checklist before tagging a public release.
 
 1. Run local verification:
 
@@ -14,6 +14,9 @@ TNView is still alpha. Use this checklist before tagging a release.
 
    ```bash
    tnview --help
+   tnview --version
+   tnview schema --json
+   tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
    tnview tail examples/quimb_tnoptimizer_run.jsonl
    tnview diagnose examples/dmrg_bad_run.jsonl
    ```
@@ -42,6 +45,6 @@ TNView is still alpha. Use this checklist before tagging a release.
 7. Tag after verification:
 
    ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
+   git tag v1.1.0
+   git push origin v1.1.0
    ```

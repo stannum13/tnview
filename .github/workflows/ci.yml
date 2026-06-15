@@ -34,5 +34,42 @@ jobs:
       - name: Run CLI smoke
         run: |
           tnview --help
+          tnview --version
+          tnview schema --json
+          tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 100
           tnview diagnose examples/dmrg_bad_run.jsonl --json
           tnview tail examples/quimb_tnoptimizer_run.jsonl --width 100
+
+  optional-integrations:
+    name: Optional integrations
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        extra: ["quimb", "tenpy"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install optional extra
+        run: python -m pip install -e ".[${{ matrix.extra }}]"
+
+      - name: Run adapter tests
+        run: |
+          python -m unittest tests.test_quimb_adapter tests.test_tenpy_adapter tests.test_example_scripts
+
+      - name: Import optional library
+        run: |
+          python - <<'PY'
+          import importlib
+          extra = "${{ matrix.extra }}"
+          module = "quimb.tensor" if extra == "quimb" else "tenpy"
+          importlib.import_module(module)
+          print(f"imported {module}")
+          PY

@@ -62,8 +62,8 @@ def complexity_preview(state: RunState) -> ComplexityPreview:
 
 def render_preview(preview: ComplexityPreview, *, width: int = 100) -> str:
     lines = [
-        "Toy model complexity preview",
-        "----------------------------",
+        "Model complexity preview",
+        "------------------------",
         f"sites:              {_maybe_int(preview.sites)}",
         f"geometry:           {preview.geometry}",
         f"dimensions:         {_dimensions(preview.dimensions)}",

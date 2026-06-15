@@ -7,8 +7,8 @@ echo "$TNVIEW examples"
 $TNVIEW examples
 
 echo
-echo "$TNVIEW tail examples/quimb_tnoptimizer_run.jsonl --width 100"
-$TNVIEW tail examples/quimb_tnoptimizer_run.jsonl --width 100
+echo "$TNVIEW watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 100"
+$TNVIEW watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 100
 
 echo
 echo "$TNVIEW replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii --width 100"

@@ -14,7 +14,8 @@ examples/tebd_run.jsonl                   replay   18      3      3            c
 compare replay: tnview compare examples/blocked_ladder.jsonl examples/easy_chain.jsonl examples/ladder_snake_mismatch.jsonl examples/long_range_chi_limited.jsonl
 compare run logs: tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 
-.venv/bin/tnview tail examples/quimb_tnoptimizer_run.jsonl --width 100
+.venv/bin/tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 100
+● live  run=quimb-opt  step=4  loss=0.07  rss=526  events=6
 TNView run tail | run_id=quimb-opt library=quimb algorithm=tnoptimizer
 events=6 updated=2026-06-10T01:00:11.000Z
 
@@ -27,16 +28,22 @@ Current:
 Diagnostics:
   no warnings
 
+Pressure:
+  health    [████░░░░░░] ok
+  memory    [░░░░░░░░░░] ok
+  progress  [██░░░░░░░░] ok
+
 Trends:
   loss     █▄▂▁  latest=0.07 change=-0.11
   rss      ▁▄▆█  latest=526 change=3
 
-Recent events:
-  event=optimizer_step step=1 loss=0.8
-  event=optimizer_step step=2 loss=0.42
-  event=optimizer_step step=3 loss=0.18
-  event=optimizer_step step=4 loss=0.07
-  event=run_end
+Events:
+  01:00:02  optimizer_step  step=1  loss=0.8  rss=512
+  01:00:04  optimizer_step  step=2  loss=0.42  rss=518
+  01:00:07  optimizer_step  step=3  loss=0.18  rss=523
+  01:00:10  optimizer_step  step=4  loss=0.07  rss=526
+  01:00:11  run_end
+
 
 .venv/bin/tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii --width 100
 Run-log replay event 2/5
@@ -52,14 +59,19 @@ Current:
 Diagnostics:
   no warnings
 
+Pressure:
+  health    [####......] ok
+  memory    [..........] ok
+  progress  [##........] ok
+
 Trends:
   loss     #.  latest=0.42 change=-0.38
   rss      .#  latest=518 change=6
 
-Recent events:
-  event=run_start
-  event=optimizer_step step=1 loss=0.8
-  event=optimizer_step step=2 loss=0.42
+Events:
+  01:00:00  run_start
+  01:00:02  optimizer_step  step=1  loss=0.8  rss=512
+  01:00:04  optimizer_step  step=2  loss=0.42  rss=518
 
 .venv/bin/tnview diagnose examples/dmrg_bad_run.jsonl
 TNView diagnostics

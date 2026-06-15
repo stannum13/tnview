@@ -61,7 +61,9 @@ class StateRenderingTests(unittest.TestCase):
         output = render_run(state, RenderOptions(width=90, unicode=False))
 
         self.assertIn("sites: 0    1    2    3", output)
-        self.assertIn("bonds:    --   !!   --", output)
+        self.assertIn("bonds:    --   ==   --", output)
+        self.assertIn("focus:    ^^", output)
+        self.assertIn("legend: -- healthy  ++ pressure  == saturated  ^^ selected", output)
 
     def test_topology_alignment_handles_multi_digit_sites(self) -> None:
         lines = []

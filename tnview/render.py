@@ -87,25 +87,33 @@ def _topology(state: RunState, width: int, options: RenderOptions) -> str:
     bond_by_sites = {(bond.site_left, bond.site_right): bond for bond in bonds}
 
     link_cells = []
+    marker_cells = []
+    active_bond = state.selected_bond
     for left, right in zip(sites, sites[1:]):
         bond = bond_by_sites.get((left, right))
         if bond is None:
             link_cells.append("  ")
+            marker_cells.append("  ")
         elif bond.saturated:
-            link_cells.append("!!")
+            link_cells.append(_topology_link("saturated", options))
+            marker_cells.append(_topology_marker(bond.bond == active_bond, options))
         elif bond.chi_pressure >= 0.75:
-            link_cells.append("++")
+            link_cells.append(_topology_link("pressure", options))
+            marker_cells.append(_topology_marker(bond.bond == active_bond, options))
         else:
-            link_cells.append("--")
+            link_cells.append(_topology_link("healthy", options))
+            marker_cells.append(_topology_marker(bond.bond == active_bond, options))
 
     link_indent = " " * (cell_width + 1)
     link_row = f"{link_indent}{bond_sep.join(link_cells)}"
+    marker_row = f"{link_indent}{bond_sep.join(marker_cells)}"
     return "\n".join(
         [
             _viewport_title("MPS topology", all_bonds, bonds),
             _fit(f"sites: {site_row}", width),
             _fit(f"bonds: {link_row}", width),
-            "legend: -- healthy  ++ pressure  !! saturated",
+            _fit(f"focus: {marker_row}", width),
+            _topology_legend(options),
         ]
     )
 
@@ -128,6 +136,24 @@ def _updates(state: RunState, width: int, options: RenderOptions) -> str:
         )
         lines.append(_fit(line, width))
     return "\n".join(lines)
+
+
+def _topology_link(status: str, options: RenderOptions) -> str:
+    if options.unicode:
+        return {"healthy": "──", "pressure": "━━", "saturated": "══"}[status]
+    return {"healthy": "--", "pressure": "++", "saturated": "=="}[status]
+
+
+def _topology_marker(active: bool, options: RenderOptions) -> str:
+    if not active:
+        return "  "
+    return "^^" if not options.unicode else "▲▲"
+
+
+def _topology_legend(options: RenderOptions) -> str:
+    if options.unicode:
+        return "legend: ── healthy  ━━ pressure  ══ saturated  ▲ selected"
+    return "legend: -- healthy  ++ pressure  == saturated  ^^ selected"
 
 
 def _tdvp_sweeps(state: RunState, width: int, options: RenderOptions) -> str:

@@ -123,7 +123,7 @@ def render_comparison(summaries: list[RunSummary], *, width: int = 160) -> str:
     ]
     header = "  ".join(label.ljust(size) for label, size in columns)
     divider = "  ".join("-" * size for _, size in columns)
-    lines = ["Toy model comparison", _fit(header, width), _fit(divider, width)]
+    lines = ["Replay comparison", _fit(header, width), _fit(divider, width)]
     for summary in summaries:
         row = [
             _clip(summary.name, 24).ljust(24),
