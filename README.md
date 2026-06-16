@@ -46,6 +46,7 @@ Start with the motivated CLI tour:
 
 ```bash
 tnview tour
+tnview recipes
 ```
 
 Run the terminal diagnostics tour:
@@ -195,6 +196,7 @@ tnview animate examples/tebd_run.jsonl --frames 3 --window 0.3 --no-clear --asci
 tnview animate examples/tebd_run.jsonl --start-time 0.1 --end-time 0.8 --signal selected --ascii
 tnview sketch --list
 tnview sketch --wizard
+tnview recipes
 tnview sketch "mps sites=48 chi=128 profile=hard"
 tnview sketch "mps sites=48 chi=128 profile=spike" --json
 tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
@@ -245,6 +247,10 @@ tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generate
 
 `demo` generates an in-memory MPS/TEBD-style replay and renders it immediately.
 Use this first to see the terminal view without preparing data.
+
+`recipes` prints runnable workflows for common tasks: watching a job, comparing
+baseline/candidate logs, inspecting oscilloscope signals, and building a
+synthetic sketch. Add `--json` for machine-readable recipe data.
 
 `sketch` is the deterministic prompt-like builder for synthetic visual
 telemetry. It currently supports MPS sketches such as
