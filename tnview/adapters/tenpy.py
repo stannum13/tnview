@@ -54,6 +54,11 @@ def dmrg_sweep_records(
     if not isinstance(source, dict):
         raise TypeError("TeNPy DMRG adapter needs a sweep_stats dictionary")
 
+    if "chi_max_configured" not in extra:
+        chi_max = _engine_chi_max(engine)
+        if chi_max is not None:
+            extra["chi_max_configured"] = chi_max
+
     rows = _stat_count(source)
     records: list[dict[str, Any]] = []
     for index in range(rows):
@@ -174,6 +179,39 @@ def _wall_delta_at(stats: dict[str, Any], index: int) -> Any:
             if isinstance(current, int | float) and isinstance(previous, int | float):
                 return current - previous
             return None
+    return None
+
+
+def _engine_chi_max(engine: Any | None) -> int | None:
+    if engine is None:
+        return None
+    for source in [
+        getattr(engine, "options", None),
+        getattr(engine, "trunc_params", None),
+        getattr(engine, "truncation_params", None),
+    ]:
+        value = _chi_max_from_mapping(source)
+        if value is not None:
+            return value
+
+    for name in ["chi_max", "max_chi"]:
+        value = _json_scalar(getattr(engine, name, None))
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    return None
+
+
+def _chi_max_from_mapping(source: Any) -> int | None:
+    if not isinstance(source, dict):
+        return None
+    for key in ["chi_max", "max_chi"]:
+        value = _json_scalar(source.get(key))
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value
+    for key in ["trunc_params", "truncation_params"]:
+        value = _chi_max_from_mapping(source.get(key))
+        if value is not None:
+            return value
     return None
 
 

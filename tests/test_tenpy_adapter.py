@@ -7,6 +7,7 @@ from tnview.adapters.tenpy import DMRGObserver, dmrg_sweep_record, dmrg_sweep_re
 
 
 class FakeDMRGEngine:
+    options = {"trunc_params": {"chi_max": 128}}
     sweep_stats = {
         "sweep": [0, 1, 2],
         "E": [-1.0, -1.1, -1.12],
@@ -40,7 +41,7 @@ class TenpyAdapterTests(unittest.TestCase):
         self.assertEqual(record["canonical_error"], 3e-12)
 
     def test_dmrg_sweep_records_maps_all_sweep_stats(self) -> None:
-        records = dmrg_sweep_records(FakeDMRGEngine(), chi_max_configured=128)
+        records = dmrg_sweep_records(FakeDMRGEngine())
 
         self.assertEqual(len(records), 3)
         self.assertEqual([record["sweep"] for record in records], [0, 1, 2])
@@ -48,6 +49,11 @@ class TenpyAdapterTests(unittest.TestCase):
         self.assertEqual(records[1]["wall_s"], 2.4)
         self.assertEqual(records[1]["step_wall_s"], 1.4)
         self.assertEqual(records[2]["chi_max_configured"], 128)
+
+    def test_dmrg_sweep_records_prefers_explicit_chi_limit(self) -> None:
+        records = dmrg_sweep_records(FakeDMRGEngine(), chi_max_configured=256)
+
+        self.assertEqual(records[-1]["chi_max_configured"], 256)
 
     def test_dmrg_sweep_records_accepts_alias_keys(self) -> None:
         stats = {
