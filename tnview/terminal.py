@@ -14,6 +14,34 @@ ANSI_CODES = {
     "gray": "90",
 }
 
+SEVERITY_COLORS = {
+    "ok": "green",
+    "live": "green",
+    "info": "cyan",
+    "watch": "yellow",
+    "warning": "yellow",
+    "warn": "yellow",
+    "stale": "yellow",
+    "high": "yellow",
+    "error": "red",
+    "critical": "red",
+    "unknown": "gray",
+}
+
+SEVERITY_SYMBOLS = {
+    "ok": ("●", "*"),
+    "live": ("●", "*"),
+    "info": ("●", "*"),
+    "watch": ("▲", "!"),
+    "warning": ("▲", "!"),
+    "warn": ("▲", "!"),
+    "stale": ("▲", "!"),
+    "high": ("▲", "!"),
+    "error": ("■", "x"),
+    "critical": ("■", "x"),
+    "unknown": ("·", "."),
+}
+
 
 def supports_color(stream: TextIO | None = None) -> bool:
     """Return whether semantic ANSI color should be emitted."""
@@ -55,15 +83,27 @@ def ansi(
 def render_status_dot(status: str, *, unicode: bool = True, color: bool = False) -> str:
     """Render a compact status dot for live/stale/warning/error state."""
 
-    glyph = "●" if unicode else "*"
-    color_name = {
-        "live": "green",
-        "ok": "green",
-        "warning": "yellow",
-        "stale": "yellow",
-        "error": "red",
-    }.get(status, "gray")
-    return ansi(glyph, color=color_name, enabled=color)
+    return severity_symbol(status, unicode=unicode, color=color)
+
+
+def severity_color(severity: str) -> str:
+    """Return the semantic color name for a severity string."""
+
+    return SEVERITY_COLORS.get(severity, "gray")
+
+
+def severity_symbol(severity: str, *, unicode: bool = True, color: bool = False) -> str:
+    """Return a compact semantic symbol for a severity string."""
+
+    glyphs = SEVERITY_SYMBOLS.get(severity, SEVERITY_SYMBOLS["unknown"])
+    glyph = glyphs[0] if unicode else glyphs[1]
+    return ansi(glyph, color=severity_color(severity), enabled=color)
+
+
+def render_severity(severity: str, *, unicode: bool = True, color: bool = False) -> str:
+    """Render a symbol plus severity label."""
+
+    return f"{severity_symbol(severity, unicode=unicode, color=color)} {severity}"
 
 
 def render_meter(
@@ -85,7 +125,7 @@ def render_meter(
     full = "█" if unicode else "#"
     empty = "░" if unicode else "."
     bar = full * filled + empty * (width - filled)
-    color_name = {"ok": "green", "warning": "yellow", "error": "red"}.get(severity, "gray")
+    color_name = severity_color(severity)
     return f"{label:<9} [{ansi(bar, color=color_name, enabled=color)}] {severity}"
 
 

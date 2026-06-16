@@ -2,7 +2,17 @@ from io import StringIO
 import os
 import unittest
 
-from tnview.terminal import ansi, compact_event_time, render_meter, render_sparkline, render_status_dot, supports_color
+from tnview.terminal import (
+    ansi,
+    compact_event_time,
+    render_meter,
+    render_severity,
+    render_sparkline,
+    render_status_dot,
+    severity_color,
+    severity_symbol,
+    supports_color,
+)
 
 
 class TerminalPrimitiveTests(unittest.TestCase):
@@ -21,6 +31,12 @@ class TerminalPrimitiveTests(unittest.TestCase):
 
     def test_render_status_dot_has_ascii_fallback(self) -> None:
         self.assertEqual(render_status_dot("live", unicode=False), "*")
+
+    def test_severity_helpers_have_ascii_fallbacks(self) -> None:
+        self.assertEqual(severity_color("critical"), "red")
+        self.assertEqual(severity_color("custom"), "gray")
+        self.assertEqual(severity_symbol("warning", unicode=False), "!")
+        self.assertEqual(render_severity("error", unicode=False), "x error")
 
     def test_render_sparkline_has_ascii_fallback(self) -> None:
         self.assertEqual(render_sparkline([1.0, 2.0, 3.0], unicode=False), ".-#")
