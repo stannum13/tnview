@@ -42,7 +42,7 @@ from tnview.schema import render_schema, schema_payload
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.scope import render_scope
 from tnview.snapshot import snapshot_json
-from tnview.signals import signal_points_from_events
+from tnview.signals import signal_payload, signal_points_from_events
 from tnview.sketch import SketchSpec, generate_sketch_replay, parse_sketch_prompt, render_sketch_list
 from tnview.sketch_wizard import run_sketch_wizard
 from tnview.state import RunState
@@ -210,6 +210,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     scope.add_argument("--ascii", action="store_true", help="use ASCII sparklines")
     scope.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
+    scope.add_argument("--json", action="store_true", help="write stable machine-readable signal JSON")
     scope.add_argument("--width", type=int, default=100, help="render width in columns")
 
     live = subparsers.add_parser("live", help="stream JSONL telemetry and refresh on checkpoints")
@@ -457,6 +458,9 @@ def _scope(args: argparse.Namespace) -> int:
     time_min, time_max = _scope_time_window(args)
     events = _read_events(_iter_lines(args.path))
     points = signal_points_from_events(events, selected_bond=args.bond, time_min=time_min, time_max=time_max)
+    if args.json:
+        write_json(signal_payload(points))
+        return 0
     print(
         render_scope(
             points,

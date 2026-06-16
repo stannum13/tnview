@@ -237,6 +237,28 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("Scope center time requires a window", result.stderr)
 
+    def test_scope_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "scope",
+                "examples/tebd_run.jsonl",
+                "--bond",
+                "1",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(len(payload["points"]), 3)
+        self.assertEqual(payload["points"][-1]["selected_chi"], 256)
+        self.assertIn("markers", payload)
+
     def test_replay_runlog_rejects_missing_event(self) -> None:
         result = subprocess.run(
             [
