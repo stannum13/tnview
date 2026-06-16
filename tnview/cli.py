@@ -35,7 +35,14 @@ from tnview.examples import examples_payload, list_examples, render_examples
 from tnview.export import export_manifest_json, export_records_csv, export_replay_csv, export_replay_jsonl
 from tnview.fixtures import FIXTURE_PROFILES, generate_chain_fixture
 from tnview.focus import choose_focus, choose_focus_for_bond
-from tnview.focus_report import FOCUS_STRATEGIES, apply_focus, focus_payload, render_focus_strategies, render_focus_view
+from tnview.focus_report import (
+    FOCUS_STRATEGIES,
+    apply_focus,
+    focus_payload,
+    focus_strategies_payload,
+    render_focus_strategies,
+    render_focus_view,
+)
 from tnview.interactive import run_interactive
 from tnview.preview import complexity_preview, render_preview
 from tnview.recipes import recipes_payload, render_recipes
@@ -902,7 +909,7 @@ def _inspect(args: argparse.Namespace) -> int:
 def _focus(args: argparse.Namespace) -> int:
     if args.list:
         if args.json:
-            write_json({"strategies": FOCUS_STRATEGIES})
+            write_json(focus_strategies_payload())
         else:
             write_text(render_focus_strategies())
         return 0

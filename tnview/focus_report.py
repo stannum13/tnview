@@ -61,6 +61,18 @@ def render_focus_strategies() -> str:
     return "\n".join(lines)
 
 
+def focus_strategies_payload() -> dict[str, Any]:
+    """Return stable machine-readable focus strategy metadata."""
+
+    return {
+        "kind": "focus-strategies",
+        "strategies": [
+            {"name": name, "description": description}
+            for name, description in FOCUS_STRATEGIES.items()
+        ],
+    }
+
+
 def apply_focus(state: RunState, *, strategy: str, window: int | None) -> FocusSelection:
     selection = choose_focus(state, strategy=strategy, window=window)
     if selection.bond is not None:

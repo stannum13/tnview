@@ -592,6 +592,27 @@ class CliTests(unittest.TestCase):
         self.assertIn("bottleneck", result.stdout)
         self.assertIn("entropy", result.stdout)
 
+    def test_focus_command_lists_strategies_as_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "focus",
+                "--list",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "focus-strategies")
+        names = {strategy["name"] for strategy in payload["strategies"]}
+        self.assertIn("bottleneck", names)
+        self.assertIn("front", names)
+
     def test_focus_command_renders_strategy_view(self) -> None:
         result = subprocess.run(
             [

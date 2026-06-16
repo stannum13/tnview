@@ -2,6 +2,7 @@ import unittest
 
 from tnview.events import parse_jsonl_line
 from tnview.focus import choose_focus, choose_focus_for_bond
+from tnview.focus_report import focus_strategies_payload
 from tnview.state import RunState
 
 
@@ -52,6 +53,14 @@ class FocusTests(unittest.TestCase):
         self.assertIsNone(focus.bond_start)
         self.assertEqual(focus.bond_limit, 3)
         self.assertEqual(focus.reason, "bond not found")
+
+    def test_focus_strategies_payload_is_stable(self) -> None:
+        payload = focus_strategies_payload()
+
+        self.assertEqual(payload["kind"], "focus-strategies")
+        names = {strategy["name"] for strategy in payload["strategies"]}
+        self.assertIn("bottleneck", names)
+        self.assertIn("entropy", names)
 
 
 if __name__ == "__main__":
