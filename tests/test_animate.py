@@ -1,7 +1,13 @@
 from pathlib import Path
 import unittest
 
-from tnview.animate import animation_frame_indices, checkpoint_count, render_animation_frame
+from tnview.animate import (
+    animation_frame_indices,
+    animation_frame_indices_for_times,
+    checkpoint_count,
+    checkpoint_times,
+    render_animation_frame,
+)
 from tnview.events import parse_jsonl
 
 
@@ -11,6 +17,13 @@ class AnimateTests(unittest.TestCase):
         self.assertEqual(animation_frame_indices(5, 3), [0, 2, 4])
         self.assertEqual(animation_frame_indices(5, 1), [0])
         self.assertEqual(animation_frame_indices(0, 3), [])
+
+    def test_animation_frame_indices_can_filter_by_checkpoint_time(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
+
+        self.assertEqual(checkpoint_times(events), [0.0, 0.2, 0.8])
+        self.assertEqual(animation_frame_indices_for_times(events, time_min=0.1, time_max=0.8), [1, 2])
+        self.assertEqual(animation_frame_indices_for_times(events, frames=1, time_min=0.1), [1])
 
     def test_render_animation_frame_uses_time_window(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())

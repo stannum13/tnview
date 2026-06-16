@@ -26,6 +26,10 @@ def checkpoint_count(events: list[TelemetryEvent]) -> int:
     return sum(1 for event in events if isinstance(event, Checkpoint))
 
 
+def checkpoint_times(events: list[TelemetryEvent]) -> list[float]:
+    return [event.time for event in events if isinstance(event, Checkpoint)]
+
+
 def animation_frame_indices(checkpoints: int, frames: int | None = None) -> list[int]:
     """Return checkpoint indices to render for a scripted animation."""
 
@@ -44,6 +48,25 @@ def animation_frame_indices(checkpoints: int, frames: int | None = None) -> list
         if not deduped or deduped[-1] != index:
             deduped.append(index)
     return deduped
+
+
+def animation_frame_indices_for_times(
+    events: list[TelemetryEvent],
+    *,
+    frames: int | None = None,
+    time_min: float | None = None,
+    time_max: float | None = None,
+) -> list[int]:
+    """Return checkpoint indices filtered by optional checkpoint time bounds."""
+
+    candidates = [
+        index
+        for index, time in enumerate(checkpoint_times(events))
+        if _inside_time_window(time, time_min=time_min, time_max=time_max)
+    ]
+    if frames is None or frames >= len(candidates):
+        return candidates
+    return [candidates[index] for index in animation_frame_indices(len(candidates), frames)]
 
 
 def render_animation_frame(
@@ -217,3 +240,11 @@ def _fit(text: str, width: int) -> str:
     if width <= 1:
         return text[:width]
     return text[: width - 1] + "~"
+
+
+def _inside_time_window(time: float, *, time_min: float | None, time_max: float | None) -> bool:
+    if time_min is not None and time < time_min:
+        return False
+    if time_max is not None and time > time_max:
+        return False
+    return True
