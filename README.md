@@ -132,6 +132,7 @@ tnview demo
 tnview demo --interactive
 tnview sketch --wizard
 tnview sketch "mps sites=48 chi=128 profile=hard"
+tnview sketch "mps sites=48 chi=128 profile=front" --json
 tnview sketch "mps sites=48 chi=128 profile=hard" --output sketch.jsonl
 ```
 
@@ -195,6 +196,7 @@ tnview animate examples/tebd_run.jsonl --start-time 0.1 --end-time 0.8 --signal 
 tnview sketch --list
 tnview sketch --wizard
 tnview sketch "mps sites=48 chi=128 profile=hard"
+tnview sketch "mps sites=48 chi=128 profile=spike" --json
 tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
 tnview doctor
 tnview doctor --json
@@ -246,10 +248,13 @@ Use this first to see the terminal view without preparing data.
 
 `sketch` is the deterministic prompt-like builder for synthetic visual
 telemetry. It currently supports MPS sketches such as
-`tnview sketch "mps sites=48 chi=128 profile=hard"`. Add `--interactive` to pan
-around the generated replay or `--output sketch.jsonl` to save the JSONL. Use
-`tnview sketch --wizard` for a question-driven parameter flow that prints the
-equivalent prompt before rendering or saving.
+`tnview sketch "mps sites=48 chi=128 profile=hard"`. Profiles include `easy`,
+`hard`, `front`, and `spike`; the last two are useful oscilloscope demos for
+moving entanglement fronts and localized truncation bursts. Add `--interactive`
+to pan around the generated replay, `--output sketch.jsonl` to save the JSONL,
+or `--json` for machine-readable sketch metadata. Use `tnview sketch --wizard`
+for a question-driven parameter flow that prints the equivalent prompt before
+rendering or saving.
 
 `replay` renders JSONL telemetry from disk. Add `--interactive` for keyboard
 navigation, or use `--focus bottleneck --window N` to frame the interesting
