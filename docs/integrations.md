@@ -88,7 +88,9 @@ tnview compare runs/*.jsonl --metric loss
 
 The TeNPy adapter reads `engine.sweep_stats` and emits one `sweep_end` event per
 new sweep row. Repeated calls suppress rows already emitted by the same
-observer.
+observer. It accepts common aliases such as `energy`, `delta_energy`, and
+`max_entropy`, and infers `chi_max_configured` from nested truncation options
+when available.
 
 ```python
 from tnview import RunLogger
