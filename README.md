@@ -366,10 +366,11 @@ For quimb `TNOptimizer`, use the callback helper:
 
 ```python
 from tnview import RunLogger
-from tnview.adapters.quimb import tnoptimizer_callback
+from tnview.adapters.quimb import TNOptimizerObserver
 
 with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
-    optimizer = qtn.TNOptimizer(tn, loss_fn, callback=tnoptimizer_callback(log))
+    callback = TNOptimizerObserver(log)
+    optimizer = qtn.TNOptimizer(tn, loss_fn, callback=callback)
     optimizer.optimize(100)
 ```
 
@@ -492,10 +493,10 @@ For quimb `TNOptimizer`, pass a TNView callback into the optimizer:
 
 ```python
 from tnview import RunLogger
-from tnview.adapters.quimb import tnoptimizer_callback
+from tnview.adapters.quimb import TNOptimizerObserver
 
 with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
-    callback = tnoptimizer_callback(log)
+    callback = TNOptimizerObserver(log)
     # qtn.TNOptimizer(..., callback=callback)
 ```
 

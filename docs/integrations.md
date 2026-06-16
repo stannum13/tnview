@@ -58,19 +58,21 @@ tnview compare runs/*.jsonl --metric chi
 
 ## quimb TNOptimizer
 
-`tnoptimizer_callback(log)` returns a callback compatible with quimb's
-`TNOptimizer(callback=...)` shape. It emits `optimizer_step` events using
-attributes such as `nevals`, `loss`, `loss_best`, and `losses` when present.
+`TNOptimizerObserver(log)` is a callable object compatible with quimb's
+`TNOptimizer(callback=...)` shape. It emits one `optimizer_step` event per new
+evaluation using attributes such as `nevals`, `loss`, `loss_best`, `losses`, and
+`grad_norm` when present. The older `tnoptimizer_callback(log)` helper returns
+the same observer.
 
 ```python
 import quimb.tensor as qtn
 
 from tnview import RunLogger
-from tnview.adapters.quimb import tnoptimizer_callback
+from tnview.adapters.quimb import TNOptimizerObserver
 
 with RunLogger("runs/quimb_opt.jsonl", run_id="quimb-opt") as log:
     log.start(library="quimb", algorithm="tnoptimizer")
-    opt = qtn.TNOptimizer(tn, loss_fn, callback=tnoptimizer_callback(log))
+    opt = qtn.TNOptimizer(tn, loss_fn, callback=TNOptimizerObserver(log))
     opt.optimize(100)
     log.end(status="complete")
 ```
