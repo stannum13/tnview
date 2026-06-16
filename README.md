@@ -232,6 +232,7 @@ tnview replay examples/tebd_run.jsonl --interactive
 tnview scope examples/tebd_run.jsonl --signal selected --bond 1 --ascii
 tnview animate examples/tebd_run.jsonl --frames 8 --window 0.4
 tnview animate examples/tebd_run.jsonl --center-time 0.8 --window 0.2 --signal trunc --no-clear
+tnview animate examples/tebd_run.jsonl --frames 3 --reverse --bounce --fps 8
 
 tnview preview examples/ladder_snake_mismatch.jsonl
 tnview inspect examples/ladder_snake_mismatch.jsonl
@@ -279,7 +280,8 @@ to `[T - window, T + window]`. Compact signal strips track entropy, max chi,
 truncation, and front span so evolving bottlenecks are easier to see. Use
 `--frames N --no-clear` when you want a transcript-friendly render. Add
 `--signal trunc`, `--signal selected --bond N`, `--start-time/--end-time`, or
-`--center-time T --window R` to keep the animation focused.
+`--center-time T --window R` to keep the animation focused. Use `--reverse`,
+`--bounce`, and `--fps` to control playback.
 
 `replay-runlog` steps through run-log events after a run has completed or
 crashed. Use `--index N` for a static point-in-time view or `--interactive` for

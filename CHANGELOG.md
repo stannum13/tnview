@@ -5,6 +5,7 @@
 - Added oscilloscope-style replay signals, marker ticks, `tnview scope`, and
   richer animation controls for time windows, selected bonds, and signal
   filtering.
+- Added `tnview animate --reverse`, `--bounce`, and `--fps` playback controls.
 - Added interactive replay command mode, jump-to-time support, and a toggleable
   scope panel.
 - Added `RunLogger` DMRG/TEBD convenience helpers.
