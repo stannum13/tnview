@@ -8,6 +8,7 @@ TNVIEW="${TNVIEW:-tnview}"
 "$TNVIEW" tour --json >/dev/null
 "$TNVIEW" recipes --json >/dev/null
 "$TNVIEW" examples --json >/dev/null
+"$TNVIEW" focus --list --json >/dev/null
 "$TNVIEW" doctor --json >/dev/null
 "$TNVIEW" schema --json >/dev/null
 "$TNVIEW" validate examples/tebd_run.jsonl >/dev/null

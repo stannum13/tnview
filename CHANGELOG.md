@@ -19,6 +19,7 @@
 - Added dynamic `front` and `spike` sketch profiles plus `tnview sketch --json`.
 - Added `tnview recipes` with human and JSON workflow examples.
 - Added `tnview examples --json` for machine-readable example discovery.
+- Added `tnview focus --list --json` for machine-readable focus strategy discovery.
 
 ## 1.1.0 - 2026-06-15
 

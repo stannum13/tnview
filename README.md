@@ -236,6 +236,7 @@ tnview animate examples/tebd_run.jsonl --center-time 0.8 --window 0.2 --signal t
 tnview preview examples/ladder_snake_mismatch.jsonl
 tnview inspect examples/ladder_snake_mismatch.jsonl
 tnview focus --list
+tnview focus --list --json
 tnview focus examples/ladder_snake_mismatch.jsonl --strategy entropy --window 12
 tnview replay examples/ladder_snake_mismatch.jsonl --focus bottleneck --window 12
 
