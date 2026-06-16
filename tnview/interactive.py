@@ -289,6 +289,8 @@ class ReplayController:
             self.previous_checkpoint()
         elif verb in {"checkpoint", "goto", "g"} and argument is not None and argument.isdigit():
             self.jump_checkpoint(int(argument))
+        elif verb in {"time", "t"} and argument is not None:
+            self._jump_time_argument(argument)
         elif verb in {"bond", "b"} and argument is not None and argument.isdigit():
             self.jump_bond(int(argument))
         elif verb == "focus" and argument in {"bottleneck", "entropy", "compute"}:
@@ -308,6 +310,20 @@ class ReplayController:
         elif section in {"diagnostics", "d"}:
             self.show_diagnostics = not self.show_diagnostics
         self._reset_scroll()
+
+    def jump_time(self, time: float) -> None:
+        checkpoint_times = [event.time for event in self.events if isinstance(event, Checkpoint)]
+        if not checkpoint_times:
+            return
+        nearest = min(range(len(checkpoint_times)), key=lambda index: abs(checkpoint_times[index] - time))
+        self.jump_checkpoint(nearest)
+
+    def _jump_time_argument(self, value: str) -> None:
+        try:
+            time = float(value)
+        except ValueError:
+            return
+        self.jump_time(time)
 
     def _reset_scroll(self) -> None:
         self.scroll_offset = 0
@@ -410,7 +426,7 @@ def _help_text() -> str:
             "  k, up           previous bond",
             "  g               jump to checkpoint index",
             "  b               jump to bond index",
-            "  :               type command, e.g. ':checkpoint 1' or ':focus entropy'",
+            "  :               type command, e.g. ':time 0.8' or ':focus entropy'",
             "  pgup/pgdn       scroll up/down",
             "  shift-left/right scroll left/right when supported",
             "  </>             scroll left/right",

@@ -71,6 +71,8 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertEqual(controller.checkpoint_index, 1)
         controller.execute_command("next")
         self.assertEqual(controller.checkpoint_index, 2)
+        controller.execute_command("time 0.2")
+        self.assertEqual(controller.checkpoint_index, 1)
         controller.execute_command("bond 2")
         self.assertEqual(controller.selected_bond, 2)
         controller.execute_command("toggle entropy")
