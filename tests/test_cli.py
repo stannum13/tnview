@@ -729,6 +729,27 @@ class CliTests(unittest.TestCase):
             self.assertIn("tnview replay", result.stdout)
             self.assertIn('"event":"checkpoint"', output.read_text(encoding="utf-8"))
 
+    def test_sketch_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "sketch",
+                "mps sites=10 chi=32 profile=front checkpoints=3",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "sketch")
+        self.assertEqual(payload["profile"], "front")
+        self.assertEqual(payload["sites"], 10)
+        self.assertIn('"event":"checkpoint"', payload["jsonl"])
+
     def test_sketch_wizard_renders_with_piped_answers(self) -> None:
         result = subprocess.run(
             [

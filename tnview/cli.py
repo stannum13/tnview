@@ -277,6 +277,7 @@ def _parser() -> argparse.ArgumentParser:
     sketch.add_argument("--wizard", action="store_true", help="ask questions to build a sketch prompt")
     sketch.add_argument("--output", "-o", help="write generated replay JSONL to a file")
     sketch.add_argument("--interactive", action="store_true", help="open the generated sketch in the interactive shell")
+    sketch.add_argument("--json", action="store_true", help="write stable machine-readable sketch metadata JSON")
     sketch.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
     sketch.add_argument("--width", type=int, help="render width in columns")
 
@@ -722,6 +723,21 @@ def _sketch(args: argparse.Namespace) -> int:
 
 
 def _render_sketch(spec: SketchSpec, replay: str, args: argparse.Namespace) -> int:
+    if args.json:
+        write_json(
+            {
+                "kind": "sketch",
+                "topology": spec.topology,
+                "sites": spec.sites,
+                "checkpoints": spec.checkpoints,
+                "chi_max": spec.chi_max,
+                "profile": spec.profile,
+                "window": spec.window,
+                "run_id": spec.run_id,
+                "jsonl": replay,
+            }
+        )
+        return 0
     if args.output:
         _write_output(replay.rstrip("\n"), args.output)
         write_text(f"Wrote {args.output}\nTry:\n  tnview replay {args.output} --interactive")
