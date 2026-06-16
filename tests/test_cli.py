@@ -1708,6 +1708,26 @@ class CliTests(unittest.TestCase):
         self.assertIn("easy_chain.jsonl", result.stdout)
         self.assertIn("tnview compare", result.stdout)
 
+    def test_examples_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "examples",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "examples")
+        names = {example["name"] for example in payload["examples"]}
+        self.assertIn("easy_chain.jsonl", names)
+        self.assertIn("quimb_tnoptimizer_run.jsonl", names)
+
     def test_schema_command_renders_human_summary(self) -> None:
         result = subprocess.run(
             [

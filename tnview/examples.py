@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 from tnview.compare import summarize_run, summarize_run_log
 from tnview.events import parse_jsonl
@@ -88,3 +90,18 @@ def render_examples(examples: list[ExampleReplay]) -> str:
         if run_log_paths:
             lines.append(f"compare run logs: tnview compare {run_log_paths} --sort risk")
     return "\n".join(lines)
+
+
+def examples_payload(examples: list[ExampleReplay]) -> dict[str, Any]:
+    """Return stable machine-readable example metadata."""
+
+    return {
+        "kind": "examples",
+        "examples": [
+            {
+                **asdict(example),
+                "path": str(example.path),
+            }
+            for example in examples
+        ],
+    }

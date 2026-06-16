@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tnview.examples import list_examples, render_examples
+from tnview.examples import examples_payload, list_examples, render_examples
 
 
 class ExamplesTests(unittest.TestCase):
@@ -27,6 +27,14 @@ class ExamplesTests(unittest.TestCase):
         self.assertIn("Built-in examples", output)
         self.assertIn("compare replay: tnview compare", output)
         self.assertIn("compare run logs: tnview compare", output)
+
+    def test_examples_payload_is_stable(self) -> None:
+        payload = examples_payload(list_examples(Path("examples")))
+
+        self.assertEqual(payload["kind"], "examples")
+        names = {example["name"] for example in payload["examples"]}
+        self.assertIn("tebd_run.jsonl", names)
+        self.assertIn("dmrg_bad_run.jsonl", names)
 
 
 if __name__ == "__main__":

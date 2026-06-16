@@ -31,7 +31,7 @@ from tnview.cli_output import CliError, error_payload, render_error, result_payl
 from tnview.diagnose import DIAGNOSTIC_PROFILES, DiagnosticThresholds, diagnostic_thresholds_for_profile
 from tnview.doctor import doctor_payload, render_doctor, run_doctor
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
-from tnview.examples import list_examples, render_examples
+from tnview.examples import examples_payload, list_examples, render_examples
 from tnview.export import export_manifest_json, export_records_csv, export_replay_csv, export_replay_jsonl
 from tnview.fixtures import FIXTURE_PROFILES, generate_chain_fixture
 from tnview.focus import choose_focus, choose_focus_for_bond
@@ -380,6 +380,7 @@ def _parser() -> argparse.ArgumentParser:
 
     examples = subparsers.add_parser("examples", help="list built-in replay examples")
     examples.add_argument("--root", default="examples", help="examples directory")
+    examples.add_argument("--json", action="store_true", help="write stable machine-readable examples JSON")
 
     fixture = subparsers.add_parser("fixture", help="generate synthetic JSONL replay fixtures")
     fixture.add_argument("kind", choices=["chain"], help="fixture kind")
@@ -994,7 +995,11 @@ def _export(args: argparse.Namespace) -> int:
 
 
 def _examples(args: argparse.Namespace) -> int:
-    print(render_examples(list_examples(Path(args.root))))
+    examples = list_examples(Path(args.root))
+    if args.json:
+        write_json(examples_payload(examples))
+    else:
+        print(render_examples(examples))
     return 0
 
 
