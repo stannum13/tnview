@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 - 2026-06-16
 
 - Added oscilloscope-style replay signals, marker ticks, `tnview scope`, and
   richer animation controls for time windows, selected bonds, and signal

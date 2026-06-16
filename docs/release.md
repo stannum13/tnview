@@ -47,6 +47,6 @@ Use this checklist before tagging a public release.
 7. Tag after verification:
 
    ```bash
-   git tag v1.1.0
-   git push origin v1.1.0
+   git tag v1.2.0
+   git push origin v1.2.0
    ```

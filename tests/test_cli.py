@@ -15,7 +15,7 @@ class CliTests(unittest.TestCase):
             text=True,
         )
 
-        self.assertEqual(result.stdout.strip(), "tnview 1.1.0")
+        self.assertEqual(result.stdout.strip(), "tnview 1.2.0")
 
     def test_help_includes_runnable_examples(self) -> None:
         result = subprocess.run(
@@ -1949,7 +1949,7 @@ class CliTests(unittest.TestCase):
 
         payload = json.loads(result.stdout)
         self.assertTrue(payload["ok"])
-        self.assertEqual(payload["version"], "1.1.0")
+        self.assertEqual(payload["version"], "1.2.0")
         self.assertGreater(payload["examples"]["files"], 0)
         self.assertIn("quimb", {item["name"] for item in payload["integrations"]})
         self.assertIn("make smoke", payload["checks"])
