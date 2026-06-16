@@ -13,6 +13,8 @@ class ExamplesTests(unittest.TestCase):
         self.assertIn("long_range_chi_limited.jsonl", names)
         self.assertIn("ladder_snake_mismatch.jsonl", names)
         self.assertIn("blocked_ladder.jsonl", names)
+        self.assertIn("moving_front.jsonl", names)
+        self.assertIn("truncation_spike.jsonl", names)
         self.assertIn("dmrg_bad_run.jsonl", names)
         self.assertIn("quimb_tnoptimizer_run.jsonl", names)
         kinds = {example.name: example.kind for example in examples}
