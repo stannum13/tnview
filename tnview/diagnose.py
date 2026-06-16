@@ -7,6 +7,8 @@ from math import isfinite
 from statistics import median
 from typing import Any
 
+from tnview.terminal import render_severity
+
 
 @dataclass(frozen=True)
 class Diagnostic:
@@ -85,7 +87,7 @@ def diagnose_events(
     return diagnostics
 
 
-def render_diagnostics(diagnostics: list[Diagnostic]) -> str:
+def render_diagnostics(diagnostics: list[Diagnostic], *, unicode: bool = True, color: bool = False) -> str:
     lines = ["TNView diagnostics"]
     if not diagnostics:
         lines.append("no warnings")
@@ -94,10 +96,8 @@ def render_diagnostics(diagnostics: list[Diagnostic]) -> str:
     for diagnostic in diagnostics:
         evidence = _evidence_text(diagnostic.evidence)
         suffix = f" ({evidence})" if evidence else ""
-        lines.append(
-            f"{diagnostic.severity.upper()} {diagnostic.code} [{diagnostic.category}]: "
-            f"{diagnostic.message}{suffix}"
-        )
+        severity = render_severity(diagnostic.severity, unicode=unicode, color=color).upper()
+        lines.append(f"{severity} {diagnostic.code} [{diagnostic.category}]: {diagnostic.message}{suffix}")
         if diagnostic.suggestions:
             lines.append("  Try:")
             lines.extend(f"    - {suggestion}" for suggestion in diagnostic.suggestions)

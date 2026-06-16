@@ -114,8 +114,15 @@ class DiagnoseTests(unittest.TestCase):
         output = render_diagnostics(diagnostics)
 
         self.assertIn("[convergence]", output)
+        self.assertIn("WARN energy_plateau", output)
         self.assertIn("Try:", output)
         self.assertIn("compare against a larger chi_max run", output)
+
+    def test_render_diagnostics_has_ascii_severity_symbols(self) -> None:
+        diagnostics = diagnose_events([{"event": "sweep_end", "delta_energy": 1e-9} for _ in range(4)])
+        output = render_diagnostics(diagnostics, unicode=False)
+
+        self.assertIn("! WARN energy_plateau", output)
 
 
 def _has(diagnostics: list[object], code: str) -> bool:
