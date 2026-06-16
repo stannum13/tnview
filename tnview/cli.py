@@ -330,6 +330,13 @@ def _parser() -> argparse.ArgumentParser:
         default="default",
         help="named diagnostic threshold profile",
     )
+    diagnose.add_argument(
+        "--suppress",
+        action="append",
+        default=[],
+        metavar="CODE",
+        help="suppress a diagnostic code; may be passed more than once",
+    )
     diagnose.add_argument("--energy-eps", type=float, default=None, help="delta-energy plateau threshold")
     diagnose.add_argument("--truncation-floor", type=float, default=None, help="truncation floor threshold")
     diagnose.add_argument("--runtime-factor", type=float, default=None, help="runtime regression factor")
@@ -865,6 +872,7 @@ def _diagnose(args: argparse.Namespace) -> int:
         path=args.path,
         thresholds=_diagnostic_thresholds(args),
         profile=args.profile,
+        suppress_codes=tuple(args.suppress),
     )
     if args.json:
         write_json(result_payload(result))

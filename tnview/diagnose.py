@@ -13,6 +13,7 @@ class Diagnostic:
     code: str
     severity: str
     message: str
+    category: str = "general"
     evidence: dict[str, Any] = field(default_factory=dict)
     suggestions: tuple[str, ...] = ()
 
@@ -65,6 +66,7 @@ def diagnose_events(
     events: list[dict[str, Any]],
     *,
     thresholds: DiagnosticThresholds | None = None,
+    suppress_codes: set[str] | frozenset[str] | tuple[str, ...] = (),
 ) -> list[Diagnostic]:
     limits = thresholds or DiagnosticThresholds()
     diagnostics: list[Diagnostic] = []
@@ -77,6 +79,9 @@ def diagnose_events(
     diagnostics.extend(_nonfinite_metrics(events))
     diagnostics.extend(_canonical_form_drift(events, limits))
     diagnostics.extend(_entropy_growth(events, limits))
+    suppressed = set(suppress_codes)
+    if suppressed:
+        diagnostics = [diagnostic for diagnostic in diagnostics if diagnostic.code not in suppressed]
     return diagnostics
 
 
@@ -89,7 +94,10 @@ def render_diagnostics(diagnostics: list[Diagnostic]) -> str:
     for diagnostic in diagnostics:
         evidence = _evidence_text(diagnostic.evidence)
         suffix = f" ({evidence})" if evidence else ""
-        lines.append(f"{diagnostic.severity.upper()} {diagnostic.code}: {diagnostic.message}{suffix}")
+        lines.append(
+            f"{diagnostic.severity.upper()} {diagnostic.code} [{diagnostic.category}]: "
+            f"{diagnostic.message}{suffix}"
+        )
         if diagnostic.suggestions:
             lines.append("  Try:")
             lines.extend(f"    - {suggestion}" for suggestion in diagnostic.suggestions)
@@ -104,6 +112,7 @@ def _energy_plateau(events: list[dict[str, Any]], thresholds: DiagnosticThreshol
             Diagnostic(
                 code="energy_plateau",
                 severity="warn",
+                category="convergence",
                 message="Energy appears plateaued; check truncation error and chi saturation.",
                 evidence={"recent_delta_energy": recent},
                 suggestions=(
@@ -130,6 +139,7 @@ def _chi_saturation(events: list[dict[str, Any]]) -> list[Diagnostic]:
             Diagnostic(
                 code="chi_saturation",
                 severity="warn",
+                category="capacity",
                 message="Bond dimension has saturated for 3 consecutive progress events.",
                 evidence={"max_chi": latest.get("max_chi"), "chi_max_configured": latest.get("chi_max_configured")},
                 suggestions=(
@@ -153,6 +163,7 @@ def _truncation_floor(events: list[dict[str, Any]], thresholds: DiagnosticThresh
                 Diagnostic(
                     code="truncation_floor",
                     severity="warn",
+                    category="accuracy",
                     message="Truncation error remains high while energy improvement is small.",
                     evidence={"max_trunc_err": trunc, "delta_energy": delta},
                     suggestions=(
@@ -178,6 +189,7 @@ def _runtime_regression(events: list[dict[str, Any]], thresholds: DiagnosticThre
             Diagnostic(
                 code="runtime_regression",
                 severity="warn",
+                category="performance",
                 message="Runtime increased sharply compared with recent progress events.",
                 evidence={"latest_runtime": latest, "recent_median": baseline},
                 suggestions=(
@@ -198,6 +210,7 @@ def _memory_growth(events: list[dict[str, Any]], thresholds: DiagnosticThreshold
             Diagnostic(
                 code="memory_growth",
                 severity="warn",
+                category="resource",
                 message="RSS memory is growing steadily across recent progress events.",
                 evidence={"rss_mb_start": recent[0], "rss_mb_latest": recent[-1]},
                 suggestions=(
@@ -218,6 +231,7 @@ def _optimizer_stagnation(events: list[dict[str, Any]], thresholds: DiagnosticTh
             Diagnostic(
                 code="optimizer_stagnation",
                 severity="warn",
+                category="optimization",
                 message="Optimizer loss has stagnated over the last 10 steps.",
                 evidence={"loss_start": recent[0], "loss_latest": recent[-1]},
                 suggestions=(
@@ -251,6 +265,7 @@ def _nonfinite_metrics(events: list[dict[str, Any]]) -> list[Diagnostic]:
                     Diagnostic(
                         code="nonfinite_metric",
                         severity="error",
+                        category="numerical",
                         message="A run metric became NaN or infinite.",
                         evidence={"event": event.get("event"), "field": key, "value": value},
                         suggestions=(
@@ -275,6 +290,7 @@ def _canonical_form_drift(events: list[dict[str, Any]], thresholds: DiagnosticTh
                 Diagnostic(
                     code="canonical_form_drift",
                     severity="warn",
+                    category="numerical",
                     message="Canonical-form or norm error is above the expected tolerance.",
                     evidence={"canonical_error": error},
                     suggestions=(
@@ -296,6 +312,7 @@ def _entropy_growth(events: list[dict[str, Any]], thresholds: DiagnosticThreshol
             Diagnostic(
                 code="entropy_growth",
                 severity="warn",
+                category="dynamics",
                 message="Entanglement entropy is growing steadily across recent progress events.",
                 evidence={"entropy_start": recent[0], "entropy_latest": recent[-1]},
                 suggestions=(

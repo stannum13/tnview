@@ -1179,6 +1179,7 @@ class CliTests(unittest.TestCase):
         self.assertFalse(payload["ok"])
         self.assertGreater(payload["warning_count"], 0)
         self.assertEqual(payload["error_count"], 0)
+        self.assertIn("category", payload["diagnostics"][0])
         self.assertIn("suggestions", payload["diagnostics"][0])
         self.assertGreater(len(payload["diagnostics"][0]["suggestions"]), 0)
 
@@ -1228,6 +1229,28 @@ class CliTests(unittest.TestCase):
         codes = {diagnostic["code"] for diagnostic in payload["diagnostics"]}
         self.assertEqual(payload["profile"], "loose")
         self.assertNotIn("energy_plateau", codes)
+
+    def test_diagnose_command_can_suppress_codes(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "diagnose",
+                "examples/dmrg_bad_run.jsonl",
+                "--json",
+                "--suppress",
+                "chi_saturation",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        codes = {diagnostic["code"] for diagnostic in payload["diagnostics"]}
+        self.assertNotIn("chi_saturation", codes)
+        self.assertIn("energy_plateau", codes)
 
     def test_diagnose_command_renders_structured_parse_error(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

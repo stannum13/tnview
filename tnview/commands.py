@@ -15,6 +15,7 @@ def diagnose_run_log(
     path: str,
     thresholds: DiagnosticThresholds | None = None,
     profile: str = "default",
+    suppress_codes: tuple[str, ...] = (),
 ) -> CommandResult:
     report = read_jsonl_records(lines)
     if report.errors:
@@ -31,7 +32,7 @@ def diagnose_run_log(
         )
 
     records = list(report.records)
-    diagnostics = diagnose_events(records, thresholds=thresholds)
+    diagnostics = diagnose_events(records, thresholds=thresholds, suppress_codes=suppress_codes)
     return CommandResult(
         ok=not diagnostics,
         text=render_diagnostics(diagnostics),
@@ -41,6 +42,7 @@ def diagnose_run_log(
                 {
                     "code": diagnostic.code,
                     "severity": diagnostic.severity,
+                    "category": diagnostic.category,
                     "message": diagnostic.message,
                     "evidence": diagnostic.evidence,
                     "suggestions": list(diagnostic.suggestions),
