@@ -32,15 +32,7 @@ jobs:
         run: python -m compileall tnview tests
 
       - name: Run CLI smoke
-        run: |
-          tnview --help
-          tnview --version
-          tnview doctor --json
-          tnview schema --json
-          tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 100
-          tnview tail examples/quimb_tnoptimizer_run.jsonl --json
-          tnview diagnose examples/dmrg_bad_run.jsonl --json
-          tnview tail examples/quimb_tnoptimizer_run.jsonl --width 100
+        run: make smoke
 
   optional-integrations:
     name: Optional integrations
