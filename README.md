@@ -70,6 +70,8 @@ tnview tail examples/quimb_tnoptimizer_run.jsonl
 tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii
 tnview scope examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --bond 1 --ascii
 tnview animate examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --signal trunc --no-clear --ascii
+tnview scope examples/moving_front.jsonl --signal front --ascii
+tnview animate examples/truncation_spike.jsonl --signal trunc --frames 5 --ascii
 tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 ```
@@ -184,6 +186,8 @@ tnview demo
 tnview demo --interactive
 tnview scope examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --bond 1 --ascii
 tnview scope examples/tebd_run.jsonl --bond 1 --json
+tnview scope examples/moving_front.jsonl --signal front --ascii
+tnview scope examples/truncation_spike.jsonl --signal trunc --ascii
 tnview animate examples/tebd_run.jsonl --frames 3 --window 0.3 --no-clear --ascii
 tnview animate examples/tebd_run.jsonl --start-time 0.1 --end-time 0.8 --signal selected --ascii
 tnview sketch --list
