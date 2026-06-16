@@ -40,7 +40,9 @@ from tnview.runreplay import render_run_log_replay, run_interactive_run_log
 from tnview.runlog import RUN_LOG_EVENTS, read_jsonl_records
 from tnview.schema import render_schema, schema_payload
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
+from tnview.scope import render_scope
 from tnview.snapshot import snapshot_json
+from tnview.signals import signal_points_from_events
 from tnview.sketch import SketchSpec, generate_sketch_replay, parse_sketch_prompt, render_sketch_list
 from tnview.sketch_wizard import run_sketch_wizard
 from tnview.state import RunState
@@ -62,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
             return _replay_runlog(args)
         if args.command == "animate":
             return _animate(args)
+        if args.command == "scope":
+            return _scope(args)
         if args.command == "live":
             return _live(args)
         if args.command == "tail":
@@ -190,6 +194,23 @@ def _parser() -> argparse.ArgumentParser:
         default="bottleneck",
         help="select an interesting bond for each frame",
     )
+
+    scope = subparsers.add_parser("scope", help="render a static oscilloscope view of replay signals")
+    scope.add_argument("path", help="JSONL replay file")
+    scope.add_argument("--center-time", type=float, help="center the time window around T")
+    scope.add_argument("--window", type=float, help="time radius when --center-time is used")
+    scope.add_argument("--start-time", type=float, help="start time for the signal window")
+    scope.add_argument("--end-time", type=float, help="end time for the signal window")
+    scope.add_argument("--bond", type=int, help="selected bond for selected-bond signal rows")
+    scope.add_argument(
+        "--signal",
+        action="append",
+        choices=["all", "entropy", "chi", "trunc", "front", "selected"],
+        help="signal row to show; repeat for multiple rows",
+    )
+    scope.add_argument("--ascii", action="store_true", help="use ASCII sparklines")
+    scope.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
+    scope.add_argument("--width", type=int, default=100, help="render width in columns")
 
     live = subparsers.add_parser("live", help="stream JSONL telemetry and refresh on checkpoints")
     live.add_argument("path", nargs="?", default="-", help="JSONL source, default stdin")
@@ -429,6 +450,22 @@ def _animate(args: argparse.Namespace) -> int:
         print(flush=True)
         if position < total and args.interval:
             sleep(args.interval)
+    return 0
+
+
+def _scope(args: argparse.Namespace) -> int:
+    time_min, time_max = _scope_time_window(args)
+    events = _read_events(_iter_lines(args.path))
+    points = signal_points_from_events(events, selected_bond=args.bond, time_min=time_min, time_max=time_max)
+    print(
+        render_scope(
+            points,
+            signals=_scope_signals(args.signal),
+            width=args.width,
+            unicode=not args.ascii,
+            color=_color_enabled(args),
+        )
+    )
     return 0
 
 
@@ -971,6 +1008,48 @@ def _run_log_index(index: str, count: int) -> int | None:
             exit_code=2,
         )
     return target
+
+
+def _scope_time_window(args: argparse.Namespace) -> tuple[float | None, float | None]:
+    if args.window is not None and args.window < 0:
+        raise CliError(
+            code="SCOPE_WINDOW_INVALID",
+            message="Scope window must be non-negative",
+            reason=f"Received --window {args.window}.",
+            suggestions=("Use --window 0.5 or omit the flag for the full replay.",),
+            exit_code=2,
+        )
+    if args.center_time is not None:
+        if args.window is None:
+            raise CliError(
+                code="SCOPE_CENTER_REQUIRES_WINDOW",
+                message="Scope center time requires a window",
+                reason="--center-time needs --window so TNView knows how much time to show around T.",
+                suggestions=("Use --center-time 0.8 --window 0.3",),
+                exit_code=2,
+            )
+        return args.center_time - args.window, args.center_time + args.window
+    if args.start_time is not None and args.end_time is not None and args.start_time > args.end_time:
+        raise CliError(
+            code="SCOPE_TIME_RANGE_INVALID",
+            message="Scope time range is invalid",
+            reason=f"Received --start-time {args.start_time} after --end-time {args.end_time}.",
+            suggestions=("Use --start-time before --end-time.",),
+            exit_code=2,
+        )
+    return args.start_time, args.end_time
+
+
+def _scope_signals(values: list[str] | None) -> tuple[str, ...]:
+    if not values or "all" in values:
+        return ("entropy", "chi", "trunc", "front")
+    selected: list[str] = []
+    for value in values:
+        if value == "selected":
+            selected.extend(["selected_entropy", "selected_chi", "selected_trunc"])
+        else:
+            selected.append(value)
+    return tuple(dict.fromkeys(selected))
 
 
 def _select_requested_bond(state: RunState, bond: int | None) -> None:

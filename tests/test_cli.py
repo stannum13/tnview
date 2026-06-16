@@ -168,6 +168,75 @@ class CliTests(unittest.TestCase):
         self.assertIn("Oscilloscope signals", result.stdout)
         self.assertIn("Entanglement heatmap", result.stdout)
 
+    def test_scope_renders_replay_signals(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "scope",
+                "examples/tebd_run.jsonl",
+                "--ascii",
+                "--width",
+                "120",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView scope | points=3", result.stdout)
+        self.assertIn("Signals", result.stdout)
+        self.assertIn("Event markers", result.stdout)
+        self.assertIn("chi_saturation", result.stdout)
+
+    def test_scope_can_filter_time_and_selected_signals(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "scope",
+                "examples/tebd_run.jsonl",
+                "--center-time",
+                "0.2",
+                "--window",
+                "0",
+                "--bond",
+                "1",
+                "--signal",
+                "selected",
+                "--ascii",
+                "--width",
+                "120",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView scope | points=1", result.stdout)
+        self.assertIn("sel chi", result.stdout)
+        self.assertNotIn("max chi  ", result.stdout)
+
+    def test_scope_rejects_invalid_time_window(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "scope",
+                "examples/tebd_run.jsonl",
+                "--center-time",
+                "0.2",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Scope center time requires a window", result.stderr)
+
     def test_replay_runlog_rejects_missing_event(self) -> None:
         result = subprocess.run(
             [
