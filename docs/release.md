@@ -8,6 +8,7 @@ Use this checklist before tagging a public release.
    make check
    make smoke
    make runlog-demo
+   make quimb-demo
    .venv/bin/python -m pip install -e .
    ```
 

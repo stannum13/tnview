@@ -22,6 +22,7 @@
 - Added `tnview examples --json` for machine-readable example discovery.
 - Added `tnview focus --list --json` for machine-readable focus strategy discovery.
 - Added release-check hints to `tnview doctor` human and JSON output.
+- Added `make quimb-demo` for optional quimb integration transcript capture.
 
 ## 1.1.0 - 2026-06-15
 

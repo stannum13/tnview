@@ -77,6 +77,12 @@ tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 ```
 
+If quimb is installed, run the optional integration transcript:
+
+```bash
+make quimb-demo
+```
+
 `watch` is the live dashboard: a compact, lazygit-style terminal cockpit for
 the latest run state, pressure signals, diagnostics, and recent events. `tail`
 keeps the plainer one-shot summary for scripts and logs:

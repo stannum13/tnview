@@ -1,5 +1,6 @@
 import importlib.util
 from pathlib import Path
+import subprocess
 import unittest
 
 
@@ -27,6 +28,19 @@ class ExampleScriptTests(unittest.TestCase):
             self.assertEqual(module.main(), 0)
         else:
             self.assertTrue(callable(module.main))
+
+    def test_quimb_demo_script_skips_without_quimb(self) -> None:
+        result = subprocess.run(
+            ["./scripts/demo_quimb.sh"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        if importlib.util.find_spec("quimb") is None:
+            self.assertIn("quimb is not installed", result.stdout)
+        else:
+            self.assertIn("quimb_mps_snapshot_example.py", result.stdout)
 
     def test_tenpy_dmrg_observer_example_imports_and_skips_without_tenpy(self) -> None:
         path = Path("examples/tenpy_dmrg_observer_example.py")

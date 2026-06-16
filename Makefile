@@ -1,4 +1,4 @@
-.PHONY: setup install test compile check smoke validate replay replay-interactive runlog-demo compare clean
+.PHONY: setup install test compile check smoke validate replay replay-interactive runlog-demo quimb-demo compare clean
 
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
 PIP ?= $(PYTHON) -m pip
@@ -29,6 +29,9 @@ replay-interactive:
 
 runlog-demo:
 	TNVIEW="$(TNVIEW)" ./scripts/demo_runlog.sh
+
+quimb-demo:
+	PYTHON="$(PYTHON)" TNVIEW="$(TNVIEW)" ./scripts/demo_quimb.sh
 
 compare:
 	$(TNVIEW) compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
