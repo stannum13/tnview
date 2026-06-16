@@ -31,6 +31,18 @@ class SignalPoint:
     selected_trunc_error: float | None = None
 
 
+@dataclass(frozen=True)
+class SignalMarker:
+    """A compact event marker derived from replay signal dynamics."""
+
+    index: int
+    step: int
+    time: float
+    code: str
+    severity: str
+    message: str
+
+
 def signal_points(
     state: RunState,
     *,
@@ -111,6 +123,78 @@ def signal_payload(points: list[SignalPoint]) -> dict[str, object]:
     }
 
 
+def detect_signal_markers(
+    points: list[SignalPoint],
+    *,
+    truncation_floor: float = 1e-7,
+    truncation_spike_factor: float = 10.0,
+) -> list[SignalMarker]:
+    """Detect compact oscilloscope markers from a signal timeline."""
+
+    markers: list[SignalMarker] = []
+    for index, point in enumerate(points):
+        markers.append(
+            SignalMarker(
+                index=index,
+                step=point.step,
+                time=point.time,
+                code="checkpoint",
+                severity="info",
+                message=f"checkpoint step {point.step}",
+            )
+        )
+        if point.saturated_bonds and point.saturated_bonds > 0:
+            markers.append(
+                SignalMarker(
+                    index=index,
+                    step=point.step,
+                    time=point.time,
+                    code="chi_saturation",
+                    severity="warning",
+                    message=f"{point.saturated_bonds} saturated bond(s)",
+                )
+            )
+        if _is_truncation_spike(points, index, floor=truncation_floor, factor=truncation_spike_factor):
+            markers.append(
+                SignalMarker(
+                    index=index,
+                    step=point.step,
+                    time=point.time,
+                    code="truncation_spike",
+                    severity="warning",
+                    message=f"truncation spike {_format_float(point.max_trunc_error)}",
+                )
+            )
+        if index > 0 and point.front_span > points[index - 1].front_span:
+            markers.append(
+                SignalMarker(
+                    index=index,
+                    step=point.step,
+                    time=point.time,
+                    code="front_growth",
+                    severity="info",
+                    message=f"front span {points[index - 1].front_span}->{point.front_span}",
+                )
+            )
+        if (
+            point.selected_bond is not None
+            and point.selected_chi is not None
+            and point.max_chi > 0
+            and point.selected_chi >= point.max_chi
+        ):
+            markers.append(
+                SignalMarker(
+                    index=index,
+                    step=point.step,
+                    time=point.time,
+                    code="selected_pressure",
+                    severity="warning",
+                    message=f"selected b{point.selected_bond} at max chi",
+                )
+            )
+    return markers
+
+
 def _state_at_checkpoint(events: list[TelemetryEvent], checkpoint_index: int | None) -> RunState:
     if checkpoint_index is None:
         return reduce_events(events)
@@ -177,3 +261,23 @@ def _inside_time_window(time: float, *, time_min: float | None, time_max: float 
     if time_max is not None and time > time_max:
         return False
     return True
+
+
+def _is_truncation_spike(points: list[SignalPoint], index: int, *, floor: float, factor: float) -> bool:
+    value = points[index].max_trunc_error
+    if value <= 0:
+        return False
+    if value >= floor:
+        return True
+    if index == 0:
+        return False
+    previous = points[index - 1].max_trunc_error
+    if previous <= 0:
+        return False
+    return value >= previous * factor
+
+
+def _format_float(value: float) -> str:
+    if abs(value) >= 1e4 or (0 < abs(value) < 1e-3):
+        return f"{value:.2e}"
+    return f"{value:.4g}"

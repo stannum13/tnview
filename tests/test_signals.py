@@ -2,7 +2,14 @@ from pathlib import Path
 import unittest
 
 from tnview.events import parse_jsonl
-from tnview.signals import signal_payload, signal_points, signal_points_from_events, signal_series
+from tnview.signals import (
+    SignalPoint,
+    detect_signal_markers,
+    signal_payload,
+    signal_points,
+    signal_points_from_events,
+    signal_series,
+)
 from tnview.state import reduce_events
 
 
@@ -64,6 +71,42 @@ class SignalExtractionTests(unittest.TestCase):
         self.assertEqual(latest["saturated_bonds"], 1)
         self.assertEqual(latest["complexity_status"], "chi_limited")
         self.assertEqual(latest["selected_chi"], 256)
+
+    def test_detect_signal_markers_finds_checkpoint_and_pressure(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
+        points = signal_points_from_events(events, selected_bond=1)
+
+        markers = detect_signal_markers(points)
+        codes = [marker.code for marker in markers]
+
+        self.assertEqual(codes.count("checkpoint"), 3)
+        self.assertIn("chi_saturation", codes)
+        self.assertIn("selected_pressure", codes)
+
+    def test_detect_signal_markers_finds_front_growth_and_truncation_spike(self) -> None:
+        points = [
+            _point(step=0, time=0.0, front_span=1, trunc=1e-12),
+            _point(step=1, time=0.1, front_span=3, trunc=2e-7),
+        ]
+
+        markers = detect_signal_markers(points)
+        codes = [marker.code for marker in markers]
+
+        self.assertIn("front_growth", codes)
+        self.assertIn("truncation_spike", codes)
+
+def _point(*, step: int, time: float, front_span: int, trunc: float) -> SignalPoint:
+    return SignalPoint(
+        step=step,
+        time=time,
+        entropy_max=float(front_span),
+        entropy_mean=float(front_span) / 2.0,
+        max_chi=16,
+        max_trunc_error=trunc,
+        total_trunc_error=trunc,
+        front_span=front_span,
+        front_bonds=tuple(range(front_span)),
+    )
 
 
 if __name__ == "__main__":
