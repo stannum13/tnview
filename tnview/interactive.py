@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from tnview.events import Checkpoint, TelemetryEvent
 from tnview.focus import choose_focus
 from tnview.render import RenderOptions, render_run
+from tnview.scope import render_scope
+from tnview.signals import signal_points
 from tnview.state import RunState
 
 
@@ -21,6 +23,7 @@ class ReplayController:
     show_pressure: bool = True
     show_inspector: bool = True
     show_diagnostics: bool = True
+    show_scope: bool = False
     show_help: bool = False
     input_mode: str | None = None
     input_buffer: str = ""
@@ -57,8 +60,9 @@ class ReplayController:
     def render(self, *, width: int, unicode: bool = True) -> str:
         if self.show_help:
             return _help_text()
-        return render_run(
-            self.state(),
+        state = self.state()
+        body = render_run(
+            state,
             RenderOptions(
                 width=width,
                 unicode=unicode,
@@ -71,6 +75,10 @@ class ReplayController:
                 bond_limit=self.bond_limit,
             ),
         )
+        if not self.show_scope:
+            return body
+        scope = render_scope(signal_points(state), width=width, unicode=unicode)
+        return scope + "\n\n" + body
 
     def handle_key(self, key: str) -> bool:
         if self.input_mode is not None:
@@ -125,6 +133,9 @@ class ReplayController:
             self._reset_scroll()
         elif key == "d":
             self.show_diagnostics = not self.show_diagnostics
+            self._reset_scroll()
+        elif key == "s":
+            self.show_scope = not self.show_scope
             self._reset_scroll()
         elif key == "g":
             self.input_mode = "checkpoint"
@@ -309,6 +320,8 @@ class ReplayController:
             self.show_inspector = not self.show_inspector
         elif section in {"diagnostics", "d"}:
             self.show_diagnostics = not self.show_diagnostics
+        elif section in {"scope", "signals", "s"}:
+            self.show_scope = not self.show_scope
         self._reset_scroll()
 
     def jump_time(self, time: float) -> None:
@@ -399,7 +412,8 @@ def _footer(controller: ReplayController) -> str:
         f"E:{_on(controller.show_entropy)} "
         f"C:{_on(controller.show_pressure)} "
         f"I:{_on(controller.show_inspector)} "
-        f"D:{_on(controller.show_diagnostics)}"
+        f"D:{_on(controller.show_diagnostics)} "
+        f"S:{_on(controller.show_scope)}"
     )
     return (
         f"checkpoint {checkpoint}/{max(0, controller.checkpoint_count - 1)}  "
@@ -442,7 +456,8 @@ def _help_text() -> str:
             "  c               chi/truncation rows",
             "  i               selected-bond inspector",
             "  d               diagnostics",
-            "  :toggle NAME    toggle updates, entropy, pressure, inspector, diagnostics",
+            "  s               oscilloscope scope panel",
+            "  :toggle NAME    toggle updates, entropy, pressure, inspector, diagnostics, scope",
             "",
             "other",
             "  ?               toggle this help",

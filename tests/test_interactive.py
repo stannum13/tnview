@@ -36,6 +36,8 @@ class ReplayControllerTests(unittest.TestCase):
 
         self.assertTrue(controller.handle_key("u"))
         self.assertFalse(controller.show_updates)
+        self.assertTrue(controller.handle_key("s"))
+        self.assertTrue(controller.show_scope)
         self.assertFalse(controller.handle_key("q"))
 
     def test_help_toggle_renders_help_text(self) -> None:
@@ -77,6 +79,8 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertEqual(controller.selected_bond, 2)
         controller.execute_command("toggle entropy")
         self.assertFalse(controller.show_entropy)
+        controller.execute_command("toggle scope")
+        self.assertTrue(controller.show_scope)
 
     def test_colon_key_enters_command_mode(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
@@ -192,6 +196,16 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertIn("step 20", output)
         self.assertIn("healthy growth", output)
 
+    def test_render_can_include_scope_panel(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events, show_scope=True)
+
+        output = controller.render(width=120, unicode=False)
+
+        self.assertIn("TNView scope", output)
+        self.assertIn("Event ticks", output)
+        self.assertIn("TNView dynamics viewer", output)
+
     def test_footer_and_help_advertise_scrolling(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
         controller = ReplayController(events)
@@ -208,6 +222,7 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertIn("</>", output)
         self.assertIn("top/bottom", output)
         self.assertIn(":toggle", output)
+        self.assertIn("scope panel", output)
 
     def test_viewport_lines_crop_rows_and_columns(self) -> None:
         lines = ["0123456789", "abcdefghij", "ABCDEFGHIJ"]
