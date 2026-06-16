@@ -66,6 +66,7 @@ class SignalExtractionTests(unittest.TestCase):
         payload = signal_payload(points)
 
         self.assertEqual(len(payload["points"]), 3)
+        self.assertGreaterEqual(len(payload["markers"]), 3)
         latest = payload["points"][-1]
         self.assertEqual(latest["front_bonds"], [1])
         self.assertEqual(latest["saturated_bonds"], 1)

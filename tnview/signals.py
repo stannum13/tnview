@@ -119,7 +119,18 @@ def signal_payload(points: list[SignalPoint]) -> dict[str, object]:
                 "selected_trunc_error": point.selected_trunc_error,
             }
             for point in points
-        ]
+        ],
+        "markers": [
+            {
+                "index": marker.index,
+                "step": marker.step,
+                "time": marker.time,
+                "code": marker.code,
+                "severity": marker.severity,
+                "message": marker.message,
+            }
+            for marker in detect_signal_markers(points)
+        ],
     }
 
 
