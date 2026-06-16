@@ -104,14 +104,16 @@ from tnview import RunLogger
 with RunLogger("runs/dmrg.jsonl", run_id="dmrg-001") as log:
     log.start(library="my-code", algorithm="dmrg", model="ising", sites=128)
     for sweep in range(4):
-        log.sweep(
+        log.dmrg_sweep(
             sweep=sweep,
+            library="my-code",
             energy=-1.0 - sweep * 0.01,
             delta_energy=1e-9,
             max_chi=128,
             chi_max=128,
             max_trunc_err=2e-7,
         )
+    log.tebd_step(step=4, library="my-code", max_chi=96, max_trunc_err=1e-9)
     log.end(status="complete")
 ```
 
