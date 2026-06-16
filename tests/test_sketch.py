@@ -8,12 +8,12 @@ from tnview.validate import validate_lines
 
 class SketchTests(unittest.TestCase):
     def test_parse_mps_sketch_prompt(self) -> None:
-        spec = parse_sketch_prompt("mps sites=20 chi=64 profile=easy checkpoints=3 window=8 run_id=my-run")
+        spec = parse_sketch_prompt("mps sites=20 chi=64 profile=front checkpoints=3 window=8 run_id=my-run")
 
         self.assertEqual(spec.topology, "mps")
         self.assertEqual(spec.sites, 20)
         self.assertEqual(spec.chi_max, 64)
-        self.assertEqual(spec.profile, "easy")
+        self.assertEqual(spec.profile, "front")
         self.assertEqual(spec.checkpoints, 3)
         self.assertEqual(spec.window, 8)
         self.assertEqual(spec.run_id, "my-run")
@@ -26,7 +26,7 @@ class SketchTests(unittest.TestCase):
             parse_sketch_prompt("peps width=4 height=4")
 
     def test_generate_sketch_replay_is_valid_replay_telemetry(self) -> None:
-        spec = parse_sketch_prompt("mps sites=10 chi=32 profile=hard checkpoints=3")
+        spec = parse_sketch_prompt("mps sites=10 chi=32 profile=spike checkpoints=3")
         replay = generate_sketch_replay(spec)
         report = validate_lines(replay.splitlines())
         events = parse_jsonl(replay.splitlines())
@@ -42,6 +42,9 @@ class SketchTests(unittest.TestCase):
 
         self.assertIn("TNView sketches", output)
         self.assertIn("mps sites=32", output)
+        self.assertIn("profile=easy|hard|front|spike", output)
+        self.assertIn("profile=front", output)
+        self.assertIn("profile=spike", output)
         self.assertIn("tnview sketch", output)
 
 

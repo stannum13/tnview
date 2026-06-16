@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import shlex
 
-from tnview.fixtures import generate_chain_fixture
+from tnview.fixtures import FIXTURE_PROFILES, generate_chain_fixture
 
 
 SUPPORTED_SKETCHES = ("mps",)
@@ -58,8 +58,8 @@ def parse_sketch_prompt(prompt: str) -> SketchSpec:
         window=_int_option(values, "window", SketchSpec.window),
         run_id=values.get("run_id", SketchSpec.run_id),
     )
-    if spec.profile not in {"easy", "hard"}:
-        raise ValueError("profile must be 'easy' or 'hard'")
+    if spec.profile not in FIXTURE_PROFILES:
+        raise ValueError(f"profile must be one of: {', '.join(FIXTURE_PROFILES)}")
     if spec.window < 1:
         raise ValueError("window must be positive")
     return spec
@@ -93,14 +93,15 @@ def render_sketch_list() -> str:
             "  sites=N        number of MPS sites",
             "  chi=N          maximum bond dimension",
             "  checkpoints=N  number of synthetic replay checkpoints",
-            "  profile=easy|hard",
+            "  profile=easy|hard|front|spike",
             "  window=N       rendered focus window",
             "  run_id=NAME    replay run id",
             "",
             "Examples:",
             '  tnview sketch "mps sites=48 chi=128 profile=hard"',
+            '  tnview sketch "mps sites=64 chi=256 profile=front" --interactive',
+            '  tnview sketch "mps sites=32 chi=128 profile=spike" --output spike.jsonl',
             '  tnview sketch "mps sites=16 profile=easy" --interactive',
-            '  tnview sketch "mps sites=64 chi=256" --output sketch.jsonl',
         ]
     )
 
