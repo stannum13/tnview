@@ -21,6 +21,10 @@ class SignalPoint:
     total_trunc_error: float
     front_span: int
     front_bonds: tuple[int, ...]
+    saturated_bonds: int | None = None
+    energy: float | None = None
+    energy_drift: float | None = None
+    complexity_status: str | None = None
     selected_bond: int | None = None
     selected_entropy: float | None = None
     selected_chi: int | None = None
@@ -38,8 +42,8 @@ def signal_points(
 
     selected = selected_bond if selected_bond is not None else state.selected_bond
     return [
-        _point_from_slice(row, selected_bond=selected)
-        for row in state.history
+        _point_from_slice(row, checkpoint=checkpoint, selected_bond=selected)
+        for row, checkpoint in zip(state.history, state.checkpoints)
         if _inside_time_window(row.time, time_min=time_min, time_max=time_max)
     ]
 
@@ -93,6 +97,10 @@ def signal_payload(points: list[SignalPoint]) -> dict[str, object]:
                 "total_trunc_error": point.total_trunc_error,
                 "front_span": point.front_span,
                 "front_bonds": list(point.front_bonds),
+                "saturated_bonds": point.saturated_bonds,
+                "energy": point.energy,
+                "energy_drift": point.energy_drift,
+                "complexity_status": point.complexity_status,
                 "selected_bond": point.selected_bond,
                 "selected_entropy": point.selected_entropy,
                 "selected_chi": point.selected_chi,
@@ -124,7 +132,7 @@ def _state_at_checkpoint(events: list[TelemetryEvent], checkpoint_index: int | N
     return state
 
 
-def _point_from_slice(row: TimeSlice, *, selected_bond: int | None) -> SignalPoint:
+def _point_from_slice(row: TimeSlice, *, checkpoint: Checkpoint, selected_bond: int | None) -> SignalPoint:
     entropies = list(row.entropy_by_bond.values())
     trunc_errors = list(row.trunc_by_bond.values())
     front_bonds = _front_bonds(row)
@@ -138,6 +146,10 @@ def _point_from_slice(row: TimeSlice, *, selected_bond: int | None) -> SignalPoi
         total_trunc_error=sum(trunc_errors),
         front_span=_bond_span(front_bonds),
         front_bonds=front_bonds,
+        saturated_bonds=checkpoint.num_saturated_bonds,
+        energy=checkpoint.energy,
+        energy_drift=checkpoint.energy_drift,
+        complexity_status=checkpoint.complexity_status,
         selected_bond=selected_bond,
         selected_entropy=row.entropy_by_bond.get(selected_bond) if selected_bond is not None else None,
         selected_chi=row.chi_by_bond.get(selected_bond) if selected_bond is not None else None,

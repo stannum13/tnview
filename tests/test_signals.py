@@ -18,6 +18,9 @@ class SignalExtractionTests(unittest.TestCase):
         self.assertEqual(points[-1].time, 0.8)
         self.assertEqual(points[-1].entropy_max, 2.94)
         self.assertEqual(points[-1].max_chi, 256)
+        self.assertEqual(points[-1].saturated_bonds, 1)
+        self.assertEqual(points[-1].energy, -2.9999982)
+        self.assertEqual(points[-1].complexity_status, "chi_limited")
         self.assertEqual(points[-1].front_bonds, (1,))
         self.assertEqual(points[-1].front_span, 1)
         self.assertEqual(points[-1].selected_bond, 1)
@@ -58,6 +61,8 @@ class SignalExtractionTests(unittest.TestCase):
         self.assertEqual(len(payload["points"]), 3)
         latest = payload["points"][-1]
         self.assertEqual(latest["front_bonds"], [1])
+        self.assertEqual(latest["saturated_bonds"], 1)
+        self.assertEqual(latest["complexity_status"], "chi_limited")
         self.assertEqual(latest["selected_chi"], 256)
 
 
