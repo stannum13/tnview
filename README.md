@@ -213,6 +213,7 @@ tnview diagnose examples/dmrg_bad_run.jsonl
 tnview diagnose examples/dmrg_bad_run.jsonl --json
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --json
+tnview compare baseline.jsonl candidate.jsonl --diagnostics
 tnview export examples/quimb_tnoptimizer_run.jsonl --format csv
 
 tnview validate examples/tebd_run.jsonl
@@ -220,6 +221,7 @@ tnview validate examples/dmrg_bad_run.jsonl --strict --json
 tnview diagnose run.jsonl
 tnview tail run.jsonl
 tnview compare runs/*.jsonl --metric loss
+tnview compare baseline.jsonl candidate.jsonl --diagnostics --json
 tnview replay examples/tebd_run.jsonl --ascii --width 120
 tnview replay examples/tebd_run.jsonl --interactive
 tnview scope examples/tebd_run.jsonl --signal selected --bond 1 --ascii
