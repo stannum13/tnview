@@ -4,6 +4,7 @@ set -eu
 TNVIEW="${TNVIEW:-tnview}"
 
 "$TNVIEW" --help >/dev/null
+"$TNVIEW" --version >/dev/null
 "$TNVIEW" tour --json >/dev/null
 "$TNVIEW" doctor --json >/dev/null
 "$TNVIEW" schema --json >/dev/null

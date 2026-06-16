@@ -6,6 +6,8 @@ from tnview.diagnose import (
     diagnostic_thresholds_for_profile,
     render_diagnostics,
 )
+from tests.test_quimb_adapter import FakeMPS
+from tnview.adapters.quimb import mps_snapshot_record
 
 
 class DiagnoseTests(unittest.TestCase):
@@ -33,6 +35,24 @@ class DiagnoseTests(unittest.TestCase):
         )
 
         self.assertTrue(_has(diagnostics, "chi_saturation"))
+
+    def test_quimb_mps_snapshot_records_are_diagnosed_as_progress(self) -> None:
+        events = [
+            mps_snapshot_record(
+                FakeMPS(),
+                step=step,
+                chi_max=3,
+                delta_energy=1e-9,
+                max_trunc_err=2e-7,
+            )
+            for step in range(4)
+        ]
+
+        diagnostics = diagnose_events(events)
+
+        self.assertTrue(_has(diagnostics, "energy_plateau"))
+        self.assertTrue(_has(diagnostics, "chi_saturation"))
+        self.assertTrue(_has(diagnostics, "truncation_floor"))
 
     def test_truncation_floor_rule(self) -> None:
         diagnostics = diagnose_events(

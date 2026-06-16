@@ -329,8 +329,27 @@ def _progress_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         event
         for event in events
-        if event.get("event") in {"step_end", "sweep_end", "optimizer_step"}
+        if event.get("event") in {"step_end", "sweep_end", "optimizer_step"} or _is_snapshot_progress_event(event)
     ]
+
+
+def _is_snapshot_progress_event(event: dict[str, Any]) -> bool:
+    if event.get("event") != "diagnostic":
+        return False
+    if event.get("algorithm") != "mps_snapshot":
+        return False
+    return any(
+        key in event
+        for key in (
+            "energy",
+            "delta_energy",
+            "max_chi",
+            "chi_max_configured",
+            "max_trunc_err",
+            "entropy_max",
+            "entropy_mean",
+        )
+    )
 
 
 def _latest_with(events: list[dict[str, Any]], key: str) -> dict[str, Any]:
