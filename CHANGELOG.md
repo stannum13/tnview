@@ -18,6 +18,7 @@
   severity theme helpers, and a release smoke script.
 - Added dynamic `front` and `spike` sketch profiles plus `tnview sketch --json`.
 - Added `tnview recipes` with human and JSON workflow examples.
+- Added `tnview examples --json` for machine-readable example discovery.
 
 ## 1.1.0 - 2026-06-15
 

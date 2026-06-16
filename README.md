@@ -203,6 +203,7 @@ tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
 tnview doctor
 tnview doctor --json
 tnview examples
+tnview examples --json
 tnview schema
 tnview schema --json
 tnview init emit_tnview.py
