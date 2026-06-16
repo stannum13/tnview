@@ -33,6 +33,24 @@ class AnimateTests(unittest.TestCase):
         self.assertIn("t=0.2", frame.text)
         self.assertNotIn("t=0  ", frame.text)
 
+    def test_render_animation_frame_can_filter_signals(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
+        frame = render_animation_frame(
+            events,
+            checkpoint_index=2,
+            frame_number=1,
+            frame_count=1,
+            window_radius=0.8,
+            width=100,
+            unicode=False,
+            signals=("trunc",),
+        )
+
+        signal_block = frame.text.split("\n\n", 1)[0]
+        self.assertIn("trunc", signal_block)
+        self.assertNotIn("entropy", signal_block)
+        self.assertNotIn("front", signal_block)
+
     def test_render_animation_frame_rejects_invalid_inputs(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
 

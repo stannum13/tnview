@@ -168,6 +168,36 @@ class CliTests(unittest.TestCase):
         self.assertIn("Oscilloscope signals", result.stdout)
         self.assertIn("Entanglement heatmap", result.stdout)
 
+    def test_animate_can_filter_signal_rows(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "animate",
+                "examples/tebd_run.jsonl",
+                "--frames",
+                "1",
+                "--window",
+                "0.8",
+                "--interval",
+                "0",
+                "--no-clear",
+                "--ascii",
+                "--signal",
+                "trunc",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        signal_block = result.stdout.split("\n\n", 1)[0]
+        self.assertIn("trunc", signal_block)
+        self.assertNotIn("entropy", signal_block)
+
     def test_scope_renders_replay_signals(self) -> None:
         result = subprocess.run(
             [

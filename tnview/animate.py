@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from tnview.events import Checkpoint, TelemetryEvent
 from tnview.focus import choose_focus
 from tnview.render import RenderOptions, render_run
-from tnview.signals import SignalPoint, signal_points
+from tnview.signals import SignalPoint, signal_points, signal_series
 from tnview.state import RunState
 from tnview.terminal import render_sparkline, render_status_dot
 
@@ -57,6 +57,7 @@ def render_animation_frame(
     unicode: bool = True,
     color: bool = False,
     focus: str = "bottleneck",
+    signals: tuple[str, ...] = ("entropy", "chi", "trunc", "front"),
 ) -> AnimationFrame:
     """Render one oscilloscope-style replay frame."""
 
@@ -74,7 +75,7 @@ def render_animation_frame(
     time_min = checkpoint.time - window_radius
     time_max = checkpoint.time + window_radius
     points = signal_points(state, time_min=time_min, time_max=time_max)
-    signal_panel = _signal_panel(state, points, width=width or 100, unicode=unicode, color=color)
+    signal_panel = _signal_panel(state, points, signals=signals, width=width or 100, unicode=unicode, color=color)
     body = render_run(
         state,
         RenderOptions(
@@ -118,20 +119,34 @@ def _state_at_checkpoint(events: list[TelemetryEvent], checkpoint_index: int) ->
     return state
 
 
-def _signal_panel(state: RunState, points: list[SignalPoint], *, width: int, unicode: bool, color: bool) -> str:
+def _signal_panel(
+    state: RunState,
+    points: list[SignalPoint],
+    *,
+    signals: tuple[str, ...],
+    width: int,
+    unicode: bool,
+    color: bool,
+) -> str:
     if not points:
         return ""
 
-    entropy = [point.entropy_max for point in points]
-    chi = [float(point.max_chi) for point in points]
-    trunc = [point.max_trunc_error for point in points]
-    front = [float(point.front_span) for point in points]
-
     lines = ["Oscilloscope signals"]
-    lines.append(_signal_line("entropy", entropy, unit="", severity="ok", width=width, unicode=unicode, color=color))
-    lines.append(_signal_line("chi", chi, unit="", severity=_chi_severity(state), width=width, unicode=unicode, color=color))
-    lines.append(_signal_line("trunc", trunc, unit="", severity=_trunc_severity(trunc[-1]), width=width, unicode=unicode, color=color))
-    lines.append(_signal_line("front", front, unit=" bonds", severity="ok", width=width, unicode=unicode, color=color))
+    for signal in signals:
+        values = signal_series(points, signal)
+        if not values:
+            continue
+        lines.append(
+            _signal_line(
+                _signal_label(signal),
+                values,
+                unit=_signal_unit(signal),
+                severity=_signal_severity(signal, values, state),
+                width=width,
+                unicode=unicode,
+                color=color,
+            )
+        )
     return "\n".join(lines)
 
 
@@ -150,6 +165,30 @@ def _signal_line(
     latest = _format_value(values[-1])
     change = "--" if len(values) < 2 else _format_change(values[-1] - values[-2])
     return _fit(f"  {dot} {label:<7} {trend:<12} latest={latest}{unit}  change={change}", width)
+
+
+def _signal_label(signal: str) -> str:
+    return {
+        "entropy": "entropy",
+        "chi": "chi",
+        "trunc": "trunc",
+        "front": "front",
+        "selected_entropy": "sel S",
+        "selected_chi": "sel chi",
+        "selected_trunc": "sel eps",
+    }.get(signal, signal)
+
+
+def _signal_unit(signal: str) -> str:
+    return " bonds" if signal == "front" else ""
+
+
+def _signal_severity(signal: str, values: list[float], state: RunState) -> str:
+    if signal in {"chi", "selected_chi"}:
+        return _chi_severity(state)
+    if signal in {"trunc", "selected_trunc"}:
+        return _trunc_severity(values[-1])
+    return "ok"
 
 
 def _chi_severity(state: RunState) -> str:
