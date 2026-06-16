@@ -413,6 +413,9 @@ home/end  top/bottom of view
 [ / ]     previous/next bond viewport
 f/m/x     focus bottleneck / max entropy / slowest compute
 u/e/c/i/d toggle updates, entropy, chi rows, inspector, diagnostics
+s         toggle oscilloscope scope panel
+:time T   jump to nearest checkpoint time
+:focus entropy, :toggle scope, :bond N
 ?         help
 q         quit
 ```
