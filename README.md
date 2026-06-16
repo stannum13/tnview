@@ -68,6 +68,7 @@ tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
 tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/quimb_tnoptimizer_run.jsonl
 tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii
+tnview scope examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --bond 1 --ascii
 tnview animate examples/tebd_run.jsonl --frames 3 --window 0.3 --no-clear --ascii
 tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
@@ -181,6 +182,8 @@ additive when practical.
 tnview tour
 tnview demo
 tnview demo --interactive
+tnview scope examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --bond 1 --ascii
+tnview scope examples/tebd_run.jsonl --bond 1 --json
 tnview animate examples/tebd_run.jsonl --frames 3 --window 0.3 --no-clear --ascii
 tnview sketch --list
 tnview sketch --wizard
@@ -212,6 +215,7 @@ tnview tail run.jsonl
 tnview compare runs/*.jsonl --metric loss
 tnview replay examples/tebd_run.jsonl --ascii --width 120
 tnview replay examples/tebd_run.jsonl --interactive
+tnview scope examples/tebd_run.jsonl --signal selected --bond 1 --ascii
 tnview animate examples/tebd_run.jsonl --frames 8 --window 0.4
 
 tnview preview examples/ladder_snake_mismatch.jsonl
@@ -240,6 +244,11 @@ equivalent prompt before rendering or saving.
 `replay` renders JSONL telemetry from disk. Add `--interactive` for keyboard
 navigation, or use `--focus bottleneck --window N` to frame the interesting
 region automatically.
+
+`scope` renders a static oscilloscope summary for replay signals. Use
+`--center-time T --window R` to inspect a local time window, `--signal selected
+--bond N` to focus selected-bond rows, and `--json` for a stable signal payload
+with event markers.
 
 `animate` replays visual telemetry as an oscilloscope-style moving time window.
 The active time `T` advances over checkpoint events while the heatmap is clipped
