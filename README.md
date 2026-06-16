@@ -339,8 +339,9 @@ file, `--force` to overwrite, and `--kind quimb` or `--kind tenpy` for adapter
 starter snippets.
 
 `doctor` checks the local TNView install, validates built-in examples, and
-reports whether optional quimb and TeNPy integrations are importable. Add
-`--json` for support logs or CI checks.
+reports whether optional quimb and TeNPy integrations are importable. It also
+prints the local release checks, including `make smoke`. Add `--json` for
+support logs or CI checks.
 
 ## Python Object Interfaces
 
