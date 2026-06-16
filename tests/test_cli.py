@@ -166,6 +166,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("TNView oscilloscope frame 2/2", result.stdout)
         self.assertIn("window=[0, 0]", result.stdout)
         self.assertIn("Oscilloscope signals", result.stdout)
+        self.assertIn("Event ticks", result.stdout)
         self.assertIn("Entanglement heatmap", result.stdout)
 
     def test_animate_can_filter_signal_rows(self) -> None:

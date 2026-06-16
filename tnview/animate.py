@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from tnview.events import Checkpoint, TelemetryEvent
 from tnview.focus import choose_focus
 from tnview.render import RenderOptions, render_run
+from tnview.scope import render_marker_ticks
 from tnview.signals import SignalPoint, signal_points, signal_series
 from tnview.state import RunState
 from tnview.terminal import render_sparkline, render_status_dot
@@ -170,6 +171,7 @@ def _signal_panel(
                 color=color,
             )
         )
+    lines.append(render_marker_ticks(points, width=width, unicode=unicode))
     return "\n".join(lines)
 
 
