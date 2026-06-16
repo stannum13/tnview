@@ -65,6 +65,7 @@ def render_tour() -> str:
             "",
             "Next",
             "  tnview sketch --wizard",
+            "  tnview recipes",
             "  tnview examples",
             "  tnview doctor",
         ]

@@ -15,6 +15,7 @@ class TourTests(unittest.TestCase):
         self.assertIn("tnview scope", output)
         self.assertIn("tnview animate", output)
         self.assertIn("tnview watch", output)
+        self.assertIn("tnview recipes", output)
         self.assertIn("tnview init", output)
 
     def test_tour_payload_lists_stable_steps(self) -> None:
