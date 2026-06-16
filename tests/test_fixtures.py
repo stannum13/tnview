@@ -25,6 +25,22 @@ class FixtureGenerationTests(unittest.TestCase):
 
         self.assertGreater(state.latest_checkpoint.num_saturated_bonds or 0, 0)
 
+    def test_front_profile_moves_entropy_front(self) -> None:
+        events = parse_jsonl(generate_chain_fixture(sites=12, checkpoints=5, chi_max=128, profile="front").splitlines())
+        state = reduce_events(events)
+
+        first_front = max(state.history[1].entropy_by_bond, key=state.history[1].entropy_by_bond.get)
+        last_front = max(state.history[-1].entropy_by_bond, key=state.history[-1].entropy_by_bond.get)
+
+        self.assertLess(first_front, last_front)
+
+    def test_spike_profile_creates_truncation_burst(self) -> None:
+        events = parse_jsonl(generate_chain_fixture(sites=12, checkpoints=5, chi_max=128, profile="spike").splitlines())
+        state = reduce_events(events)
+
+        self.assertGreaterEqual(max(max(row.trunc_by_bond.values()) for row in state.history), 3e-6)
+        self.assertEqual(state.checkpoints[2].complexity_status, "truncation_dominated")
+
     def test_fixture_cli_writes_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "generated.jsonl"

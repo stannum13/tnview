@@ -30,7 +30,7 @@ from tnview.doctor import doctor_payload, render_doctor, run_doctor
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
 from tnview.export import export_manifest_json, export_records_csv, export_replay_csv, export_replay_jsonl
-from tnview.fixtures import generate_chain_fixture
+from tnview.fixtures import FIXTURE_PROFILES, generate_chain_fixture
 from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.focus_report import FOCUS_STRATEGIES, apply_focus, focus_payload, render_focus_strategies, render_focus_view
 from tnview.interactive import run_interactive
@@ -350,7 +350,7 @@ def _parser() -> argparse.ArgumentParser:
     fixture.add_argument("--sites", type=int, default=32, help="number of sites")
     fixture.add_argument("--checkpoints", type=int, default=8, help="number of checkpoints")
     fixture.add_argument("--chi-max", type=int, default=256, help="maximum bond dimension")
-    fixture.add_argument("--profile", choices=["easy", "hard"], default="hard", help="complexity profile")
+    fixture.add_argument("--profile", choices=FIXTURE_PROFILES, default="hard", help="complexity profile")
     fixture.add_argument("--output", "-o", help="write generated JSONL to a file")
 
     schema = subparsers.add_parser("schema", help="show supported telemetry event schemas")

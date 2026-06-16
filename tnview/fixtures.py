@@ -7,6 +7,9 @@ from math import exp
 from typing import Any
 
 
+FIXTURE_PROFILES = ("easy", "hard", "front", "spike")
+
+
 def generate_chain_fixture(
     *,
     sites: int,
@@ -21,8 +24,8 @@ def generate_chain_fixture(
         raise ValueError("checkpoints must be at least 1")
     if chi_max < 1:
         raise ValueError("chi_max must be positive")
-    if profile not in {"easy", "hard"}:
-        raise ValueError("profile must be 'easy' or 'hard'")
+    if profile not in FIXTURE_PROFILES:
+        raise ValueError(f"profile must be one of {', '.join(FIXTURE_PROFILES)}")
 
     events: list[dict[str, Any]] = [
         {
@@ -61,7 +64,19 @@ def generate_chain_fixture(
         time = checkpoint * 0.5
         entropy = [_entropy_value(bond, sites, checkpoint, checkpoints, profile) for bond in range(sites - 1)]
         chi = [_chi_value(value, chi_max, profile) for value in entropy]
-        trunc = [_truncation_value(value, chi_value, chi_max, profile) for value, chi_value in zip(entropy, chi)]
+        trunc = [
+            _truncation_value(
+                value,
+                chi_value,
+                chi_max,
+                profile,
+                bond=bond,
+                sites=sites,
+                checkpoint=checkpoint,
+                checkpoints=checkpoints,
+            )
+            for bond, (value, chi_value) in enumerate(zip(entropy, chi))
+        ]
 
         for bond in range(sites - 1):
             tags = []
@@ -118,11 +133,17 @@ def generate_chain_fixture(
 
 
 def _entropy_value(bond: int, sites: int, checkpoint: int, checkpoints: int, profile: str) -> float:
+    growth = checkpoint / max(1, checkpoints - 1)
+    if profile == "front":
+        position = growth * max(1, sites - 2)
+        distance = abs(bond - position)
+        shape = exp(-(distance * distance) / 2.0)
+        return round(0.01 + 2.6 * growth * shape, 6)
+
     center = (sites - 2) / 2
     spread = max(1.0, sites / (5 if profile == "hard" else 8))
     distance = abs(bond - center)
     shape = exp(-(distance * distance) / (2 * spread * spread))
-    growth = checkpoint / max(1, checkpoints - 1)
     amplitude = 4.2 if profile == "hard" else 1.2
     floor = 0.02 if checkpoint == 0 else 0.0
     return round(floor + amplitude * growth * shape, 6)
@@ -134,9 +155,23 @@ def _chi_value(entropy: float, chi_max: int, profile: str) -> int:
     return min(chi_max, chi)
 
 
-def _truncation_value(entropy: float, chi: int, chi_max: int, profile: str) -> float:
+def _truncation_value(
+    entropy: float,
+    chi: int,
+    chi_max: int,
+    profile: str,
+    *,
+    bond: int,
+    sites: int,
+    checkpoint: int,
+    checkpoints: int,
+) -> float:
+    if profile == "spike" and checkpoint == max(1, checkpoints // 2) and bond == (sites - 2) // 2:
+        return 3e-6
     if profile == "easy":
         return 1e-13 * max(1.0, entropy)
+    if profile == "front":
+        return 5e-11 * max(1.0, entropy)
     if chi >= chi_max:
         return 1e-7 * max(1.0, entropy)
     return 1e-10 * max(1.0, entropy)
@@ -145,6 +180,8 @@ def _truncation_value(entropy: float, chi: int, chi_max: int, profile: str) -> f
 def _status(max_entropy: float, saturated: int, total_trunc: float) -> str:
     if saturated and total_trunc >= 1e-7:
         return "chi_limited"
+    if total_trunc >= 1e-7:
+        return "truncation_dominated"
     if max_entropy < 0.1:
         return "trivial dynamics"
     return "healthy growth"
