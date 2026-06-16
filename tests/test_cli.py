@@ -1207,6 +1207,28 @@ class CliTests(unittest.TestCase):
         self.assertNotIn("memory_growth", codes)
         self.assertIn("chi_saturation", codes)
 
+    def test_diagnose_command_accepts_profile(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "diagnose",
+                "examples/dmrg_bad_run.jsonl",
+                "--json",
+                "--profile",
+                "loose",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        codes = {diagnostic["code"] for diagnostic in payload["diagnostics"]}
+        self.assertEqual(payload["profile"], "loose")
+        self.assertNotIn("energy_plateau", codes)
+
     def test_diagnose_command_renders_structured_parse_error(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.jsonl"

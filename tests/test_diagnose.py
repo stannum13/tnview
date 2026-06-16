@@ -1,6 +1,11 @@
 import unittest
 
-from tnview.diagnose import DiagnosticThresholds, diagnose_events, render_diagnostics
+from tnview.diagnose import (
+    DiagnosticThresholds,
+    diagnose_events,
+    diagnostic_thresholds_for_profile,
+    render_diagnostics,
+)
 
 
 class DiagnoseTests(unittest.TestCase):
@@ -80,6 +85,20 @@ class DiagnoseTests(unittest.TestCase):
         )
 
         self.assertFalse(_has(diagnostics, "energy_plateau"))
+
+    def test_named_profiles_adjust_thresholds(self) -> None:
+        self.assertGreater(
+            diagnostic_thresholds_for_profile("strict").energy_epsilon,
+            diagnostic_thresholds_for_profile("default").energy_epsilon,
+        )
+        self.assertLess(
+            diagnostic_thresholds_for_profile("loose").energy_epsilon,
+            diagnostic_thresholds_for_profile("default").energy_epsilon,
+        )
+
+    def test_unknown_profile_raises_clear_error(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown diagnostic profile"):
+            diagnostic_thresholds_for_profile("custom")
 
     def test_render_diagnostics_includes_suggestions(self) -> None:
         diagnostics = diagnose_events([{"event": "sweep_end", "delta_energy": 1e-9} for _ in range(4)])

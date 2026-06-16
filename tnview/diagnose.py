@@ -28,6 +28,39 @@ class DiagnosticThresholds:
     entropy_growth_factor: float = 1.5
 
 
+DIAGNOSTIC_PROFILES = {
+    "default": DiagnosticThresholds(),
+    "strict": DiagnosticThresholds(
+        energy_epsilon=1e-7,
+        truncation_floor=1e-8,
+        runtime_factor=1.5,
+        memory_factor=1.15,
+        optimizer_loss_epsilon=1e-5,
+        canonical_error=1e-9,
+        entropy_growth_factor=1.25,
+    ),
+    "loose": DiagnosticThresholds(
+        energy_epsilon=1e-10,
+        truncation_floor=1e-6,
+        runtime_factor=3.0,
+        memory_factor=1.5,
+        optimizer_loss_epsilon=1e-8,
+        canonical_error=1e-7,
+        entropy_growth_factor=2.0,
+    ),
+}
+
+
+def diagnostic_thresholds_for_profile(profile: str) -> DiagnosticThresholds:
+    """Return named diagnostic thresholds."""
+
+    try:
+        return DIAGNOSTIC_PROFILES[profile]
+    except KeyError as exc:
+        choices = ", ".join(sorted(DIAGNOSTIC_PROFILES))
+        raise ValueError(f"unknown diagnostic profile {profile!r}; choose one of: {choices}") from exc
+
+
 def diagnose_events(
     events: list[dict[str, Any]],
     *,

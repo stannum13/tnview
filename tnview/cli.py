@@ -25,7 +25,7 @@ from tnview.compare import (
     summarize_run_log,
 )
 from tnview.cli_output import CliError, error_payload, render_error, result_payload, write_json, write_text
-from tnview.diagnose import DiagnosticThresholds
+from tnview.diagnose import DIAGNOSTIC_PROFILES, DiagnosticThresholds, diagnostic_thresholds_for_profile
 from tnview.doctor import doctor_payload, render_doctor, run_doctor
 from tnview.events import EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.examples import list_examples, render_examples
@@ -324,13 +324,19 @@ def _parser() -> argparse.ArgumentParser:
     diagnose = subparsers.add_parser("diagnose", help="print run-log diagnostics")
     diagnose.add_argument("path", help="JSONL run log, or '-' for stdin")
     diagnose.add_argument("--json", action="store_true", help="write stable machine-readable diagnostics JSON")
-    diagnose.add_argument("--energy-eps", type=float, default=1e-8, help="delta-energy plateau threshold")
-    diagnose.add_argument("--truncation-floor", type=float, default=1e-7, help="truncation floor threshold")
-    diagnose.add_argument("--runtime-factor", type=float, default=2.0, help="runtime regression factor")
-    diagnose.add_argument("--memory-factor", type=float, default=1.25, help="memory growth factor")
-    diagnose.add_argument("--optimizer-loss-eps", type=float, default=1e-6, help="optimizer stagnation threshold")
-    diagnose.add_argument("--canonical-error", type=float, default=1e-8, help="canonical-form drift threshold")
-    diagnose.add_argument("--entropy-factor", type=float, default=1.5, help="entropy growth factor")
+    diagnose.add_argument(
+        "--profile",
+        choices=sorted(DIAGNOSTIC_PROFILES),
+        default="default",
+        help="named diagnostic threshold profile",
+    )
+    diagnose.add_argument("--energy-eps", type=float, default=None, help="delta-energy plateau threshold")
+    diagnose.add_argument("--truncation-floor", type=float, default=None, help="truncation floor threshold")
+    diagnose.add_argument("--runtime-factor", type=float, default=None, help="runtime regression factor")
+    diagnose.add_argument("--memory-factor", type=float, default=None, help="memory growth factor")
+    diagnose.add_argument("--optimizer-loss-eps", type=float, default=None, help="optimizer stagnation threshold")
+    diagnose.add_argument("--canonical-error", type=float, default=None, help="canonical-form drift threshold")
+    diagnose.add_argument("--entropy-factor", type=float, default=None, help="entropy growth factor")
 
     export = subparsers.add_parser("export", help="export normalized replay JSONL or manifest JSON")
     export.add_argument("path", help="JSONL replay file, or '-' for stdin")
@@ -854,7 +860,12 @@ def _validate(args: argparse.Namespace) -> int:
 
 
 def _diagnose(args: argparse.Namespace) -> int:
-    result = diagnose_run_log(_iter_lines(args.path), path=args.path, thresholds=_diagnostic_thresholds(args))
+    result = diagnose_run_log(
+        _iter_lines(args.path),
+        path=args.path,
+        thresholds=_diagnostic_thresholds(args),
+        profile=args.profile,
+    )
     if args.json:
         write_json(result_payload(result))
     else:
@@ -863,14 +874,15 @@ def _diagnose(args: argparse.Namespace) -> int:
 
 
 def _diagnostic_thresholds(args: argparse.Namespace) -> DiagnosticThresholds:
+    base = diagnostic_thresholds_for_profile(args.profile)
     return DiagnosticThresholds(
-        energy_epsilon=args.energy_eps,
-        truncation_floor=args.truncation_floor,
-        runtime_factor=args.runtime_factor,
-        memory_factor=args.memory_factor,
-        optimizer_loss_epsilon=args.optimizer_loss_eps,
-        canonical_error=args.canonical_error,
-        entropy_growth_factor=args.entropy_factor,
+        energy_epsilon=base.energy_epsilon if args.energy_eps is None else args.energy_eps,
+        truncation_floor=base.truncation_floor if args.truncation_floor is None else args.truncation_floor,
+        runtime_factor=base.runtime_factor if args.runtime_factor is None else args.runtime_factor,
+        memory_factor=base.memory_factor if args.memory_factor is None else args.memory_factor,
+        optimizer_loss_epsilon=base.optimizer_loss_epsilon if args.optimizer_loss_eps is None else args.optimizer_loss_eps,
+        canonical_error=base.canonical_error if args.canonical_error is None else args.canonical_error,
+        entropy_growth_factor=base.entropy_growth_factor if args.entropy_factor is None else args.entropy_factor,
     )
 
 
