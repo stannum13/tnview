@@ -940,6 +940,93 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["runs"][0]["name"], "dmrg_bad_run.jsonl")
         self.assertIn("energy_plateau", payload["runs"][0]["diagnostics"])
 
+    def test_compare_run_log_diagnostics_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            baseline = Path(directory) / "baseline.jsonl"
+            candidate = Path(directory) / "candidate.jsonl"
+            baseline.write_text(
+                "\n".join(
+                    [
+                        '{"event":"sweep_end","delta_energy":1e-4,"max_chi":64,"chi_max_configured":128}',
+                        '{"event":"sweep_end","delta_energy":1e-5,"max_chi":80,"chi_max_configured":128}',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            candidate.write_text(
+                "\n".join(
+                    [
+                        '{"event":"sweep_end","delta_energy":1e-9,"max_chi":128,"chi_max_configured":128}',
+                        '{"event":"sweep_end","delta_energy":1e-9,"max_chi":128,"chi_max_configured":128}',
+                        '{"event":"sweep_end","delta_energy":1e-9,"max_chi":128,"chi_max_configured":128}',
+                        '{"event":"sweep_end","delta_energy":1e-9}',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tnview.cli",
+                    "compare",
+                    str(baseline),
+                    str(candidate),
+                    "--diagnostics",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertIn("Run-log diagnostic comparison", result.stdout)
+        self.assertIn("new:", result.stdout)
+        self.assertIn("energy_plateau", result.stdout)
+        self.assertIn("chi_saturation", result.stdout)
+
+    def test_compare_run_log_diagnostics_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "compare",
+                "examples/quimb_tnoptimizer_run.jsonl",
+                "examples/dmrg_bad_run.jsonl",
+                "--diagnostics",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "run-log-diagnostics")
+        self.assertEqual(payload["baseline"], "quimb_tnoptimizer_run.jsonl")
+        self.assertEqual(payload["candidate"], "dmrg_bad_run.jsonl")
+        self.assertIn("energy_plateau", payload["new_codes"])
+
+    def test_compare_run_log_diagnostics_requires_two_files(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "compare",
+                "examples/dmrg_bad_run.jsonl",
+                "--diagnostics",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stderr)
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(payload["error"]["code"], "DIAGNOSTIC_COMPARE_REQUIRES_TWO_RUNS")
+
     def test_compare_replay_can_emit_json(self) -> None:
         result = subprocess.run(
             [

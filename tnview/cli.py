@@ -13,9 +13,12 @@ from tnview import __version__
 from tnview.animate import animation_frame_indices_for_times, checkpoint_count, render_animation_frame
 from tnview.commands import diagnose_run_log
 from tnview.compare import (
+    compare_run_log_diagnostics,
     comparison_payload,
+    diagnostic_comparison_payload,
     render_comparison,
     render_comparison_csv,
+    render_diagnostic_comparison,
     render_run_log_comparison,
     render_run_log_comparison_csv,
     run_log_comparison_payload,
@@ -281,6 +284,11 @@ def _parser() -> argparse.ArgumentParser:
         help="sort run-log comparisons by a specific metric",
     )
     compare.add_argument("--csv", action="store_true", help="write comparison as CSV")
+    compare.add_argument(
+        "--diagnostics",
+        action="store_true",
+        help="compare diagnostic codes between two run-log files",
+    )
     compare.add_argument("--json", action="store_true", help="write stable machine-readable comparison JSON")
 
     preview = subparsers.add_parser("preview", help="preview model/ansatz complexity from setup telemetry")
@@ -763,6 +771,34 @@ def _compare(args: argparse.Namespace) -> int:
                 suggestions=("tnview validate PATH",),
                 exit_code=2,
             )
+        if args.diagnostics:
+            if len(run_log_inputs) != 2:
+                raise CliError(
+                    code="DIAGNOSTIC_COMPARE_REQUIRES_TWO_RUNS",
+                    message="Diagnostic comparison needs exactly two run-log files",
+                    reason="Pass a baseline path followed by a candidate path.",
+                    suggestions=("tnview compare baseline.jsonl candidate.jsonl --diagnostics",),
+                    exit_code=2,
+                )
+            if args.csv:
+                raise CliError(
+                    code="DIAGNOSTIC_COMPARE_CSV_UNSUPPORTED",
+                    message="Diagnostic comparison does not support --csv",
+                    reason="Use human output or --json for this mode.",
+                    suggestions=("tnview compare baseline.jsonl candidate.jsonl --diagnostics --json",),
+                    exit_code=2,
+                )
+            comparison = compare_run_log_diagnostics(
+                run_log_inputs[0][0],
+                run_log_inputs[0][1],
+                run_log_inputs[1][0],
+                run_log_inputs[1][1],
+            )
+            if args.json:
+                write_json(diagnostic_comparison_payload(comparison))
+                return 0
+            print(render_diagnostic_comparison(comparison, width=args.width))
+            return 0
         summaries = [summarize_run_log(path, records) for path, records in run_log_inputs]
         summaries = sort_run_log_summaries(summaries, args.sort, metric=args.metric)
         if args.json:
@@ -774,6 +810,14 @@ def _compare(args: argparse.Namespace) -> int:
             else render_run_log_comparison(summaries, width=args.width)
         )
         return 0
+    if args.diagnostics:
+        raise CliError(
+            code="DIAGNOSTIC_COMPARE_REQUIRES_RUN_LOGS",
+            message="Diagnostic comparison only supports run-log files",
+            reason="Replay telemetry uses visual events, while diagnostic comparison uses run-log metrics.",
+            suggestions=("Use `tnview diagnose PATH` or compare two run-log JSONL files.",),
+            exit_code=2,
+        )
     if args.metric:
         raise CliError(
             code="UNSUPPORTED_METRIC_SORT",

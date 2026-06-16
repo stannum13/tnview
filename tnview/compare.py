@@ -51,6 +51,19 @@ class RunLogSummary:
     diagnostics: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class DiagnosticComparison:
+    baseline: str
+    candidate: str
+    baseline_codes: tuple[str, ...]
+    candidate_codes: tuple[str, ...]
+    new_codes: tuple[str, ...]
+    resolved_codes: tuple[str, ...]
+    shared_codes: tuple[str, ...]
+    candidate_warning_count: int
+    candidate_error_count: int
+
+
 def summarize_run(name: str, state: RunState) -> RunSummary:
     bonds = state.ordered_bonds
     checkpoint = state.latest_checkpoint
@@ -181,6 +194,45 @@ def render_run_log_comparison(summaries: list[RunLogSummary], *, width: int = 16
     return "\n".join(lines)
 
 
+def compare_run_log_diagnostics(
+    baseline_name: str,
+    baseline_records: list[dict[str, Any]],
+    candidate_name: str,
+    candidate_records: list[dict[str, Any]],
+) -> DiagnosticComparison:
+    baseline_diagnostics = diagnose_events(baseline_records)
+    candidate_diagnostics = diagnose_events(candidate_records)
+    baseline_codes = tuple(sorted({diagnostic.code for diagnostic in baseline_diagnostics}))
+    candidate_codes = tuple(sorted({diagnostic.code for diagnostic in candidate_diagnostics}))
+    baseline_set = set(baseline_codes)
+    candidate_set = set(candidate_codes)
+    return DiagnosticComparison(
+        baseline=Path(baseline_name).name,
+        candidate=Path(candidate_name).name,
+        baseline_codes=baseline_codes,
+        candidate_codes=candidate_codes,
+        new_codes=tuple(sorted(candidate_set - baseline_set)),
+        resolved_codes=tuple(sorted(baseline_set - candidate_set)),
+        shared_codes=tuple(sorted(candidate_set & baseline_set)),
+        candidate_warning_count=sum(1 for diagnostic in candidate_diagnostics if diagnostic.severity == "warn"),
+        candidate_error_count=sum(1 for diagnostic in candidate_diagnostics if diagnostic.severity == "error"),
+    )
+
+
+def render_diagnostic_comparison(comparison: DiagnosticComparison, *, width: int = 120) -> str:
+    lines = [
+        "Run-log diagnostic comparison",
+        _fit(f"baseline:  {comparison.baseline}", width),
+        _fit(f"candidate: {comparison.candidate}", width),
+        "",
+        _fit(f"candidate warnings={comparison.candidate_warning_count} errors={comparison.candidate_error_count}", width),
+        _fit(f"new:       {_codes_text(comparison.new_codes)}", width),
+        _fit(f"resolved:  {_codes_text(comparison.resolved_codes)}", width),
+        _fit(f"shared:    {_codes_text(comparison.shared_codes)}", width),
+    ]
+    return "\n".join(lines)
+
+
 def sort_summaries(summaries: list[RunSummary], key: str) -> list[RunSummary]:
     if key == "name":
         return sorted(summaries, key=lambda summary: summary.name)
@@ -270,6 +322,21 @@ def run_log_comparison_payload(summaries: list[RunLogSummary]) -> dict[str, Any]
         row["diagnostics"] = list(summary.diagnostics)
         payload["runs"].append(row)
     return payload
+
+
+def diagnostic_comparison_payload(comparison: DiagnosticComparison) -> dict[str, Any]:
+    return {
+        "kind": "run-log-diagnostics",
+        "baseline": comparison.baseline,
+        "candidate": comparison.candidate,
+        "baseline_codes": list(comparison.baseline_codes),
+        "candidate_codes": list(comparison.candidate_codes),
+        "new_codes": list(comparison.new_codes),
+        "resolved_codes": list(comparison.resolved_codes),
+        "shared_codes": list(comparison.shared_codes),
+        "candidate_warning_count": comparison.candidate_warning_count,
+        "candidate_error_count": comparison.candidate_error_count,
+    }
 
 
 def render_run_log_comparison_csv(summaries: list[RunLogSummary]) -> str:
@@ -382,6 +449,10 @@ def _maybe_bond(value: int | None) -> str:
     if value is None:
         return "n/a"
     return f"b{value}"
+
+
+def _codes_text(codes: tuple[str, ...]) -> str:
+    return ", ".join(codes) if codes else "none"
 
 
 def _clip(value: str, size: int) -> str:
