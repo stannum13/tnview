@@ -140,6 +140,22 @@ class RunLoggerTests(unittest.TestCase):
         self.assertEqual(record["custom"], "value")
         self.assertEqual(record["event"], "sweep_end")
 
+    def test_logger_domain_helpers_stamp_algorithm_metadata(self) -> None:
+        handle = StringIO()
+
+        with RunLogger(handle) as logger:
+            logger.dmrg_sweep(sweep=1, library="tenpy", energy=-1.0)
+            logger.tebd_step(step=2, library="quimb", max_chi=32)
+
+        records = [json.loads(line) for line in handle.getvalue().splitlines()]
+
+        self.assertEqual(records[0]["event"], "sweep_end")
+        self.assertEqual(records[0]["algorithm"], "dmrg")
+        self.assertEqual(records[0]["library"], "tenpy")
+        self.assertEqual(records[1]["event"], "step_end")
+        self.assertEqual(records[1]["algorithm"], "tebd")
+        self.assertEqual(records[1]["library"], "quimb")
+
     def test_logger_appends_and_creates_parent_directories(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "runs" / "run.jsonl"

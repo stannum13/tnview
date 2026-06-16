@@ -198,6 +198,16 @@ class RunLogger:
             ),
         )
 
+    def dmrg_sweep(self, *, sweep: int, library: str | None = None, **fields: Any) -> None:
+        """Emit a DMRG ``sweep_end`` event with algorithm metadata."""
+
+        self.sweep(sweep=sweep, library=library, algorithm="dmrg", **fields)
+
+    def tebd_step(self, *, step: int, library: str | None = None, **fields: Any) -> None:
+        """Emit a TEBD ``step_end`` event with algorithm metadata."""
+
+        self.step(step=step, library=library, algorithm="tebd", **fields)
+
     def optimizer_step(
         self,
         *,
