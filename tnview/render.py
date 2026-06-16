@@ -24,6 +24,8 @@ from tnview.warnings import early_warning
 
 UNICODE_BLOCKS = " ▁▂▃▄▅▆▇█"
 ASCII_BLOCKS = " .:-=+*#@"
+UNICODE_PRESSURE_BLOCKS = "·▁▂▃▄▅▆▇█"
+ASCII_PRESSURE_BLOCKS = ".:-=+*#@%"
 
 
 @dataclass(frozen=True)
@@ -214,7 +216,7 @@ def _pressure_rows(state: RunState, width: int, options: RenderOptions) -> str:
     if not bonds:
         return ""
 
-    glyphs = UNICODE_BLOCKS if options.unicode else ASCII_BLOCKS
+    glyphs = UNICODE_PRESSURE_BLOCKS if options.unicode else ASCII_PRESSURE_BLOCKS
     max_trunc = max((bond.trunc_error for bond in bonds), default=0.0)
     pressure = " ".join(_bucket(bond.chi_pressure, 1.0, glyphs) for bond in bonds)
     saturation = " ".join("!" if bond.saturated else "+" if bond.chi_pressure >= 0.75 else "." for bond in bonds)

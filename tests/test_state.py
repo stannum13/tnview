@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from tnview.events import parse_jsonl
+from tnview.events import Checkpoint, parse_jsonl
 from tnview.compute import compute_cost
 from tnview.render import RenderOptions, render_run
 from tnview.state import diagnose_run, entanglement_front, reduce_events
@@ -65,6 +65,15 @@ class StateRenderingTests(unittest.TestCase):
         self.assertIn("focus:    ^^", output)
         self.assertIn("legend: -- healthy  ++ pressure  == saturated  ^^ selected", output)
 
+    def test_low_pressure_rows_have_visible_baseline_markers(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        state = reduce_events(_events_through_checkpoint(events, 0))
+
+        output = render_run(state, RenderOptions(width=90, unicode=True))
+
+        self.assertIn("chi/max:    \u00b7 \u00b7 \u00b7", output)
+        self.assertIn("trunc eps:  \u00b7 \u00b7 \u00b7", output)
+
     def test_topology_alignment_handles_multi_digit_sites(self) -> None:
         lines = []
         for bond in range(9, 12):
@@ -126,6 +135,17 @@ class StateRenderingTests(unittest.TestCase):
         assert cost.slowest_bond is not None
         self.assertEqual(cost.slowest_bond.bond, 1)
         self.assertEqual(cost.estimated_largest_tensor, "256 x 2 x 256")
+
+def _events_through_checkpoint(events, index: int):
+    seen = 0
+    selected = []
+    for event in events:
+        selected.append(event)
+        if isinstance(event, Checkpoint):
+            if seen == index:
+                return selected
+            seen += 1
+    return selected
 
 
 if __name__ == "__main__":
