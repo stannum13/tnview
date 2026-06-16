@@ -198,6 +198,81 @@ class CliTests(unittest.TestCase):
         self.assertIn("trunc", signal_block)
         self.assertNotIn("entropy", signal_block)
 
+    def test_animate_can_filter_frames_by_time(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "animate",
+                "examples/tebd_run.jsonl",
+                "--start-time",
+                "0.1",
+                "--end-time",
+                "0.3",
+                "--interval",
+                "0",
+                "--no-clear",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView oscilloscope frame 1/1", result.stdout)
+        self.assertIn("T=0.2", result.stdout)
+        self.assertNotIn("T=0.8", result.stdout)
+
+    def test_animate_can_center_time_window(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "animate",
+                "examples/tebd_run.jsonl",
+                "--center-time",
+                "0.8",
+                "--window",
+                "0",
+                "--interval",
+                "0",
+                "--no-clear",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView oscilloscope frame 1/1", result.stdout)
+        self.assertIn("T=0.8", result.stdout)
+
+    def test_animate_reports_empty_time_window(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "animate",
+                "examples/tebd_run.jsonl",
+                "--start-time",
+                "9",
+                "--end-time",
+                "10",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("No animation frames matched", result.stderr)
+
     def test_scope_renders_replay_signals(self) -> None:
         result = subprocess.run(
             [

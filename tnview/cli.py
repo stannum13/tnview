@@ -10,7 +10,7 @@ from time import sleep
 from typing import Iterable, TextIO
 
 from tnview import __version__
-from tnview.animate import animation_frame_indices, checkpoint_count, render_animation_frame
+from tnview.animate import animation_frame_indices_for_times, checkpoint_count, render_animation_frame
 from tnview.commands import diagnose_run_log
 from tnview.compare import (
     comparison_payload,
@@ -183,6 +183,9 @@ def _parser() -> argparse.ArgumentParser:
     animate.add_argument("path", help="JSONL replay file")
     animate.add_argument("--frames", type=int, help="number of checkpoint frames to render")
     animate.add_argument("--window", type=float, default=1.0, help="time radius around active frame T")
+    animate.add_argument("--center-time", type=float, help="render checkpoint frames around time T")
+    animate.add_argument("--start-time", type=float, help="first checkpoint time to render")
+    animate.add_argument("--end-time", type=float, help="last checkpoint time to render")
     animate.add_argument("--interval", type=float, default=0.2, help="sleep interval between frames")
     animate.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     animate.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
@@ -437,7 +440,16 @@ def _animate(args: argparse.Namespace) -> int:
     if count == 0:
         raise EventParseError("animate requires at least one checkpoint event")
 
-    indices = animation_frame_indices(count, args.frames)
+    time_min, time_max = _animate_time_window(args)
+    indices = animation_frame_indices_for_times(events, frames=args.frames, time_min=time_min, time_max=time_max)
+    if not indices:
+        raise CliError(
+            code="ANIMATE_NO_FRAMES",
+            message="No animation frames matched the requested time range",
+            reason="No checkpoint event fell inside the requested animation bounds.",
+            suggestions=("Widen --window or adjust --start-time/--end-time.",),
+            exit_code=2,
+        )
     total = len(indices)
     for position, checkpoint_index in enumerate(indices, start=1):
         if not args.no_clear and sys.stdout.isatty():
@@ -1044,6 +1056,20 @@ def _scope_time_window(args: argparse.Namespace) -> tuple[float | None, float | 
         raise CliError(
             code="SCOPE_TIME_RANGE_INVALID",
             message="Scope time range is invalid",
+            reason=f"Received --start-time {args.start_time} after --end-time {args.end_time}.",
+            suggestions=("Use --start-time before --end-time.",),
+            exit_code=2,
+        )
+    return args.start_time, args.end_time
+
+
+def _animate_time_window(args: argparse.Namespace) -> tuple[float | None, float | None]:
+    if args.center_time is not None:
+        return args.center_time - args.window, args.center_time + args.window
+    if args.start_time is not None and args.end_time is not None and args.start_time > args.end_time:
+        raise CliError(
+            code="ANIMATE_TIME_RANGE_INVALID",
+            message="Animation time range is invalid",
             reason=f"Received --start-time {args.start_time} after --end-time {args.end_time}.",
             suggestions=("Use --start-time before --end-time.",),
             exit_code=2,
