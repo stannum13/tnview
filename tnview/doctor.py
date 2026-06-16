@@ -33,6 +33,7 @@ class DoctorReport:
     version: str
     examples: ExampleCheck
     integrations: tuple[IntegrationCheck, ...]
+    checks: tuple[str, ...]
 
 
 def run_doctor(*, examples_root: str | Path = "examples") -> DoctorReport:
@@ -46,6 +47,7 @@ def run_doctor(*, examples_root: str | Path = "examples") -> DoctorReport:
         version=__version__,
         examples=examples,
         integrations=integrations,
+        checks=("python -m unittest discover -s tests", "python -m compileall tnview tests", "make smoke"),
     )
 
 
@@ -55,6 +57,7 @@ def doctor_payload(report: DoctorReport) -> dict[str, Any]:
         "version": report.version,
         "examples": asdict(report.examples),
         "integrations": [asdict(check) for check in report.integrations],
+        "checks": list(report.checks),
     }
 
 
@@ -82,6 +85,8 @@ def render_doctor(report: DoctorReport) -> str:
         lines.append(f"  {check.name:<6} {state:<9} module={check.module}")
         if not check.installed:
             lines.append(f"         install: {check.install_hint}")
+    lines.extend(["", "Release checks:"])
+    lines.extend(f"  {check}" for check in report.checks)
     return "\n".join(lines)
 
 

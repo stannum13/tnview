@@ -1889,6 +1889,8 @@ class CliTests(unittest.TestCase):
         self.assertIn("version:", result.stdout)
         self.assertIn("Examples:", result.stdout)
         self.assertIn("Optional integrations:", result.stdout)
+        self.assertIn("Release checks:", result.stdout)
+        self.assertIn("make smoke", result.stdout)
 
     def test_doctor_command_can_emit_json(self) -> None:
         result = subprocess.run(
@@ -1909,6 +1911,7 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["version"], "1.1.0")
         self.assertGreater(payload["examples"]["files"], 0)
         self.assertIn("quimb", {item["name"] for item in payload["integrations"]})
+        self.assertIn("make smoke", payload["checks"])
 
     def test_doctor_command_reports_missing_examples_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
