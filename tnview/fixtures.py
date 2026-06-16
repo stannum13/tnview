@@ -166,7 +166,8 @@ def _truncation_value(
     checkpoint: int,
     checkpoints: int,
 ) -> float:
-    if profile == "spike" and checkpoint == max(1, checkpoints // 2) and bond == (sites - 2) // 2:
+    spike_checkpoint = min(checkpoints - 1, max(0, checkpoints // 2))
+    if profile == "spike" and checkpoint == spike_checkpoint and bond == (sites - 2) // 2:
         return 3e-6
     if profile == "easy":
         return 1e-13 * max(1.0, entropy)

@@ -730,6 +730,26 @@ class CliTests(unittest.TestCase):
         self.assertIn("TNView sketches", result.stdout)
         self.assertIn("mps sites=32", result.stdout)
 
+    def test_sketch_command_lists_supported_prompts_as_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "sketch",
+                "--list",
+                "--json",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "sketches")
+        self.assertIn("front", payload["profiles"])
+        self.assertIn("spike", payload["profiles"])
+
     def test_sketch_command_renders_prompt(self) -> None:
         result = subprocess.run(
             [
@@ -815,6 +835,27 @@ class CliTests(unittest.TestCase):
         self.assertIn("Generated sketch:", result.stdout)
         self.assertIn("mps sites=12 chi=32 profile=hard checkpoints=4 window=8", result.stdout)
         self.assertIn("TNView sketch | mps sites=12 chi=32 profile=hard", result.stdout)
+
+    def test_sketch_wizard_can_emit_parseable_json(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "sketch",
+                "--wizard",
+                "--json",
+            ],
+            input="\n12\n32\n4\nfront\n8\nn\nn\n",
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "sketch")
+        self.assertEqual(payload["profile"], "front")
+        self.assertIn("Generated sketch:", result.stderr)
 
     def test_sketch_wizard_can_write_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

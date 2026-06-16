@@ -54,7 +54,7 @@ from tnview.search import is_tensor_query, render_search, render_tensor_search, 
 from tnview.scope import render_scope
 from tnview.snapshot import snapshot_json
 from tnview.signals import expand_signal_names, signal_payload, signal_points_from_events
-from tnview.sketch import SketchSpec, generate_sketch_replay, parse_sketch_prompt, render_sketch_list
+from tnview.sketch import SketchSpec, generate_sketch_replay, parse_sketch_prompt, render_sketch_list, sketch_list_payload
 from tnview.sketch_wizard import run_sketch_wizard
 from tnview.state import RunState
 from tnview.starter import KINDS, starter_script, write_starter
@@ -698,7 +698,10 @@ def _demo(args: argparse.Namespace) -> int:
 
 def _sketch(args: argparse.Namespace) -> int:
     if args.list:
-        write_text(render_sketch_list())
+        if args.json:
+            write_json(sketch_list_payload())
+        else:
+            write_text(render_sketch_list())
         return 0
     if args.wizard:
         if args.prompt:
@@ -709,7 +712,10 @@ def _sketch(args: argparse.Namespace) -> int:
                 suggestions=("tnview sketch --wizard", 'tnview sketch "mps sites=32 chi=128 profile=hard"'),
                 exit_code=2,
             )
-        result = run_sketch_wizard()
+        result = run_sketch_wizard(
+            input_fn=_stderr_input if args.json else input,
+            output_fn=(lambda text: print(text, file=sys.stderr)) if args.json else print,
+        )
         args.prompt = result.prompt
         args.interactive = result.interactive
         args.output = result.output
@@ -782,6 +788,11 @@ def _render_sketch(spec: SketchSpec, replay: str, args: argparse.Namespace) -> i
         )
     )
     return 0
+
+
+def _stderr_input(prompt: str) -> str:
+    print(prompt, end="", file=sys.stderr, flush=True)
+    return sys.stdin.readline().rstrip("\n")
 
 
 def _compare(args: argparse.Namespace) -> int:

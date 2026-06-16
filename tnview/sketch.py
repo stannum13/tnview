@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import shlex
+from typing import Any
 
 from tnview.fixtures import FIXTURE_PROFILES, generate_chain_fixture
 
@@ -104,6 +105,29 @@ def render_sketch_list() -> str:
             '  tnview sketch "mps sites=16 profile=easy" --interactive',
         ]
     )
+
+
+def sketch_list_payload() -> dict[str, Any]:
+    """Return stable machine-readable sketch prompt metadata."""
+
+    return {
+        "kind": "sketches",
+        "topologies": list(SUPPORTED_SKETCHES),
+        "profiles": list(FIXTURE_PROFILES),
+        "options": {
+            "sites": "number of MPS sites",
+            "chi": "maximum bond dimension",
+            "checkpoints": "number of synthetic replay checkpoints",
+            "profile": "complexity profile",
+            "window": "rendered focus window",
+            "run_id": "replay run id",
+        },
+        "examples": [
+            'tnview sketch "mps sites=48 chi=128 profile=hard"',
+            'tnview sketch "mps sites=64 chi=256 profile=front" --interactive',
+            'tnview sketch "mps sites=32 chi=128 profile=spike" --output spike.jsonl',
+        ],
+    }
 
 
 def _int_option(values: dict[str, str], key: str, default: int) -> int:

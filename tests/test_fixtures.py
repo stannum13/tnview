@@ -41,6 +41,13 @@ class FixtureGenerationTests(unittest.TestCase):
         self.assertGreaterEqual(max(max(row.trunc_by_bond.values()) for row in state.history), 3e-6)
         self.assertEqual(state.checkpoints[2].complexity_status, "truncation_dominated")
 
+    def test_spike_profile_with_one_checkpoint_still_spikes(self) -> None:
+        events = parse_jsonl(generate_chain_fixture(sites=12, checkpoints=1, chi_max=128, profile="spike").splitlines())
+        state = reduce_events(events)
+
+        self.assertGreaterEqual(max(max(row.trunc_by_bond.values()) for row in state.history), 3e-6)
+        self.assertEqual(state.checkpoints[0].complexity_status, "truncation_dominated")
+
     def test_fixture_cli_writes_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "generated.jsonl"

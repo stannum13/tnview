@@ -319,8 +319,9 @@ smaller window around it. Focus strategies include `bottleneck`, `entropy`,
 `front`, `compute`, and `center`.
 
 `focus` exposes the same focus strategies without entering the interactive
-keyboard UI. Use `focus --list` to see strategies, or add `--json` to inspect
-the selected bond and rendered snapshot data from scripts.
+keyboard UI. Use `focus --list` or `focus --list --json` to see strategies. Use
+`focus PATH --json` to inspect the selected bond and rendered snapshot data from
+scripts.
 
 `search` locates bonds by `bond:`, `site:`, `tag:`, or `status:`. Tensor-name
 search also works with `tensor:A2`; it scans `ansatz_layout.tensors` and

@@ -1,7 +1,7 @@
 import unittest
 
 from tnview.events import parse_jsonl
-from tnview.sketch import generate_sketch_replay, parse_sketch_prompt, render_sketch_list
+from tnview.sketch import generate_sketch_replay, parse_sketch_prompt, render_sketch_list, sketch_list_payload
 from tnview.state import reduce_events
 from tnview.validate import validate_lines
 
@@ -46,6 +46,14 @@ class SketchTests(unittest.TestCase):
         self.assertIn("profile=front", output)
         self.assertIn("profile=spike", output)
         self.assertIn("tnview sketch", output)
+
+    def test_sketch_list_payload_is_stable(self) -> None:
+        payload = sketch_list_payload()
+
+        self.assertEqual(payload["kind"], "sketches")
+        self.assertIn("mps", payload["topologies"])
+        self.assertIn("front", payload["profiles"])
+        self.assertIn("spike", payload["profiles"])
 
 
 if __name__ == "__main__":
