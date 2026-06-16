@@ -14,6 +14,7 @@ TNVIEW="${TNVIEW:-tnview}"
 "$TNVIEW" tail examples/quimb_tnoptimizer_run.jsonl --json >/dev/null
 "$TNVIEW" diagnose examples/dmrg_bad_run.jsonl --profile default --json >/dev/null
 "$TNVIEW" compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --diagnostics --json >/dev/null
+"$TNVIEW" sketch "mps sites=16 chi=64 profile=front checkpoints=3" --json >/dev/null
 "$TNVIEW" sketch "mps sites=16 chi=64 profile=front checkpoints=3" --ascii >/dev/null
 "$TNVIEW" sketch "mps sites=16 chi=64 profile=spike checkpoints=3" --ascii >/dev/null
 "$TNVIEW" scope examples/tebd_run.jsonl --signal selected --bond 1 --ascii >/dev/null
