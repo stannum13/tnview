@@ -34,6 +34,7 @@ class TenpyAdapterTests(unittest.TestCase):
         self.assertEqual(record["delta_energy"], -1e-9)
         self.assertEqual(record["entropy_max"], 1.1)
         self.assertEqual(record["wall_s"], 4.0)
+        self.assertEqual(record["step_wall_s"], 1.6)
         self.assertEqual(record["max_trunc_err"], 3e-9)
         self.assertEqual(record["max_chi"], 96)
         self.assertEqual(record["canonical_error"], 3e-12)
@@ -45,7 +46,33 @@ class TenpyAdapterTests(unittest.TestCase):
         self.assertEqual([record["sweep"] for record in records], [0, 1, 2])
         self.assertEqual(records[0]["energy"], -1.0)
         self.assertEqual(records[1]["wall_s"], 2.4)
+        self.assertEqual(records[1]["step_wall_s"], 1.4)
         self.assertEqual(records[2]["chi_max_configured"], 128)
+
+    def test_dmrg_sweep_records_accepts_alias_keys(self) -> None:
+        stats = {
+            "sweep_number": [0, 1],
+            "energy": [-1.0, -1.02],
+            "delta_energy": [-0.02, -1e-8],
+            "mean_entropy": [0.4, 0.5],
+            "max_entropy": [0.8, 0.9],
+            "wall_time": [0.5, 1.5],
+            "max_truncation_error": [1e-9, 2e-9],
+            "bond_dim": [32, 64],
+            "norm_error": [1e-12, 2e-12],
+        }
+
+        records = dmrg_sweep_records(stats=stats)
+
+        self.assertEqual([record["sweep"] for record in records], [0, 1])
+        self.assertEqual(records[1]["energy"], -1.02)
+        self.assertEqual(records[1]["entropy_mean"], 0.5)
+        self.assertEqual(records[1]["entropy_max"], 0.9)
+        self.assertEqual(records[1]["wall_s"], 1.5)
+        self.assertEqual(records[1]["step_wall_s"], 1.0)
+        self.assertEqual(records[1]["max_trunc_err"], 2e-9)
+        self.assertEqual(records[1]["max_chi"], 64)
+        self.assertEqual(records[1]["canonical_error"], 2e-12)
 
     def test_emit_dmrg_sweep_writes_run_log_event(self) -> None:
         handle = StringIO()

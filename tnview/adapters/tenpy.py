@@ -9,6 +9,21 @@ from __future__ import annotations
 from typing import Any
 
 
+STAT_ALIASES = {
+    "sweep": ("sweep", "sweep_num", "sweep_number"),
+    "energy": ("E", "energy"),
+    "delta_energy": ("Delta_E", "delta_E", "delta_energy", "energy_delta"),
+    "entropy_mean": ("S", "entropy", "entropy_mean", "mean_entropy"),
+    "entropy_delta": ("Delta_S", "delta_S", "delta_entropy", "entropy_delta"),
+    "entropy_max": ("max_S", "max_entropy", "entropy_max"),
+    "wall_s": ("time", "wall_s", "wall_time", "walltime"),
+    "max_trunc_err": ("max_trunc_err", "max_truncation_error", "trunc_err", "truncation_error"),
+    "max_energy_trunc": ("max_E_trunc", "max_energy_trunc", "energy_truncation"),
+    "max_chi": ("max_chi", "chi", "bond_dim"),
+    "canonical_error": ("norm_err", "canonical_error", "norm_error"),
+}
+
+
 def dmrg_sweep_record(
     engine: Any | None = None,
     *,
@@ -46,17 +61,18 @@ def dmrg_sweep_records(
             "event": "sweep_end",
             "library": library,
             "algorithm": algorithm,
-            "sweep": _stat_at(source, "sweep", index),
-            "energy": _stat_at(source, "E", index),
-            "delta_energy": _stat_at(source, "Delta_E", index),
-            "entropy_mean": _stat_at(source, "S", index),
-            "entropy_delta": _stat_at(source, "Delta_S", index),
-            "entropy_max": _stat_at(source, "max_S", index),
-            "wall_s": _stat_at(source, "time", index),
-            "max_trunc_err": _stat_at(source, "max_trunc_err", index),
-            "max_energy_trunc": _stat_at(source, "max_E_trunc", index),
-            "max_chi": _stat_at(source, "max_chi", index),
-            "canonical_error": _stat_at(source, "norm_err", index),
+            "sweep": _stat_alias_at(source, "sweep", index),
+            "energy": _stat_alias_at(source, "energy", index),
+            "delta_energy": _stat_alias_at(source, "delta_energy", index),
+            "entropy_mean": _stat_alias_at(source, "entropy_mean", index),
+            "entropy_delta": _stat_alias_at(source, "entropy_delta", index),
+            "entropy_max": _stat_alias_at(source, "entropy_max", index),
+            "wall_s": _stat_alias_at(source, "wall_s", index),
+            "step_wall_s": _wall_delta_at(source, index),
+            "max_trunc_err": _stat_alias_at(source, "max_trunc_err", index),
+            "max_energy_trunc": _stat_alias_at(source, "max_energy_trunc", index),
+            "max_chi": _stat_alias_at(source, "max_chi", index),
+            "canonical_error": _stat_alias_at(source, "canonical_error", index),
         }
         record.update(extra)
         records.append({key: value for key, value in record.items() if value is not None})
@@ -140,6 +156,25 @@ def _stat_at(stats: dict[str, Any], key: str, index: int) -> Any:
             return None
         return _json_scalar(value[index])
     return _json_scalar(value)
+
+
+def _stat_alias_at(stats: dict[str, Any], name: str, index: int) -> Any:
+    for key in STAT_ALIASES[name]:
+        if key in stats:
+            return _stat_at(stats, key, index)
+    return None
+
+
+def _wall_delta_at(stats: dict[str, Any], index: int) -> Any:
+    for key in STAT_ALIASES["wall_s"]:
+        value = stats.get(key)
+        if isinstance(value, list | tuple):
+            current = _json_scalar(value[index]) if index < len(value) else None
+            previous = _json_scalar(value[index - 1]) if index > 0 and index - 1 < len(value) else 0
+            if isinstance(current, int | float) and isinstance(previous, int | float):
+                return current - previous
+            return None
+    return None
 
 
 def _json_scalar(value: Any) -> str | int | float | bool | None:
