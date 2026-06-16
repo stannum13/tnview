@@ -6,6 +6,7 @@ Use this checklist before tagging a public release.
 
    ```bash
    make check
+   make smoke
    make runlog-demo
    .venv/bin/python -m pip install -e .
    ```
