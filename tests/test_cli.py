@@ -17,6 +17,18 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result.stdout.strip(), "tnview 1.1.0")
 
+    def test_help_includes_runnable_examples(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "tnview.cli", "--help"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("examples:", result.stdout)
+        self.assertIn("tnview tour", result.stdout)
+        self.assertIn("tnview diagnose examples/dmrg_bad_run.jsonl", result.stdout)
+
     def test_tour_command_shows_motivated_onboarding(self) -> None:
         result = subprocess.run(
             [sys.executable, "-m", "tnview.cli", "tour"],

@@ -152,6 +152,17 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tnview",
         description="Terminal-native viewer for tensor-network dynamics and complexity telemetry.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="\n".join(
+            [
+                "examples:",
+                "  tnview tour",
+                "  tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear",
+                "  tnview diagnose examples/dmrg_bad_run.jsonl --profile strict",
+                "  tnview scope examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --bond 1",
+                "  tnview sketch --wizard",
+            ]
+        ),
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--verbose", action="store_true", help="show tracebacks for expected CLI errors")
