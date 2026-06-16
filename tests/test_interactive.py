@@ -221,6 +221,7 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertIn("scroll 5,12", _footer(controller))
         self.assertIn("T=", _footer(controller))
         self.assertIn(": commands", _footer(controller))
+        self.assertLessEqual(len(_footer(controller)), 120)
 
         controller.handle_key("?")
         output = controller.render(width=100, unicode=False)

@@ -419,25 +419,12 @@ def _footer(controller: ReplayController) -> str:
     latest = state.latest_checkpoint
     time = "n/a" if latest is None else f"{latest.time:g}"
     step = "n/a" if latest is None else str(latest.step)
-    toggles = (
-        f"U:{_on(controller.show_updates)} "
-        f"E:{_on(controller.show_entropy)} "
-        f"C:{_on(controller.show_pressure)} "
-        f"I:{_on(controller.show_inspector)} "
-        f"D:{_on(controller.show_diagnostics)} "
-        f"S:{_on(controller.show_scope)}"
-    )
     return (
-        f"checkpoint {checkpoint}/{max(0, controller.checkpoint_count - 1)}  "
-        f"step {step}  T={time}  bond {bond}  window b{controller.bond_start}+{controller.bond_limit}  "
-        f"scroll {controller.scroll_offset},{controller.column_offset}  "
-        f"pgup/pgdn up/down  </> left/right  [/] bonds  "
-        f"f/m/x focus  {toggles}  : commands  ? help  q quit"
+        f"ckpt {checkpoint}/{max(0, controller.checkpoint_count - 1)} "
+        f"step {step} T={time} {bond} win b{controller.bond_start}+{controller.bond_limit} "
+        f"scroll {controller.scroll_offset},{controller.column_offset} | "
+        "n/p ckpt j/k bond pg scroll <> pan [] win | : commands ? help q"
     )
-
-
-def _on(value: bool) -> str:
-    return "on" if value else "off"
 
 
 def _help_text() -> str:
