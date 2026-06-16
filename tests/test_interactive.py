@@ -63,6 +63,31 @@ class ReplayControllerTests(unittest.TestCase):
         controller.handle_key("\n")
         self.assertEqual(controller.selected_bond, 2)
 
+    def test_command_mode_dispatches_navigation_and_toggles(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+
+        controller.execute_command("checkpoint 1")
+        self.assertEqual(controller.checkpoint_index, 1)
+        controller.execute_command("next")
+        self.assertEqual(controller.checkpoint_index, 2)
+        controller.execute_command("bond 2")
+        self.assertEqual(controller.selected_bond, 2)
+        controller.execute_command("toggle entropy")
+        self.assertFalse(controller.show_entropy)
+
+    def test_colon_key_enters_command_mode(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+
+        controller.handle_key(":")
+        for char in "checkpoint 0":
+            controller.handle_key(char)
+        self.assertIn(":checkpoint 0_", _footer(controller))
+        controller.handle_key("\n")
+
+        self.assertEqual(controller.checkpoint_index, 0)
+
     def test_jump_methods_are_bounded(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
         controller = ReplayController(events)
@@ -180,6 +205,7 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertIn("shift-left/right", output)
         self.assertIn("</>", output)
         self.assertIn("top/bottom", output)
+        self.assertIn(":toggle", output)
 
     def test_viewport_lines_crop_rows_and_columns(self) -> None:
         lines = ["0123456789", "abcdefghij", "ABCDEFGHIJ"]

@@ -132,6 +132,9 @@ class ReplayController:
         elif key == "b":
             self.input_mode = "bond"
             self.input_buffer = ""
+        elif key == ":":
+            self.input_mode = "command"
+            self.input_buffer = ""
         return True
 
     def jump_checkpoint(self, index: int) -> None:
@@ -256,18 +259,55 @@ class ReplayController:
         if key in {"KEY_BACKSPACE", "\b", "\x7f"}:
             self.input_buffer = self.input_buffer[:-1]
             return
-        if key.isdigit():
+        if self.input_mode in {"checkpoint", "bond"} and key.isdigit():
+            self.input_buffer += key
+        elif self.input_mode == "command" and len(key) == 1 and key.isprintable():
             self.input_buffer += key
 
     def _commit_input(self) -> None:
         if self.input_buffer:
-            value = int(self.input_buffer)
             if self.input_mode == "checkpoint":
+                value = int(self.input_buffer)
                 self.jump_checkpoint(value)
             elif self.input_mode == "bond":
+                value = int(self.input_buffer)
                 self.jump_bond(value)
+            elif self.input_mode == "command":
+                self.execute_command(self.input_buffer)
         self.input_mode = None
         self.input_buffer = ""
+
+    def execute_command(self, command: str) -> None:
+        parts = command.strip().lower().split()
+        if not parts:
+            return
+        verb = parts[0]
+        argument = parts[1] if len(parts) > 1 else None
+        if verb in {"next", "n"}:
+            self.next_checkpoint()
+        elif verb in {"previous", "prev", "p"}:
+            self.previous_checkpoint()
+        elif verb in {"checkpoint", "goto", "g"} and argument is not None and argument.isdigit():
+            self.jump_checkpoint(int(argument))
+        elif verb in {"bond", "b"} and argument is not None and argument.isdigit():
+            self.jump_bond(int(argument))
+        elif verb == "focus" and argument in {"bottleneck", "entropy", "compute"}:
+            self.focus(argument)
+        elif verb == "toggle" and argument is not None:
+            self.toggle_section(argument)
+
+    def toggle_section(self, section: str) -> None:
+        if section in {"updates", "u"}:
+            self.show_updates = not self.show_updates
+        elif section in {"entropy", "e"}:
+            self.show_entropy = not self.show_entropy
+        elif section in {"pressure", "complexity", "c"}:
+            self.show_pressure = not self.show_pressure
+        elif section in {"inspector", "i"}:
+            self.show_inspector = not self.show_inspector
+        elif section in {"diagnostics", "d"}:
+            self.show_diagnostics = not self.show_diagnostics
+        self._reset_scroll()
 
     def _reset_scroll(self) -> None:
         self.scroll_offset = 0
@@ -333,8 +373,9 @@ def _viewport_lines(
 
 def _footer(controller: ReplayController) -> str:
     if controller.input_mode is not None:
-        label = "checkpoint" if controller.input_mode == "checkpoint" else "bond"
-        return f"jump {label}: {controller.input_buffer}_  enter accept  esc cancel"
+        label = {"checkpoint": "checkpoint", "bond": "bond", "command": "command"}[controller.input_mode]
+        prompt = ":" if controller.input_mode == "command" else f"jump {label}: "
+        return f"{prompt}{controller.input_buffer}_  enter accept  esc cancel"
     checkpoint = "n/a" if controller.checkpoint_index is None else str(controller.checkpoint_index)
     bond = "n/a" if controller.selected_bond is None else f"b{controller.selected_bond}"
     toggles = (
@@ -369,6 +410,7 @@ def _help_text() -> str:
             "  k, up           previous bond",
             "  g               jump to checkpoint index",
             "  b               jump to bond index",
+            "  :               type command, e.g. ':checkpoint 1' or ':focus entropy'",
             "  pgup/pgdn       scroll up/down",
             "  shift-left/right scroll left/right when supported",
             "  </>             scroll left/right",
@@ -384,6 +426,7 @@ def _help_text() -> str:
             "  c               chi/truncation rows",
             "  i               selected-bond inspector",
             "  d               diagnostics",
+            "  :toggle NAME    toggle updates, entropy, pressure, inspector, diagnostics",
             "",
             "other",
             "  ?               toggle this help",
