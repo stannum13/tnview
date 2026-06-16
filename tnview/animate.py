@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from tnview.events import Checkpoint, TelemetryEvent
 from tnview.focus import choose_focus
 from tnview.render import RenderOptions, render_run
-from tnview.state import RunState, TimeSlice
+from tnview.signals import SignalPoint, signal_points
+from tnview.state import RunState
 from tnview.terminal import render_sparkline, render_status_dot
 
 
@@ -72,8 +73,8 @@ def render_animation_frame(
 
     time_min = checkpoint.time - window_radius
     time_max = checkpoint.time + window_radius
-    rows = _window_rows(state, time_min=time_min, time_max=time_max)
-    signal_panel = _signal_panel(state, rows, width=width or 100, unicode=unicode, color=color)
+    points = signal_points(state, time_min=time_min, time_max=time_max)
+    signal_panel = _signal_panel(state, points, width=width or 100, unicode=unicode, color=color)
     body = render_run(
         state,
         RenderOptions(
@@ -117,18 +118,14 @@ def _state_at_checkpoint(events: list[TelemetryEvent], checkpoint_index: int) ->
     return state
 
 
-def _window_rows(state: RunState, *, time_min: float, time_max: float) -> list[TimeSlice]:
-    return [row for row in state.history if time_min <= row.time <= time_max]
-
-
-def _signal_panel(state: RunState, rows: list[TimeSlice], *, width: int, unicode: bool, color: bool) -> str:
-    if not rows:
+def _signal_panel(state: RunState, points: list[SignalPoint], *, width: int, unicode: bool, color: bool) -> str:
+    if not points:
         return ""
 
-    entropy = [max(row.entropy_by_bond.values(), default=0.0) for row in rows]
-    chi = [float(max(row.chi_by_bond.values(), default=0)) for row in rows]
-    trunc = [max(row.trunc_by_bond.values(), default=0.0) for row in rows]
-    front = [float(_front_span(row)) for row in rows]
+    entropy = [point.entropy_max for point in points]
+    chi = [float(point.max_chi) for point in points]
+    trunc = [point.max_trunc_error for point in points]
+    front = [float(point.front_span) for point in points]
 
     lines = ["Oscilloscope signals"]
     lines.append(_signal_line("entropy", entropy, unit="", severity="ok", width=width, unicode=unicode, color=color))
@@ -155,22 +152,8 @@ def _signal_line(
     return _fit(f"  {dot} {label:<7} {trend:<12} latest={latest}{unit}  change={change}", width)
 
 
-def _front_span(row: TimeSlice) -> int:
-    max_entropy = max(row.entropy_by_bond.values(), default=0.0)
-    if max_entropy <= 0:
-        return 0
-    threshold = 0.5 * max_entropy
-    active = [bond for bond, entropy in row.entropy_by_bond.items() if entropy >= threshold]
-    if not active:
-        return 0
-    return max(active) - min(active) + 1
-
-
 def _chi_severity(state: RunState) -> str:
-    bonds = state.ordered_bonds
-    if not bonds:
-        return "ok"
-    if any(bond.saturated or bond.chi_pressure >= 0.9 for bond in bonds):
+    if any(bond.saturated or bond.chi_pressure >= 0.9 for bond in state.ordered_bonds):
         return "warning"
     return "ok"
 
