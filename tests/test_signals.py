@@ -5,6 +5,7 @@ from tnview.events import parse_jsonl
 from tnview.signals import (
     SignalPoint,
     detect_signal_markers,
+    expand_signal_names,
     signal_payload,
     signal_points,
     signal_points_from_events,
@@ -14,6 +15,14 @@ from tnview.state import reduce_events
 
 
 class SignalExtractionTests(unittest.TestCase):
+    def test_expand_signal_names_handles_groups(self) -> None:
+        self.assertEqual(expand_signal_names(None), ("entropy", "chi", "trunc", "front"))
+        self.assertEqual(expand_signal_names(["all", "trunc"]), ("entropy", "chi", "trunc", "front"))
+        self.assertEqual(
+            expand_signal_names(["selected", "front", "selected"]),
+            ("selected_entropy", "selected_chi", "selected_trunc", "front"),
+        )
+
     def test_signal_points_capture_checkpoint_metrics(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
         state = reduce_events(events)

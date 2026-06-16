@@ -43,6 +43,20 @@ class SignalMarker:
     message: str
 
 
+def expand_signal_names(values: list[str] | tuple[str, ...] | None) -> tuple[str, ...]:
+    """Expand CLI-facing signal groups into stable internal signal names."""
+
+    if not values or "all" in values:
+        return ("entropy", "chi", "trunc", "front")
+    selected: list[str] = []
+    for value in values:
+        if value == "selected":
+            selected.extend(["selected_entropy", "selected_chi", "selected_trunc"])
+        else:
+            selected.append(value)
+    return tuple(dict.fromkeys(selected))
+
+
 def signal_points(
     state: RunState,
     *,

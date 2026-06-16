@@ -42,7 +42,7 @@ from tnview.schema import render_schema, schema_payload
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.scope import render_scope
 from tnview.snapshot import snapshot_json
-from tnview.signals import signal_payload, signal_points_from_events
+from tnview.signals import expand_signal_names, signal_payload, signal_points_from_events
 from tnview.sketch import SketchSpec, generate_sketch_replay, parse_sketch_prompt, render_sketch_list
 from tnview.sketch_wizard import run_sketch_wizard
 from tnview.state import RunState
@@ -464,7 +464,7 @@ def _scope(args: argparse.Namespace) -> int:
     print(
         render_scope(
             points,
-            signals=_scope_signals(args.signal),
+            signals=expand_signal_names(args.signal),
             width=args.width,
             unicode=not args.ascii,
             color=_color_enabled(args),
@@ -1042,18 +1042,6 @@ def _scope_time_window(args: argparse.Namespace) -> tuple[float | None, float | 
             exit_code=2,
         )
     return args.start_time, args.end_time
-
-
-def _scope_signals(values: list[str] | None) -> tuple[str, ...]:
-    if not values or "all" in values:
-        return ("entropy", "chi", "trunc", "front")
-    selected: list[str] = []
-    for value in values:
-        if value == "selected":
-            selected.extend(["selected_entropy", "selected_chi", "selected_trunc"])
-        else:
-            selected.append(value)
-    return tuple(dict.fromkeys(selected))
 
 
 def _select_requested_bond(state: RunState, bond: int | None) -> None:
