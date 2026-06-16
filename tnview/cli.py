@@ -186,6 +186,7 @@ def _parser() -> argparse.ArgumentParser:
     animate.add_argument("--center-time", type=float, help="render checkpoint frames around time T")
     animate.add_argument("--start-time", type=float, help="first checkpoint time to render")
     animate.add_argument("--end-time", type=float, help="last checkpoint time to render")
+    animate.add_argument("--bond", type=int, help="selected bond for selected-bond signal rows")
     animate.add_argument("--interval", type=float, default=0.2, help="sleep interval between frames")
     animate.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     animate.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
@@ -464,6 +465,7 @@ def _animate(args: argparse.Namespace) -> int:
             unicode=not args.ascii,
             color=_color_enabled(args),
             focus=args.focus,
+            selected_bond=args.bond,
             signals=expand_signal_names(args.signal),
         )
         print(frame.text)

@@ -186,7 +186,9 @@ class CliTests(unittest.TestCase):
                 "--no-clear",
                 "--ascii",
                 "--signal",
-                "trunc",
+                "selected",
+                "--bond",
+                "1",
                 "--width",
                 "100",
             ],
@@ -196,7 +198,7 @@ class CliTests(unittest.TestCase):
         )
 
         signal_block = result.stdout.split("\n\n", 1)[0]
-        self.assertIn("trunc", signal_block)
+        self.assertIn("sel chi", signal_block)
         self.assertNotIn("entropy", signal_block)
 
     def test_animate_can_filter_frames_by_time(self) -> None:

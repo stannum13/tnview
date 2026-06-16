@@ -57,6 +57,7 @@ class AnimateTests(unittest.TestCase):
             window_radius=0.8,
             width=100,
             unicode=False,
+            selected_bond=1,
             signals=("trunc",),
         )
 

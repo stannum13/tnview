@@ -81,6 +81,7 @@ def render_animation_frame(
     unicode: bool = True,
     color: bool = False,
     focus: str = "bottleneck",
+    selected_bond: int | None = None,
     signals: tuple[str, ...] = ("entropy", "chi", "trunc", "front"),
 ) -> AnimationFrame:
     """Render one oscilloscope-style replay frame."""
@@ -95,6 +96,8 @@ def render_animation_frame(
         selection = choose_focus(state, strategy=focus, window=None)
         if selection.bond is not None:
             state.select_bond(selection.bond)
+    if selected_bond is not None:
+        state.select_bond(selected_bond)
 
     time_min = checkpoint.time - window_radius
     time_max = checkpoint.time + window_radius
