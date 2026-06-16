@@ -304,10 +304,17 @@ class ReplayController:
             self._jump_time_argument(argument)
         elif verb in {"bond", "b"} and argument is not None and argument.isdigit():
             self.jump_bond(int(argument))
-        elif verb == "focus" and argument in {"bottleneck", "entropy", "compute"}:
+        elif verb == "focus" and argument in {"bottleneck", "entropy", "front", "compute", "center"}:
             self.focus(argument)
         elif verb == "toggle" and argument is not None:
             self.toggle_section(argument)
+        elif verb in {"scope", "signals"}:
+            self.toggle_section("scope")
+        elif verb in {"diagnostics", "diag"}:
+            self.toggle_section("diagnostics")
+        elif verb in {"help", "commands", "?"}:
+            self.show_help = True
+            self._reset_scroll()
 
     def toggle_section(self, section: str) -> None:
         if section in {"updates", "u"}:
@@ -404,9 +411,14 @@ def _footer(controller: ReplayController) -> str:
     if controller.input_mode is not None:
         label = {"checkpoint": "checkpoint", "bond": "bond", "command": "command"}[controller.input_mode]
         prompt = ":" if controller.input_mode == "command" else f"jump {label}: "
-        return f"{prompt}{controller.input_buffer}_  enter accept  esc cancel"
+        hint = "  try :help" if controller.input_mode == "command" and not controller.input_buffer else ""
+        return f"{prompt}{controller.input_buffer}_  enter accept  esc cancel{hint}"
     checkpoint = "n/a" if controller.checkpoint_index is None else str(controller.checkpoint_index)
     bond = "n/a" if controller.selected_bond is None else f"b{controller.selected_bond}"
+    state = controller.state()
+    latest = state.latest_checkpoint
+    time = "n/a" if latest is None else f"{latest.time:g}"
+    step = "n/a" if latest is None else str(latest.step)
     toggles = (
         f"U:{_on(controller.show_updates)} "
         f"E:{_on(controller.show_entropy)} "
@@ -417,10 +429,10 @@ def _footer(controller: ReplayController) -> str:
     )
     return (
         f"checkpoint {checkpoint}/{max(0, controller.checkpoint_count - 1)}  "
-        f"bond {bond}  window b{controller.bond_start}+{controller.bond_limit}  "
+        f"step {step}  T={time}  bond {bond}  window b{controller.bond_start}+{controller.bond_limit}  "
         f"scroll {controller.scroll_offset},{controller.column_offset}  "
         f"pgup/pgdn up/down  </> left/right  [/] bonds  "
-        f"f/m/x focus  {toggles}  ? help  q quit"
+        f"f/m/x focus  {toggles}  : commands  ? help  q quit"
     )
 
 
@@ -450,6 +462,16 @@ def _help_text() -> str:
             "  m               focus max-entropy bond",
             "  x               focus slowest-compute bond",
             "",
+            "commands",
+            "  :help           show this command reference",
+            "  :checkpoint N   jump to checkpoint index",
+            "  :time T         jump to nearest checkpoint time",
+            "  :bond N         select and center bond",
+            "  :focus NAME     bottleneck, entropy, front, compute, center",
+            "  :scope          toggle oscilloscope scope panel",
+            "  :diagnostics    toggle diagnostics panel",
+            "  :toggle NAME    toggle updates, entropy, pressure, inspector, diagnostics, scope",
+            "",
             "toggles",
             "  u               TEBD/TDVP updates",
             "  e               entropy heatmap",
@@ -457,7 +479,6 @@ def _help_text() -> str:
             "  i               selected-bond inspector",
             "  d               diagnostics",
             "  s               oscilloscope scope panel",
-            "  :toggle NAME    toggle updates, entropy, pressure, inspector, diagnostics, scope",
             "",
             "other",
             "  ?               toggle this help",

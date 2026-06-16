@@ -77,10 +77,16 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertEqual(controller.checkpoint_index, 1)
         controller.execute_command("bond 2")
         self.assertEqual(controller.selected_bond, 2)
+        controller.execute_command("focus front")
+        self.assertIsNotNone(controller.selected_bond)
         controller.execute_command("toggle entropy")
         self.assertFalse(controller.show_entropy)
-        controller.execute_command("toggle scope")
+        controller.execute_command("scope")
         self.assertTrue(controller.show_scope)
+        controller.execute_command("diagnostics")
+        self.assertFalse(controller.show_diagnostics)
+        controller.execute_command("help")
+        self.assertTrue(controller.show_help)
 
     def test_colon_key_enters_command_mode(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
@@ -213,6 +219,8 @@ class ReplayControllerTests(unittest.TestCase):
         controller.scroll_right(12)
 
         self.assertIn("scroll 5,12", _footer(controller))
+        self.assertIn("T=", _footer(controller))
+        self.assertIn(": commands", _footer(controller))
 
         controller.handle_key("?")
         output = controller.render(width=100, unicode=False)
@@ -222,7 +230,17 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertIn("</>", output)
         self.assertIn("top/bottom", output)
         self.assertIn(":toggle", output)
+        self.assertIn(":scope", output)
+        self.assertIn(":diagnostics", output)
         self.assertIn("scope panel", output)
+
+    def test_command_mode_footer_suggests_help(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        controller = ReplayController(events)
+
+        controller.handle_key(":")
+
+        self.assertIn("try :help", _footer(controller))
 
     def test_viewport_lines_crop_rows_and_columns(self) -> None:
         lines = ["0123456789", "abcdefghij", "ABCDEFGHIJ"]
