@@ -38,6 +38,7 @@ from tnview.focus import choose_focus, choose_focus_for_bond
 from tnview.focus_report import FOCUS_STRATEGIES, apply_focus, focus_payload, render_focus_strategies, render_focus_view
 from tnview.interactive import run_interactive
 from tnview.preview import complexity_preview, render_preview
+from tnview.recipes import recipes_payload, render_recipes
 from tnview.render import RenderOptions, render_run
 from tnview.runreplay import render_run_log_replay, run_interactive_run_log
 from tnview.runlog import RUN_LOG_EVENTS, read_jsonl_records
@@ -107,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
             return _focus(args)
         if args.command == "tour":
             return _tour(args)
+        if args.command == "recipes":
+            return _recipes(args)
     except CliError as exc:
         if getattr(args, "json", False):
             write_json(error_payload(exc), stream=sys.stderr)
@@ -402,6 +405,9 @@ def _parser() -> argparse.ArgumentParser:
 
     tour = subparsers.add_parser("tour", help="show the motivated first-run tour")
     tour.add_argument("--json", action="store_true", help="write stable machine-readable tour JSON")
+
+    recipes = subparsers.add_parser("recipes", help="show runnable TNView workflow recipes")
+    recipes.add_argument("--json", action="store_true", help="write stable machine-readable recipes JSON")
 
     return parser
 
@@ -1046,6 +1052,14 @@ def _tour(args: argparse.Namespace) -> int:
         write_json(tour_payload())
     else:
         write_text(render_tour())
+    return 0
+
+
+def _recipes(args: argparse.Namespace) -> int:
+    if args.json:
+        write_json(recipes_payload())
+    else:
+        write_text(render_recipes())
     return 0
 
 

@@ -54,6 +54,29 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["kind"], "tour")
         self.assertEqual(payload["steps"][0]["name"], "try_without_data")
 
+    def test_recipes_command_shows_workflows(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "tnview.cli", "recipes"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView recipes", result.stdout)
+        self.assertIn("tnview watch", result.stdout)
+
+    def test_recipes_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "tnview.cli", "recipes", "--json"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "recipes")
+        self.assertEqual(payload["recipes"][0]["name"], "watch-run")
+
     def test_parse_errors_are_structured_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.jsonl"
