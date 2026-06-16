@@ -288,7 +288,8 @@ optimizer stagnation, non-finite metrics, canonical-form drift, and sustained
 entropy growth. Add `--json` for stable machine-readable diagnostics. Thresholds
 can be adjusted with `--profile strict|default|loose` or explicit flags such as
 `--energy-eps`, `--truncation-floor`, `--memory-factor`, and
-`--canonical-error`.
+`--canonical-error`. Use repeatable `--suppress CODE` when a known warning is
+expected for a particular run family.
 
 `validate` checks replay and run-log JSONL syntax. Add `--strict` to require
 run-log metadata such as `schema_version`, `run_id`, and timestamp fields. Add
