@@ -45,10 +45,29 @@ def render_scope(
             lines.append(_signal_line(signal, values, width=width, unicode=unicode, color=color))
 
     if markers:
+        lines.extend(["", render_marker_ticks(points, markers=markers, width=width, unicode=unicode)])
         lines.extend(["", "Event markers"])
         lines.extend(_marker_lines(markers, width=width, unicode=unicode, color=color))
 
     return "\n".join(lines)
+
+
+def render_marker_ticks(
+    points: list[SignalPoint],
+    *,
+    markers: list[SignalMarker] | None = None,
+    width: int = 100,
+    unicode: bool = True,
+) -> str:
+    """Render one compact marker row aligned to checkpoint signal points."""
+
+    if not points:
+        return _fit("Event ticks  (none)", width)
+    by_index: dict[int, list[SignalMarker]] = {}
+    for marker in markers or detect_signal_markers(points):
+        by_index.setdefault(marker.index, []).append(marker)
+    glyphs = [_tick_glyph(by_index.get(index, []), unicode=unicode) for index in range(len(points))]
+    return _fit(f"Event ticks  {''.join(glyphs)}", width)
 
 
 def _signal_line(signal: str, values: list[float], *, width: int, unicode: bool, color: bool) -> str:
@@ -67,6 +86,16 @@ def _marker_lines(markers: list[SignalMarker], *, width: int, unicode: bool, col
         dot = render_status_dot(marker.severity, unicode=unicode, color=color)
         lines.append(_fit(f"  {dot} t={marker.time:g} step={marker.step:<5} {marker.code:<18} {marker.message}", width))
     return lines
+
+
+def _tick_glyph(markers: list[SignalMarker], *, unicode: bool) -> str:
+    if any(marker.severity == "error" for marker in markers):
+        return "!" if not unicode else "!"
+    if any(marker.severity == "warning" for marker in markers):
+        return "!" if not unicode else "▲"
+    if markers:
+        return "|" if not unicode else "•"
+    return "." if not unicode else "·"
 
 
 def _series_severity(signal: str, values: list[float]) -> str:

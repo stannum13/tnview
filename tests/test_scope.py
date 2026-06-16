@@ -2,7 +2,7 @@ from pathlib import Path
 import unittest
 
 from tnview.events import parse_jsonl
-from tnview.scope import render_scope
+from tnview.scope import render_marker_ticks, render_scope
 from tnview.signals import signal_points_from_events
 
 
@@ -23,6 +23,7 @@ class ScopeRenderTests(unittest.TestCase):
         self.assertIn("Signals", output)
         self.assertIn("entropy", output)
         self.assertIn("max chi", output)
+        self.assertIn("Event ticks", output)
         self.assertIn("Event markers", output)
         self.assertIn("chi_saturation", output)
         self.assertIn("selected_pressure", output)
@@ -35,6 +36,14 @@ class ScopeRenderTests(unittest.TestCase):
 
         self.assertIn("trunc", output)
         self.assertNotIn("max chi  ", output)
+
+    def test_render_marker_ticks_uses_ascii_warning_ticks(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
+        points = signal_points_from_events(events, selected_bond=1)
+
+        output = render_marker_ticks(points, unicode=False)
+
+        self.assertEqual(output, "Event ticks  !!!")
 
 
 if __name__ == "__main__":
