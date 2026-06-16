@@ -74,6 +74,17 @@ class StateRenderingTests(unittest.TestCase):
         self.assertIn("chi/max:    \u00b7 \u00b7 \u00b7", output)
         self.assertIn("trunc eps:  \u00b7 \u00b7 \u00b7", output)
 
+    def test_color_mode_highlights_attention_markers(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
+        state = reduce_events(events)
+        state.select_bond(1)
+
+        output = render_run(state, RenderOptions(width=140, unicode=False, color=True))
+
+        self.assertIn("\033[1;31m==\033[0m", output)
+        self.assertIn("\033[1;36mSelected bond b1", output)
+        self.assertIn("risk:                \033[1;31mhigh\033[0m", output)
+
     def test_topology_alignment_handles_multi_digit_sites(self) -> None:
         lines = []
         for bond in range(9, 12):

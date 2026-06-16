@@ -19,6 +19,7 @@ from tnview.state import (
     entanglement_front,
     top_truncation_bonds,
 )
+from tnview.terminal import ansi, severity_color
 from tnview.warnings import early_warning
 
 
@@ -60,7 +61,7 @@ def render_run(state: RunState, options: RenderOptions | None = None) -> str:
         _pressure_rows(state, width, options) if options.show_pressure else "",
         _inspector(state, width, options) if options.show_inspector else "",
         _observables(state, width) if options.show_diagnostics else "",
-        _diagnostics(state, width) if options.show_diagnostics else "",
+        _diagnostics(state, width, options) if options.show_diagnostics else "",
     ]
     return "\n\n".join(section for section in sections if section)
 
@@ -131,7 +132,8 @@ def _updates(state: RunState, width: int, options: RenderOptions) -> str:
     lines = ["TEBD brick-wall updates"]
     for update in updates:
         delta = update.entropy_after - update.entropy_before
-        marker = _update_marker(update)
+        severity = _update_severity(update)
+        marker = _style(_update_marker(update), severity, options, bold=severity != "unknown")
         line = (
             f"{marker} step {update.step:<5} {update.layer:<4} b{update.bond:<3} "
             f"S {update.entropy_before:.2f}->{update.entropy_after:.2f} "
@@ -144,14 +146,19 @@ def _updates(state: RunState, width: int, options: RenderOptions) -> str:
 
 def _topology_link(status: str, options: RenderOptions) -> str:
     if options.unicode:
-        return {"healthy": "──", "pressure": "━━", "saturated": "══"}[status]
-    return {"healthy": "--", "pressure": "++", "saturated": "=="}[status]
+        link = {"healthy": "──", "pressure": "━━", "saturated": "══"}[status]
+    else:
+        link = {"healthy": "--", "pressure": "++", "saturated": "=="}[status]
+    if status == "healthy":
+        return link
+    return _style(link, _status_severity(status), options, bold=True)
 
 
 def _topology_marker(active: bool, options: RenderOptions) -> str:
     if not active:
         return "  "
-    return "^^" if not options.unicode else "▲▲"
+    marker = "^^" if not options.unicode else "▲▲"
+    return _style(marker, "info", options, bold=True)
 
 
 def _topology_legend(options: RenderOptions) -> str:
@@ -167,7 +174,8 @@ def _tdvp_sweeps(state: RunState, width: int, options: RenderOptions) -> str:
 
     lines = ["TDVP sweep view"]
     for sweep in sweeps:
-        marker = _sweep_marker(sweep)
+        severity = _sweep_severity(sweep)
+        marker = _style(_sweep_marker(sweep), severity, options, bold=severity != "unknown")
         line = (
             f"{marker} step {sweep.step:<5} {sweep.direction:<5} "
             f"{sweep.start_site}->{sweep.end_site} "
@@ -218,9 +226,33 @@ def _pressure_rows(state: RunState, width: int, options: RenderOptions) -> str:
 
     glyphs = UNICODE_PRESSURE_BLOCKS if options.unicode else ASCII_PRESSURE_BLOCKS
     max_trunc = max((bond.trunc_error for bond in bonds), default=0.0)
-    pressure = " ".join(_bucket(bond.chi_pressure, 1.0, glyphs) for bond in bonds)
-    saturation = " ".join("!" if bond.saturated else "+" if bond.chi_pressure >= 0.75 else "." for bond in bonds)
-    truncation = " ".join(_log_bucket(bond.trunc_error, max_trunc, glyphs) for bond in bonds)
+    pressure = " ".join(
+        _style(
+            _bucket(bond.chi_pressure, 1.0, glyphs),
+            _bond_pressure_severity(bond),
+            options,
+            bold=bond.chi_pressure >= 0.75,
+        )
+        for bond in bonds
+    )
+    saturation = " ".join(
+        _style(
+            "!" if bond.saturated else "+" if bond.chi_pressure >= 0.75 else ".",
+            _bond_pressure_severity(bond) if bond.saturated or bond.chi_pressure >= 0.75 else "unknown",
+            options,
+            bold=bond.saturated or bond.chi_pressure >= 0.75,
+        )
+        for bond in bonds
+    )
+    truncation = " ".join(
+        _style(
+            _log_bucket(bond.trunc_error, max_trunc, glyphs),
+            _trunc_severity(bond.trunc_error),
+            options,
+            bold=bond.trunc_error >= 1e-7,
+        )
+        for bond in bonds
+    )
     labels = _bond_axis([bond.bond for bond in bonds])
 
     return "\n".join(
@@ -241,7 +273,7 @@ def _inspector(state: RunState, width: int, options: RenderOptions) -> str:
 
     spectrum = _schmidt_sparkline(bond, options)
     lines = [
-        f"Selected bond b{bond.bond} = sites {bond.site_left}|{bond.site_right}",
+        _style(f"Selected bond b{bond.bond} = sites {bond.site_left}|{bond.site_right}", "info", options, bold=True),
         f"S_vN:              {bond.entropy:.4g}",
         f"Renyi-2:           {_maybe_float(bond.renyi2)}",
         f"chi:               {bond.chi} / {bond.chi_max}",
@@ -250,7 +282,7 @@ def _inspector(state: RunState, width: int, options: RenderOptions) -> str:
         f"discarded weight:  {_maybe_float(bond.discarded_weight, scientific=True)}",
         f"SVD walltime:      {_maybe_float(bond.walltime_ms)} ms",
         f"Schmidt lambda^2:  {spectrum}",
-        f"diagnosis:         {diagnose_bond(bond)}",
+        f"diagnosis:         {_style(diagnose_bond(bond), _bond_diagnosis_severity(bond), options, bold=bond.saturated)}",
     ]
     return "\n".join(_fit(line, width) for line in lines)
 
@@ -272,7 +304,7 @@ def _observables(state: RunState, width: int) -> str:
     return "\n".join(lines)
 
 
-def _diagnostics(state: RunState, width: int) -> str:
+def _diagnostics(state: RunState, width: int, options: RenderOptions) -> str:
     checkpoint = state.latest_checkpoint
     top = top_truncation_bonds(state)
     front = entanglement_front(state)
@@ -319,7 +351,7 @@ def _diagnostics(state: RunState, width: int) -> str:
             f"chi trend:           {warning.chi_saturation_trend}",
             f"truncation trend:    {warning.truncation_trend}",
             f"estimated chi need:  {_maybe_int(warning.estimated_chi_need)}",
-            f"risk:                {warning.risk}",
+            f"risk:                {_style(warning.risk, _risk_severity(warning.risk), options, bold=warning.risk != 'low')}",
             f"recommendation:      {warning.recommendation}",
         ]
     )
@@ -345,8 +377,8 @@ def _diagnostics(state: RunState, width: int) -> str:
         )
     lines.extend(
         [
-            f"energy drift:        {_maybe_float(drift.energy.latest, scientific=True)} ({drift.energy.severity})",
-            f"norm drift:          {_maybe_float(drift.norm.latest, scientific=True)} ({drift.norm.severity})",
+            f"energy drift:        {_maybe_float(drift.energy.latest, scientific=True)} ({_style(drift.energy.severity, _risk_severity(drift.energy.severity), options)})",
+            f"norm drift:          {_maybe_float(drift.norm.latest, scientific=True)} ({_style(drift.norm.severity, _risk_severity(drift.norm.severity), options)})",
             f"drift diagnosis:     {drift.diagnosis}",
             f"geometry stress:     {geometry.flattening.diagnosis}",
             f"long-range edges:    {geometry.flattening.long_range_edges}",
@@ -367,12 +399,31 @@ def _update_marker(update: BondUpdated) -> str:
     return "."
 
 
+def _update_severity(update: BondUpdated) -> str:
+    delta = update.entropy_after - update.entropy_before
+    if update.trunc_error >= 1e-7:
+        return "critical"
+    if delta >= 0.4:
+        return "warning"
+    if delta >= 0.15:
+        return "watch"
+    return "unknown"
+
+
 def _sweep_marker(sweep: TdvpSweep) -> str:
     if sweep.max_trunc_error is not None and sweep.max_trunc_error >= 1e-7:
         return "!"
     if sweep.max_residual is not None and sweep.max_residual >= 1e-5:
         return "+"
     return "."
+
+
+def _sweep_severity(sweep: TdvpSweep) -> str:
+    if sweep.max_trunc_error is not None and sweep.max_trunc_error >= 1e-7:
+        return "critical"
+    if sweep.max_residual is not None and sweep.max_residual >= 1e-5:
+        return "warning"
+    return "unknown"
 
 
 def _schmidt_sparkline(bond: BondState, options: RenderOptions) -> str:
@@ -428,6 +479,63 @@ def _log_bucket(value: float, max_value: float, glyphs: str) -> str:
     floor = max(max_value * 1e-6, 1e-15)
     normalized = (log10(max(value, floor)) - log10(floor)) / (log10(max_value) - log10(floor))
     return glyphs[round(max(0.0, min(1.0, normalized)) * (len(glyphs) - 1))]
+
+
+def _style(text: str, severity: str, options: RenderOptions, *, bold: bool = False, dim: bool = False) -> str:
+    if severity == "unknown" and not bold and not dim:
+        return text
+    return ansi(
+        text,
+        color=severity_color(severity),
+        bold=bold,
+        dim=dim,
+        enabled=options.color,
+    )
+
+
+def _status_severity(status: str) -> str:
+    if status == "saturated":
+        return "critical"
+    if status == "pressure":
+        return "warning"
+    return "ok"
+
+
+def _bond_pressure_severity(bond: BondState) -> str:
+    if bond.saturated or bond.chi_pressure >= 0.95:
+        return "critical"
+    if bond.chi_pressure >= 0.75:
+        return "warning"
+    if bond.chi_pressure >= 0.5:
+        return "watch"
+    return "unknown"
+
+
+def _trunc_severity(value: float) -> str:
+    if value >= 1e-7:
+        return "critical"
+    if value >= 1e-10:
+        return "warning"
+    return "unknown"
+
+
+def _bond_diagnosis_severity(bond: BondState) -> str:
+    if bond.saturated or bond.trunc_error >= 1e-7:
+        return "critical"
+    if bond.chi_pressure >= 0.75 or bond.trunc_error >= 1e-10:
+        return "warning"
+    return "ok"
+
+
+def _risk_severity(value: str) -> str:
+    normalized = value.lower().replace("_", "-")
+    if normalized in {"critical", "error", "high", "bad"}:
+        return "critical"
+    if normalized in {"warning", "warn", "medium", "watch", "stale"}:
+        return "warning"
+    if normalized in {"ok", "low", "controlled"}:
+        return "ok"
+    return "unknown"
 
 
 def _maybe_float(value: float | None, *, scientific: bool = False) -> str:

@@ -263,7 +263,7 @@ def _parser() -> argparse.ArgumentParser:
     tail.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     tail.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     tail.add_argument("--json", action="store_true", help="write stable machine-readable latest run-log JSON")
-    _render_args(tail)
+    _render_args(tail, include_color=False)
 
     watch = subparsers.add_parser("watch", help="watch a TNView run log with a live terminal dashboard")
     watch.add_argument("path", help="JSONL run log file to watch")
@@ -281,6 +281,7 @@ def _parser() -> argparse.ArgumentParser:
     demo.add_argument("--profile", choices=["easy", "hard"], default="hard", help="demo complexity profile")
     demo.add_argument("--interactive", action="store_true", help="open the generated replay in the interactive shell")
     demo.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    demo.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     demo.add_argument("--width", type=int, help="render width in columns")
     demo.add_argument("--window", type=int, default=16, help="number of bonds to show around the bottleneck")
 
@@ -292,6 +293,7 @@ def _parser() -> argparse.ArgumentParser:
     sketch.add_argument("--interactive", action="store_true", help="open the generated sketch in the interactive shell")
     sketch.add_argument("--json", action="store_true", help="write stable machine-readable sketch metadata JSON")
     sketch.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    sketch.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     sketch.add_argument("--width", type=int, help="render width in columns")
 
     compare = subparsers.add_parser("compare", help="compare multiple JSONL telemetry replays")
@@ -423,9 +425,11 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _render_args(parser: argparse.ArgumentParser) -> None:
+def _render_args(parser: argparse.ArgumentParser, *, include_color: bool = True) -> None:
     parser.add_argument("-b", "--bond", type=int, help="select a bond for the inspector")
     parser.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
+    if include_color:
+        parser.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     parser.add_argument("--width", type=int, help="render width in columns")
     parser.add_argument("--history", type=int, default=12, help="number of checkpoint rows to show")
     parser.add_argument("--bond-start", type=int, help="first bond index to show in topology and heatmaps")
@@ -695,6 +699,7 @@ def _demo(args: argparse.Namespace) -> int:
             RenderOptions(
                 width=args.width,
                 unicode=not args.ascii,
+                color=_color_enabled(args),
                 bond_start=focus.bond_start,
                 bond_limit=focus.bond_limit,
             ),
@@ -789,6 +794,7 @@ def _render_sketch(spec: SketchSpec, replay: str, args: argparse.Namespace) -> i
             RenderOptions(
                 width=args.width,
                 unicode=not args.ascii,
+                color=_color_enabled(args),
                 bond_start=focus.bond_start,
                 bond_limit=focus.bond_limit,
             ),
@@ -1253,6 +1259,7 @@ def _options(args: argparse.Namespace) -> RenderOptions:
     return RenderOptions(
         width=args.width,
         unicode=not args.ascii,
+        color=_color_enabled(args),
         history_limit=max(1, args.history),
         bond_start=args.bond_start,
         bond_limit=args.bond_limit or args.window,
