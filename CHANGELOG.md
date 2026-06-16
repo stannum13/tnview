@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- Added oscilloscope-style replay signals, marker ticks, `tnview scope`, and
+  richer animation controls for time windows, selected bonds, and signal
+  filtering.
+- Added interactive replay command mode, jump-to-time support, and a toggleable
+  scope panel.
+- Added `RunLogger` DMRG/TEBD convenience helpers.
+- Improved quimb `TNOptimizer` support with a stateful observer, deduplication,
+  loss deltas, gradient norm capture, and alternate metric names.
+- Improved TeNPy DMRG support with common sweep-stat aliases and inferred
+  configured chi limits.
+- Added diagnostic profiles, diagnostic categories, warning suppression, and
+  baseline-vs-candidate diagnostic comparison.
+- Added structured `tnview tour --json`, top-level CLI help examples, terminal
+  severity theme helpers, and a release smoke script.
+
 ## 1.1.0 - 2026-06-15
 
 Public release polish and live terminal UX.
