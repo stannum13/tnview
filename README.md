@@ -69,7 +69,7 @@ tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/quimb_tnoptimizer_run.jsonl
 tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii
 tnview scope examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --bond 1 --ascii
-tnview animate examples/tebd_run.jsonl --frames 3 --window 0.3 --no-clear --ascii
+tnview animate examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --signal trunc --no-clear --ascii
 tnview diagnose examples/dmrg_bad_run.jsonl
 tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 ```
@@ -185,6 +185,7 @@ tnview demo --interactive
 tnview scope examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --bond 1 --ascii
 tnview scope examples/tebd_run.jsonl --bond 1 --json
 tnview animate examples/tebd_run.jsonl --frames 3 --window 0.3 --no-clear --ascii
+tnview animate examples/tebd_run.jsonl --start-time 0.1 --end-time 0.8 --signal selected --ascii
 tnview sketch --list
 tnview sketch --wizard
 tnview sketch "mps sites=48 chi=128 profile=hard"
@@ -217,6 +218,7 @@ tnview replay examples/tebd_run.jsonl --ascii --width 120
 tnview replay examples/tebd_run.jsonl --interactive
 tnview scope examples/tebd_run.jsonl --signal selected --bond 1 --ascii
 tnview animate examples/tebd_run.jsonl --frames 8 --window 0.4
+tnview animate examples/tebd_run.jsonl --center-time 0.8 --window 0.2 --signal trunc --no-clear
 
 tnview preview examples/ladder_snake_mismatch.jsonl
 tnview inspect examples/ladder_snake_mismatch.jsonl
@@ -254,7 +256,9 @@ with event markers.
 The active time `T` advances over checkpoint events while the heatmap is clipped
 to `[T - window, T + window]`. Compact signal strips track entropy, max chi,
 truncation, and front span so evolving bottlenecks are easier to see. Use
-`--frames N --no-clear` when you want a transcript-friendly render.
+`--frames N --no-clear` when you want a transcript-friendly render. Add
+`--signal trunc`, `--signal selected --bond N`, `--start-time/--end-time`, or
+`--center-time T --window R` to keep the animation focused.
 
 `replay-runlog` steps through run-log events after a run has completed or
 crashed. Use `--index N` for a static point-in-time view or `--interactive` for
