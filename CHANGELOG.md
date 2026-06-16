@@ -16,6 +16,7 @@
   baseline-vs-candidate diagnostic comparison.
 - Added structured `tnview tour --json`, top-level CLI help examples, terminal
   severity theme helpers, and a release smoke script.
+- Added dynamic `front` and `spike` sketch profiles plus `tnview sketch --json`.
 
 ## 1.1.0 - 2026-06-15
 
