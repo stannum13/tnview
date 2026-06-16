@@ -303,6 +303,52 @@ class CliTests(unittest.TestCase):
         self.assertIn("TNView oscilloscope frame 1/1", result.stdout)
         self.assertIn("T=0.8", result.stdout)
 
+    def test_animate_can_reverse_and_bounce_playback(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "animate",
+                "examples/tebd_run.jsonl",
+                "--frames",
+                "3",
+                "--interval",
+                "0",
+                "--reverse",
+                "--bounce",
+                "--no-clear",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView oscilloscope frame 4/4", result.stdout)
+        times = [line.split("T=", 1)[1].split(" ", 1)[0] for line in result.stdout.splitlines() if line.startswith("TNView oscilloscope frame")]
+        self.assertEqual(times, ["0.8", "0.2", "0", "0.2"])
+
+    def test_animate_rejects_invalid_fps(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "animate",
+                "examples/tebd_run.jsonl",
+                "--fps",
+                "0",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("--fps must be positive", result.stderr)
+
     def test_animate_reports_empty_time_window(self) -> None:
         result = subprocess.run(
             [

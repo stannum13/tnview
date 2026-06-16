@@ -10,7 +10,7 @@ from time import sleep
 from typing import Iterable, TextIO
 
 from tnview import __version__
-from tnview.animate import animation_frame_indices_for_times, checkpoint_count, render_animation_frame
+from tnview.animate import animation_frame_indices_for_times, animation_playback_indices, checkpoint_count, render_animation_frame
 from tnview.commands import diagnose_run_log
 from tnview.compare import (
     compare_run_log_diagnostics,
@@ -212,6 +212,9 @@ def _parser() -> argparse.ArgumentParser:
     animate.add_argument("--end-time", type=float, help="last checkpoint time to render")
     animate.add_argument("--bond", type=int, help="selected bond for selected-bond signal rows")
     animate.add_argument("--interval", type=float, default=0.2, help="sleep interval between frames")
+    animate.add_argument("--fps", type=float, help="frames per second; overrides --interval")
+    animate.add_argument("--reverse", action="store_true", help="play selected frames from latest to earliest")
+    animate.add_argument("--bounce", action="store_true", help="play forward then back through the selected frames")
     animate.add_argument("--no-clear", action="store_true", help="do not clear the terminal between frames")
     animate.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
     animate.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
@@ -481,6 +484,8 @@ def _animate(args: argparse.Namespace) -> int:
         raise EventParseError("--window must be non-negative")
     if args.interval < 0:
         raise EventParseError("--interval must be non-negative")
+    if args.fps is not None and args.fps <= 0:
+        raise EventParseError("--fps must be positive")
     if args.frames is not None and args.frames <= 0:
         raise EventParseError("--frames must be positive")
 
@@ -499,7 +504,9 @@ def _animate(args: argparse.Namespace) -> int:
             suggestions=("Widen --window or adjust --start-time/--end-time.",),
             exit_code=2,
         )
+    indices = animation_playback_indices(indices, reverse=args.reverse, bounce=args.bounce)
     total = len(indices)
+    interval = (1.0 / args.fps) if args.fps is not None else args.interval
     for position, checkpoint_index in enumerate(indices, start=1):
         if not args.no_clear and sys.stdout.isatty():
             print("\033[2J\033[H", end="")
@@ -518,8 +525,8 @@ def _animate(args: argparse.Namespace) -> int:
         )
         print(frame.text)
         print(flush=True)
-        if position < total and args.interval:
-            sleep(args.interval)
+        if position < total and interval:
+            sleep(interval)
     return 0
 
 

@@ -70,6 +70,20 @@ def animation_frame_indices_for_times(
     return [candidates[index] for index in animation_frame_indices(len(candidates), frames)]
 
 
+def animation_playback_indices(
+    indices: list[int],
+    *,
+    reverse: bool = False,
+    bounce: bool = False,
+) -> list[int]:
+    """Apply playback order controls to checkpoint frame indices."""
+
+    ordered = list(reversed(indices)) if reverse else list(indices)
+    if bounce and len(ordered) > 1:
+        ordered.extend(reversed(ordered[1:-1] or ordered[:1]))
+    return ordered
+
+
 def render_animation_frame(
     events: list[TelemetryEvent],
     *,

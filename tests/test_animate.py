@@ -4,6 +4,7 @@ import unittest
 from tnview.animate import (
     animation_frame_indices,
     animation_frame_indices_for_times,
+    animation_playback_indices,
     checkpoint_count,
     checkpoint_times,
     render_animation_frame,
@@ -24,6 +25,13 @@ class AnimateTests(unittest.TestCase):
         self.assertEqual(checkpoint_times(events), [0.0, 0.2, 0.8])
         self.assertEqual(animation_frame_indices_for_times(events, time_min=0.1, time_max=0.8), [1, 2])
         self.assertEqual(animation_frame_indices_for_times(events, frames=1, time_min=0.1), [1])
+
+    def test_animation_playback_indices_can_reverse_and_bounce(self) -> None:
+        self.assertEqual(animation_playback_indices([0, 1, 2]), [0, 1, 2])
+        self.assertEqual(animation_playback_indices([0, 1, 2], reverse=True), [2, 1, 0])
+        self.assertEqual(animation_playback_indices([0, 1, 2], bounce=True), [0, 1, 2, 1])
+        self.assertEqual(animation_playback_indices([0, 1, 2], reverse=True, bounce=True), [2, 1, 0, 1])
+        self.assertEqual(animation_playback_indices([0], bounce=True), [0])
 
     def test_render_animation_frame_uses_time_window(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
