@@ -3,7 +3,16 @@ from io import StringIO
 import unittest
 
 from tnview import RunLogger
-from tnview.adapters.quimb import emit_mps_snapshot, mps_snapshot_record, mps_to_events, mps_to_jsonl, tnoptimizer_callback, view_mps
+from tnview.adapters.quimb import (
+    TNOptimizerObserver,
+    emit_mps_snapshot,
+    mps_snapshot_record,
+    mps_to_events,
+    mps_to_jsonl,
+    tnoptimizer_callback,
+    tnoptimizer_record,
+    view_mps,
+)
 from tnview.events import BondUpdated, parse_jsonl
 
 
@@ -32,6 +41,13 @@ class FakeTNOptimizer:
     loss = 0.123
     loss_best = 0.1
     losses = [0.5, 0.2, 0.123]
+    grad_norm = 0.004
+
+
+class FakeAltTNOptimizer:
+    nfev = 4
+    fun = 0.5
+    best_loss = 0.45
 
 
 class QuimbAdapterTests(unittest.TestCase):
@@ -109,9 +125,35 @@ class QuimbAdapterTests(unittest.TestCase):
         self.assertEqual(record["step"], 7)
         self.assertEqual(record["loss"], 0.123)
         self.assertEqual(record["loss_best"], 0.1)
+        self.assertEqual(record["grad_norm"], 0.004)
         self.assertEqual(record["loss_history_len"], 3)
         self.assertEqual(record["schema_version"], "0.1")
         self.assertIn("timestamp", record)
+
+    def test_tnoptimizer_record_supports_alternate_metric_names(self) -> None:
+        record = tnoptimizer_record(FakeAltTNOptimizer())
+
+        self.assertEqual(record["event"], "optimizer_step")
+        self.assertEqual(record["step"], 4)
+        self.assertEqual(record["loss"], 0.5)
+        self.assertEqual(record["loss_best"], 0.45)
+
+    def test_tnoptimizer_observer_dedupes_repeated_evaluations(self) -> None:
+        handle = StringIO()
+        with RunLogger(handle, run_id="opt-run") as logger:
+            observer = TNOptimizerObserver(logger)
+            self.assertTrue(observer.step(FakeTNOptimizer()))
+            self.assertFalse(observer.step(FakeTNOptimizer()))
+
+            class NextTNOptimizer(FakeTNOptimizer):
+                nevals = 8
+                loss = 0.12
+
+            self.assertTrue(observer.step(NextTNOptimizer()))
+
+        records = [json.loads(line) for line in handle.getvalue().splitlines()]
+        self.assertEqual([record["step"] for record in records], [7, 8])
+        self.assertAlmostEqual(records[1]["delta_loss"], -0.003)
 
 
 if __name__ == "__main__":

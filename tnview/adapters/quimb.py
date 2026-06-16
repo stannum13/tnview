@@ -168,41 +168,93 @@ def emit_mps_snapshot(logger: Any, mps: Any, **kwargs: Any) -> None:
     logger.emit(event, **record)
 
 
+def tnoptimizer_record(tnopt: Any) -> dict[str, Any]:
+    """Build an ``optimizer_step`` event from a quimb ``TNOptimizer`` object."""
+
+    record: dict[str, Any] = {
+        "event": "optimizer_step",
+        "library": "quimb",
+        "algorithm": "tnoptimizer",
+        "step": _json_scalar(_first_attr(tnopt, ["nevals", "nfev", "ncalls", "evals"])),
+        "loss": _json_scalar(_first_attr(tnopt, ["loss", "fun", "fval"])),
+    }
+    for source, target in [
+        ("loss_best", "loss_best"),
+        ("best_loss", "loss_best"),
+        ("best", "loss_best"),
+    ]:
+        value = _json_scalar(_optional_attr(tnopt, source))
+        if value is not None and target not in record:
+            record[target] = value
+
+    for source, target in [
+        ("grad_norm", "grad_norm"),
+        ("gradient_norm", "grad_norm"),
+        ("max_bond", "max_bond"),
+        ("max_bond_dim", "max_bond"),
+    ]:
+        value = _json_scalar(_optional_attr(tnopt, source))
+        if value is not None and target not in record:
+            record[target] = value
+
+    losses = _optional_attr(tnopt, "losses")
+    if isinstance(losses, list | tuple) and losses:
+        scalar_losses = [_json_scalar(value) for value in losses]
+        numeric_losses = [value for value in scalar_losses if isinstance(value, int | float)]
+        record["loss_history_len"] = len(losses)
+        if numeric_losses:
+            record.setdefault("loss_best", min(numeric_losses))
+
+    return {key: value for key, value in record.items() if value is not None}
+
+
 def tnoptimizer_callback(logger: Any):
     """Return a quimb ``TNOptimizer`` callback that emits optimizer telemetry."""
 
-    def callback(tnopt: Any) -> None:
-        record: dict[str, Any] = {
-            "library": "quimb",
-            "algorithm": "tnoptimizer",
-            "step": _json_scalar(_optional_attr(tnopt, "nevals")),
-            "loss": _json_scalar(_optional_attr(tnopt, "loss")),
-        }
-        for source, target in [
-            ("loss_best", "loss_best"),
-            ("best_loss", "loss_best"),
-        ]:
-            value = _json_scalar(_optional_attr(tnopt, source))
-            if value is not None and target not in record:
-                record[target] = value
+    observer = TNOptimizerObserver(logger)
+    return observer
 
-        losses = _optional_attr(tnopt, "losses")
-        if isinstance(losses, list | tuple) and losses:
-            scalar_losses = [_json_scalar(value) for value in losses]
-            numeric_losses = [value for value in scalar_losses if isinstance(value, int | float)]
-            record["loss_history_len"] = len(losses)
-            if numeric_losses:
-                record.setdefault("loss_best", min(numeric_losses))
 
-        record = {key: value for key, value in record.items() if value is not None}
-        optimizer_step = getattr(logger, "optimizer_step", None)
-        if callable(optimizer_step) and record.get("step") is not None:
-            step = int(record.pop("step"))
+class TNOptimizerObserver:
+    """Callable quimb optimizer observer that emits one row per evaluation."""
+
+    def __init__(self, logger: Any, *, dedupe: bool = True):
+        self.logger = logger
+        self.dedupe = dedupe
+        self._last_step: int | None = None
+        self._last_loss: float | None = None
+
+    def __call__(self, tnopt: Any) -> None:
+        self.step(tnopt)
+
+    def step(self, tnopt: Any, **extra: Any) -> bool:
+        """Emit an optimizer row.
+
+        Returns ``True`` when a record was written and ``False`` when a
+        duplicate optimizer evaluation was skipped.
+        """
+
+        record = tnoptimizer_record(tnopt)
+        record.update(extra)
+        step = _int_or_none(record.get("step"))
+        if self.dedupe and step is not None and step == self._last_step:
+            return False
+
+        loss = _float_or_none(record.get("loss"))
+        if loss is not None and self._last_loss is not None:
+            record.setdefault("delta_loss", loss - self._last_loss)
+
+        event = str(record.pop("event", "optimizer_step"))
+        optimizer_step = getattr(self.logger, "optimizer_step", None)
+        if callable(optimizer_step) and step is not None and event == "optimizer_step":
+            record.pop("step", None)
             optimizer_step(step=step, **record)
         else:
-            logger.emit("optimizer_step", **record)
+            self.logger.emit(event, **record)
 
-    return callback
+        self._last_step = step
+        self._last_loss = loss
+        return True
 
 
 def _site_count(mps: Any) -> int:
@@ -290,6 +342,32 @@ def _optional_attr(obj: Any, name: str) -> Any:
         except TypeError:
             return None
     return value
+
+
+def _first_attr(obj: Any, names: list[str]) -> Any:
+    for name in names:
+        value = _optional_attr(obj, name)
+        if value is not None:
+            return value
+    return None
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _float_or_none(value: Any) -> float | None:
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _json_scalar(value: Any) -> str | int | float | bool | None:
