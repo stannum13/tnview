@@ -286,8 +286,9 @@ rendering used by `live`.
 plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
 optimizer stagnation, non-finite metrics, canonical-form drift, and sustained
 entropy growth. Add `--json` for stable machine-readable diagnostics. Thresholds
-can be adjusted with flags such as `--energy-eps`, `--truncation-floor`,
-`--memory-factor`, and `--canonical-error`.
+can be adjusted with `--profile strict|default|loose` or explicit flags such as
+`--energy-eps`, `--truncation-floor`, `--memory-factor`, and
+`--canonical-error`.
 
 `validate` checks replay and run-log JSONL syntax. Add `--strict` to require
 run-log metadata such as `schema_version`, `run_id`, and timestamp fields. Add
