@@ -30,6 +30,18 @@ class CliTests(unittest.TestCase):
         self.assertIn("tnview sketch --wizard", result.stdout)
         self.assertIn("tnview watch", result.stdout)
 
+    def test_tour_command_can_emit_json(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "tnview.cli", "tour", "--json"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["kind"], "tour")
+        self.assertEqual(payload["steps"][0]["name"], "try_without_data")
+
     def test_parse_errors_are_structured_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.jsonl"

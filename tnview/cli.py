@@ -52,7 +52,7 @@ from tnview.state import RunState
 from tnview.starter import KINDS, starter_script, write_starter
 from tnview.tail import render_run_log_dashboard, render_run_log_tail, run_log_tail_payload
 from tnview.terminal import supports_color
-from tnview.tour import render_tour
+from tnview.tour import render_tour, tour_payload
 from tnview.validate import render_validation, validate_lines, validation_payload
 
 
@@ -388,7 +388,8 @@ def _parser() -> argparse.ArgumentParser:
     doctor.add_argument("--examples-root", default="examples", help="examples directory to validate")
     doctor.add_argument("--json", action="store_true", help="write stable machine-readable doctor JSON")
 
-    subparsers.add_parser("tour", help="show the motivated first-run tour")
+    tour = subparsers.add_parser("tour", help="show the motivated first-run tour")
+    tour.add_argument("--json", action="store_true", help="write stable machine-readable tour JSON")
 
     return parser
 
@@ -1014,7 +1015,10 @@ def _doctor(args: argparse.Namespace) -> int:
 
 
 def _tour(args: argparse.Namespace) -> int:
-    write_text(render_tour())
+    if args.json:
+        write_json(tour_payload())
+    else:
+        write_text(render_tour())
     return 0
 
 
