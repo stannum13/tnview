@@ -21,11 +21,11 @@ class SketchWizardTests(unittest.TestCase):
 
     def test_wizard_custom_values_and_output_path(self) -> None:
         result = run_sketch_wizard(
-            input_fn=_answers(["mps", "48", "256", "12", "easy", "20", "n", "y", "runs/sketch.jsonl"]),
+            input_fn=_answers(["mps", "48", "256", "12", "front", "20", "n", "y", "runs/sketch.jsonl"]),
             output_fn=lambda _: None,
         )
 
-        self.assertEqual(result.prompt, "mps sites=48 chi=256 profile=easy checkpoints=12 window=20")
+        self.assertEqual(result.prompt, "mps sites=48 chi=256 profile=front checkpoints=12 window=20")
         self.assertFalse(result.interactive)
         self.assertEqual(result.output, "runs/sketch.jsonl")
 
@@ -46,7 +46,7 @@ class SketchWizardTests(unittest.TestCase):
             output_fn=output.append,
         )
 
-        self.assertIn("Please choose one of: easy/hard.", output)
+        self.assertIn("Please choose one of: easy/front/hard/spike.", output)
         self.assertIn("Please answer yes or no.", output)
         self.assertTrue(result.interactive)
         self.assertIsNone(result.output)

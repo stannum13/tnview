@@ -40,7 +40,7 @@ def run_sketch_wizard(
     checkpoints = _integer("Checkpoints", default=10, minimum=1, input_fn=input_fn, output_fn=output_fn)
     profile = _choice(
         "Profile",
-        choices={"hard": "hard", "easy": "easy"},
+        choices={"hard": "hard", "easy": "easy", "front": "front", "spike": "spike"},
         default="hard",
         input_fn=input_fn,
         output_fn=output_fn,
