@@ -220,6 +220,12 @@ def _parser() -> argparse.ArgumentParser:
     animate.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     animate.add_argument("--width", type=int, help="render width in columns")
     animate.add_argument(
+        "--style",
+        choices=["report", "instrument"],
+        default="report",
+        help="animation layout style",
+    )
+    animate.add_argument(
         "--signal",
         action="append",
         choices=["all", "entropy", "chi", "trunc", "front", "selected"],
@@ -526,6 +532,7 @@ def _animate(args: argparse.Namespace) -> int:
             focus=args.focus,
             selected_bond=args.bond,
             signals=expand_signal_names(args.signal),
+            style=args.style,
         )
         print(frame.text)
         print(flush=True)

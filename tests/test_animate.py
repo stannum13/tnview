@@ -74,6 +74,26 @@ class AnimateTests(unittest.TestCase):
         self.assertNotIn("entropy", signal_block)
         self.assertNotIn("front", signal_block)
 
+    def test_render_animation_frame_can_use_instrument_style(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
+        frame = render_animation_frame(
+            events,
+            checkpoint_index=2,
+            frame_number=1,
+            frame_count=1,
+            window_radius=0.3,
+            width=100,
+            unicode=False,
+            style="instrument",
+        )
+
+        self.assertIn("TNView instrument frame 1/1", frame.text)
+        self.assertIn("STATUS", frame.text)
+        self.assertIn("SIGNALS", frame.text)
+        self.assertIn("FOCUS", frame.text)
+        self.assertIn("MPS topology", frame.text)
+        self.assertNotIn("TEBD brick-wall updates", frame.text)
+
     def test_render_animation_frame_rejects_invalid_inputs(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
 
@@ -100,6 +120,15 @@ class AnimateTests(unittest.TestCase):
                 frame_number=1,
                 frame_count=1,
                 window_radius=-1.0,
+            )
+        with self.assertRaisesRegex(ValueError, "style"):
+            render_animation_frame(
+                events,
+                checkpoint_index=0,
+                frame_number=1,
+                frame_count=1,
+                window_radius=0.0,
+                style="unknown",
             )
 
 

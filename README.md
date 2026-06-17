@@ -70,6 +70,7 @@ tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/quimb_tnoptimizer_run.jsonl
 tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii
 tnview scope examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --bond 1 --ascii
+tnview animate examples/tebd_run.jsonl --style instrument
 tnview animate examples/tebd_run.jsonl --center-time 0.8 --window 0.3 --signal trunc --no-clear --ascii
 tnview scope examples/moving_front.jsonl --signal front --ascii
 tnview animate examples/truncation_spike.jsonl --signal trunc --frames 5 --ascii
@@ -236,6 +237,7 @@ tnview compare baseline.jsonl candidate.jsonl --diagnostics --json
 tnview replay examples/tebd_run.jsonl --ascii --width 120
 tnview replay examples/tebd_run.jsonl --interactive
 tnview scope examples/tebd_run.jsonl --signal selected --bond 1 --ascii
+tnview animate examples/tebd_run.jsonl --style instrument
 tnview animate examples/tebd_run.jsonl --frames 8 --window 0.4
 tnview animate examples/tebd_run.jsonl --center-time 0.8 --window 0.2 --signal trunc --no-clear
 tnview animate examples/tebd_run.jsonl --frames 3 --reverse --bounce --fps 8
@@ -284,8 +286,10 @@ with event markers.
 The active time `T` advances over checkpoint events while the heatmap is clipped
 to `[T - window, T + window]`. Compact signal strips track entropy, max chi,
 truncation, and front span so evolving bottlenecks are easier to see. Use
-`--frames N --no-clear` when you want a transcript-friendly render. Add
-`--signal trunc`, `--signal selected --bond N`, `--start-time/--end-time`, or
+`--style instrument` for a denser status/focus/signal layout, or the default
+`--style report` for the original replay transcript. Use `--frames N --no-clear`
+when you want a transcript-friendly render. Add `--signal trunc`,
+`--signal selected --bond N`, `--start-time/--end-time`, or
 `--center-time T --window R` to keep the animation focused. Use `--reverse`,
 `--bounce`, and `--fps` to control playback.
 

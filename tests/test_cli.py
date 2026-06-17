@@ -248,6 +248,37 @@ class CliTests(unittest.TestCase):
         self.assertIn("sel chi", signal_block)
         self.assertNotIn("entropy", signal_block)
 
+    def test_animate_accepts_instrument_style(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "animate",
+                "examples/tebd_run.jsonl",
+                "--style",
+                "instrument",
+                "--frames",
+                "1",
+                "--window",
+                "0.3",
+                "--interval",
+                "0",
+                "--no-clear",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView instrument frame 1/1", result.stdout)
+        self.assertIn("STATUS", result.stdout)
+        self.assertIn("SIGNALS", result.stdout)
+        self.assertIn("FOCUS", result.stdout)
+
     def test_animate_can_filter_frames_by_time(self) -> None:
         result = subprocess.run(
             [

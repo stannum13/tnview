@@ -9,8 +9,9 @@ from tnview.focus import choose_focus
 from tnview.render import RenderOptions, render_run
 from tnview.scope import render_marker_ticks
 from tnview.signals import SignalPoint, signal_points, signal_series
-from tnview.state import RunState
+from tnview.state import RunState, diagnose_bond, diagnose_run
 from tnview.terminal import render_sparkline, render_status_dot
+from tnview.warnings import early_warning
 
 
 @dataclass(frozen=True)
@@ -97,11 +98,14 @@ def render_animation_frame(
     focus: str = "bottleneck",
     selected_bond: int | None = None,
     signals: tuple[str, ...] = ("entropy", "chi", "trunc", "front"),
+    style: str = "report",
 ) -> AnimationFrame:
     """Render one oscilloscope-style replay frame."""
 
     if window_radius < 0:
         raise ValueError("window_radius must be non-negative")
+    if style not in {"report", "instrument"}:
+        raise ValueError("style must be 'report' or 'instrument'")
     state = _state_at_checkpoint(events, checkpoint_index)
     checkpoint = state.latest_checkpoint
     if checkpoint is None:
@@ -116,7 +120,8 @@ def render_animation_frame(
     time_min = checkpoint.time - window_radius
     time_max = checkpoint.time + window_radius
     points = signal_points(state, time_min=time_min, time_max=time_max)
-    signal_panel = _signal_panel(state, points, signals=signals, width=width or 100, unicode=unicode, color=color)
+    render_width = width or 100
+    signal_panel = _signal_panel(state, points, signals=signals, width=render_width, unicode=unicode, color=color)
     body = render_run(
         state,
         RenderOptions(
@@ -125,13 +130,26 @@ def render_animation_frame(
             color=color,
             history_time_min=time_min,
             history_time_max=time_max,
+            show_updates=style == "report",
+            show_diagnostics=style == "report",
         ),
     )
     header = (
         f"TNView oscilloscope frame {frame_number}/{frame_count} | "
         f"T={checkpoint.time:g}  window=[{time_min:g}, {time_max:g}]  checkpoint={checkpoint_index}"
     )
-    text = header + "\n" + signal_panel + "\n\n" + body if signal_panel else header + "\n" + body
+    if style == "instrument":
+        text = _instrument_frame_text(
+            state,
+            header=header,
+            signal_panel=signal_panel,
+            body=body,
+            width=render_width,
+            unicode=unicode,
+            color=color,
+        )
+    else:
+        text = header + "\n" + signal_panel + "\n\n" + body if signal_panel else header + "\n" + body
     return AnimationFrame(
         checkpoint_index=checkpoint_index,
         frame_number=frame_number,
@@ -140,6 +158,60 @@ def render_animation_frame(
         window_radius=window_radius,
         text=text,
     )
+
+
+def _instrument_frame_text(
+    state: RunState,
+    *,
+    header: str,
+    signal_panel: str,
+    body: str,
+    width: int,
+    unicode: bool,
+    color: bool,
+) -> str:
+    sections = [
+        _fit(header.replace("oscilloscope frame", "instrument frame"), width),
+        _instrument_status_panel(state, width=width, unicode=unicode, color=color),
+        signal_panel.replace("Oscilloscope signals", "SIGNALS", 1) if signal_panel else "",
+        _focus_panel(state, width=width, unicode=unicode, color=color),
+        body,
+    ]
+    return "\n\n".join(section for section in sections if section)
+
+
+def _instrument_status_panel(state: RunState, *, width: int, unicode: bool, color: bool) -> str:
+    checkpoint = state.latest_checkpoint
+    warning = early_warning(state)
+    status = checkpoint.complexity_status if checkpoint and checkpoint.complexity_status else diagnose_run(state)
+    risk = warning.risk
+    severity = _risk_severity(risk)
+    dot = render_status_dot(severity, unicode=unicode, color=color)
+    if checkpoint is None:
+        time_text = "step=n/a  T=n/a"
+    else:
+        time_text = f"step={checkpoint.step}  T={checkpoint.time:g}"
+    selected = "none" if state.selected_bond is None else f"b{state.selected_bond}"
+    line = f"{dot} STATUS  {time_text}  risk={risk}  status={status.replace('_', '-')}  focus={selected}"
+    return _fit(line, width)
+
+
+def _focus_panel(state: RunState, *, width: int, unicode: bool, color: bool) -> str:
+    bond = state.selected
+    if bond is None:
+        return ""
+    severity = _risk_severity("high" if bond.saturated else "warning" if bond.chi_pressure >= 0.75 else "ok")
+    dot = render_status_dot(severity, unicode=unicode, color=color)
+    lines = [
+        "FOCUS",
+        _fit(
+            f"  {dot} b{bond.bond} sites {bond.site_left}|{bond.site_right}  "
+            f"S={bond.entropy:.4g}  chi={bond.chi}/{bond.chi_max}  "
+            f"eps={bond.trunc_error:.2e}  {diagnose_bond(bond)}",
+            width,
+        ),
+    ]
+    return "\n".join(lines)
 
 
 def _state_at_checkpoint(events: list[TelemetryEvent], checkpoint_index: int) -> RunState:
@@ -241,6 +313,17 @@ def _chi_severity(state: RunState) -> str:
 
 def _trunc_severity(value: float) -> str:
     return "warning" if value >= 1e-7 else "ok"
+
+
+def _risk_severity(value: str) -> str:
+    normalized = value.lower().replace("_", "-")
+    if normalized in {"critical", "error", "high"}:
+        return "critical"
+    if normalized in {"warning", "warn", "medium", "watch", "stale"}:
+        return "warning"
+    if normalized in {"ok", "low", "controlled"}:
+        return "ok"
+    return "unknown"
 
 
 def _format_value(value: float) -> str:
