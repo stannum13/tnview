@@ -93,6 +93,7 @@ class AnimateTests(unittest.TestCase):
         self.assertIn("FOCUS", frame.text)
         self.assertIn("MPS topology", frame.text)
         self.assertNotIn("TEBD brick-wall updates", frame.text)
+        self.assertNotIn("Selected bond b", frame.text)
 
     def test_render_animation_frame_rejects_invalid_inputs(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())

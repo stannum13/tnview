@@ -131,6 +131,7 @@ def render_animation_frame(
             history_time_min=time_min,
             history_time_max=time_max,
             show_updates=style == "report",
+            show_inspector=style == "report",
             show_diagnostics=style == "report",
         ),
     )
