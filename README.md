@@ -144,6 +144,10 @@ tnview sketch "mps sites=48 chi=128 profile=front" --json
 tnview sketch "mps sites=48 chi=128 profile=hard" --output sketch.jsonl
 ```
 
+For local terminal UI iteration, run `make ui-review` and inspect the ignored
+snapshots under `.artifacts/ui/`. See [docs/ui_iteration.md](docs/ui_iteration.md)
+for the worktree-based visual review loop.
+
 If `tnview` is not on your shell path, run the module directly:
 
 ```bash

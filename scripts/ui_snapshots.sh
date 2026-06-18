@@ -31,6 +31,10 @@ snapshot replay-focus.txt \
 	"$TNVIEW" replay examples/tebd_run.jsonl \
 	--focus bottleneck --width 100 --no-color
 
+snapshot demo.txt \
+	"$TNVIEW" demo --sites 8 --checkpoints 3 --chi-max 64 \
+	--profile hard --width 100 --no-color
+
 snapshot runlog-watch.txt \
 	"$TNVIEW" watch examples/quimb_tnoptimizer_run.jsonl \
 	--max-refreshes 1 --no-clear --width 100 --no-color

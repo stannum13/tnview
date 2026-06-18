@@ -1,8 +1,9 @@
-.PHONY: setup install test compile check smoke validate replay replay-interactive runlog-demo quimb-demo compare ui-snapshots clean
+.PHONY: setup install test compile check smoke validate replay replay-interactive runlog-demo quimb-demo compare ui-snapshots ui-review ui-worktrees clean
 
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
 PIP ?= $(PYTHON) -m pip
 TNVIEW ?= $(shell if [ -x .venv/bin/tnview ]; then echo .venv/bin/tnview; else echo tnview; fi)
+BASE_DIR ?=
 
 setup install:
 	./scripts/setup_env.sh
@@ -38,6 +39,12 @@ compare:
 
 ui-snapshots:
 	TNVIEW="$(TNVIEW)" ./scripts/ui_snapshots.sh
+
+ui-review: ui-snapshots
+	$(PYTHON) ./scripts/ui_review.py
+
+ui-worktrees:
+	./scripts/setup_ui_worktrees.sh $(BASE_DIR)
 
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
