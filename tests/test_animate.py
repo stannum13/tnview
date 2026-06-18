@@ -88,9 +88,10 @@ class AnimateTests(unittest.TestCase):
         )
 
         self.assertIn("TNView instrument frame 1/1", frame.text)
-        self.assertIn("STATUS", frame.text)
-        self.assertIn("SIGNALS", frame.text)
-        self.assertIn("FOCUS", frame.text)
+        self.assertIn("+ STATUS ", frame.text)
+        self.assertIn("+ SIGNALS ", frame.text)
+        self.assertIn("+ FOCUS ", frame.text)
+        self.assertIn("next:", frame.text)
         self.assertIn("MPS topology", frame.text)
         self.assertNotIn("TEBD brick-wall updates", frame.text)
         self.assertNotIn("Selected bond b", frame.text)

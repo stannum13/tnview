@@ -10,7 +10,7 @@ from tnview.render import RenderOptions, render_run
 from tnview.scope import render_marker_ticks
 from tnview.signals import SignalPoint, signal_points, signal_series
 from tnview.state import RunState, diagnose_bond, diagnose_run
-from tnview.terminal import render_sparkline, render_status_dot
+from tnview.terminal import render_panel, render_sparkline, render_status_dot
 from tnview.warnings import early_warning
 
 
@@ -174,7 +174,7 @@ def _instrument_frame_text(
     sections = [
         _fit(header.replace("oscilloscope frame", "instrument frame"), width),
         _instrument_status_panel(state, width=width, unicode=unicode, color=color),
-        signal_panel.replace("Oscilloscope signals", "SIGNALS", 1) if signal_panel else "",
+        _instrument_signal_panel(signal_panel, width=width, unicode=unicode) if signal_panel else "",
         _focus_panel(state, width=width, unicode=unicode, color=color),
         body,
     ]
@@ -193,8 +193,18 @@ def _instrument_status_panel(state: RunState, *, width: int, unicode: bool, colo
     else:
         time_text = f"step={checkpoint.step}  T={checkpoint.time:g}"
     selected = "none" if state.selected_bond is None else f"b{state.selected_bond}"
-    line = f"{dot} STATUS  {time_text}  risk={risk}  status={status.replace('_', '-')}  focus={selected}"
-    return _fit(line, width)
+    lines = [
+        f"{dot} {time_text}  risk={risk}  status={status.replace('_', '-')}  focus={selected}",
+        f"next: {_next_action(state, risk)}",
+    ]
+    return render_panel("STATUS", lines, width=width, unicode=unicode)
+
+
+def _instrument_signal_panel(signal_panel: str, *, width: int, unicode: bool) -> str:
+    lines = signal_panel.splitlines()
+    if lines and lines[0] == "Oscilloscope signals":
+        lines = lines[1:]
+    return render_panel("SIGNALS", lines, width=width, unicode=unicode)
 
 
 def _focus_panel(state: RunState, *, width: int, unicode: bool, color: bool) -> str:
@@ -204,15 +214,27 @@ def _focus_panel(state: RunState, *, width: int, unicode: bool, color: bool) -> 
     severity = _risk_severity("high" if bond.saturated else "warning" if bond.chi_pressure >= 0.75 else "ok")
     dot = render_status_dot(severity, unicode=unicode, color=color)
     lines = [
-        "FOCUS",
         _fit(
             f"  {dot} b{bond.bond} sites {bond.site_left}|{bond.site_right}  "
             f"S={bond.entropy:.4g}  chi={bond.chi}/{bond.chi_max}  "
             f"eps={bond.trunc_error:.2e}  {diagnose_bond(bond)}",
-            width,
+            max(16, width - 4),
         ),
     ]
-    return "\n".join(lines)
+    return render_panel("FOCUS", lines, width=width, unicode=unicode)
+
+
+def _next_action(state: RunState, risk: str) -> str:
+    bond = state.selected
+    if bond is None:
+        return "wait for replay telemetry"
+    if bond.saturated:
+        return f"increase chi_max or inspect b{bond.bond} truncation"
+    if risk in {"high", "medium"} and bond.chi_pressure >= 0.5:
+        return f"watch b{bond.bond}; compare against larger chi"
+    if bond.trunc_error >= 1e-7:
+        return f"inspect truncation around b{bond.bond}"
+    return "continue; no local bottleneck yet"
 
 
 def _state_at_checkpoint(events: list[TelemetryEvent], checkpoint_index: int) -> RunState:

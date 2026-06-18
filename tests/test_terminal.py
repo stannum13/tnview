@@ -6,6 +6,7 @@ from tnview.terminal import (
     ansi,
     compact_event_time,
     render_meter,
+    render_panel,
     render_severity,
     render_sparkline,
     render_status_dot,
@@ -28,6 +29,19 @@ class TerminalPrimitiveTests(unittest.TestCase):
     def test_render_meter_marks_warning(self) -> None:
         self.assertIn("[██░░]", render_meter("trunc", 0.5, 1.0, width=4, severity="warning"))
         self.assertIn("warning", render_meter("trunc", 0.5, 1.0, width=4, severity="warning"))
+
+    def test_render_panel_has_ascii_fallback(self) -> None:
+        output = render_panel("STATUS", ["risk=high"], width=24, unicode=False)
+
+        self.assertEqual(output.splitlines()[0], "+ STATUS --------------+")
+        self.assertIn("| risk=high            |", output)
+
+    def test_render_panel_pads_ansi_content_by_visible_width(self) -> None:
+        output = render_panel("HOT", [ansi("risk=high", color="red", bold=True, enabled=True)], width=24)
+        line = output.splitlines()[1]
+
+        self.assertTrue(line.startswith("│ \033[1;31mrisk=high\033[0m"))
+        self.assertTrue(line.endswith(" │"))
 
     def test_render_status_dot_has_ascii_fallback(self) -> None:
         self.assertEqual(render_status_dot("live", unicode=False), "*")

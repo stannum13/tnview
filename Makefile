@@ -38,7 +38,7 @@ compare:
 	$(TNVIEW) compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
 
 ui-snapshots:
-	TNVIEW="$(TNVIEW)" ./scripts/ui_snapshots.sh
+	PYTHON="$(PYTHON)" ./scripts/ui_snapshots.sh
 
 ui-review: ui-snapshots
 	$(PYTHON) ./scripts/ui_review.py

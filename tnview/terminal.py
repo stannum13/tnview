@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import re
+import unicodedata
 from typing import TextIO
 
 
@@ -41,6 +43,8 @@ SEVERITY_SYMBOLS = {
     "critical": ("■", "x"),
     "unknown": ("·", "."),
 }
+
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def supports_color(stream: TextIO | None = None) -> bool:
@@ -129,6 +133,26 @@ def render_meter(
     return f"{label:<9} [{ansi(bar, color=color_name, enabled=color)}] {severity}"
 
 
+def render_panel(title: str, lines: list[str], *, width: int = 100, unicode: bool = True) -> str:
+    """Render a simple width-bounded terminal panel."""
+
+    width = max(16, width)
+    content_width = width - 4
+    if unicode:
+        top_left, top_right, bottom_left, bottom_right = "┌", "┐", "└", "┘"
+        horizontal, vertical = "─", "│"
+    else:
+        top_left, top_right, bottom_left, bottom_right = "+", "+", "+", "+"
+        horizontal, vertical = "-", "|"
+
+    label = f" {title} " if title else ""
+    rule_width = max(0, width - _display_width(label) - 2)
+    top = f"{top_left}{label}{horizontal * rule_width}{top_right}"
+    bottom = f"{bottom_left}{horizontal * (width - 2)}{bottom_right}"
+    body = [f"{vertical} {_pad_cells(_fit_cells(line, content_width), content_width)} {vertical}" for line in lines]
+    return "\n".join([top, *body, bottom])
+
+
 def render_sparkline(values: list[float], *, unicode: bool = True) -> str:
     """Render a compact trend line for a short numeric series."""
 
@@ -142,6 +166,36 @@ def render_sparkline(values: list[float], *, unicode: bool = True) -> str:
     span = high - low
     scale = len(marks) - 1
     return "".join(marks[int((value - low) / span * scale)] for value in values)
+
+
+def _fit_cells(text: str, width: int) -> str:
+    if _display_width(text) <= width:
+        return text
+    suffix = "~"
+    target = max(0, width - _display_width(suffix))
+    output = ""
+    for char in text:
+        next_output = output + char
+        if _display_width(next_output) > target:
+            break
+        output = next_output
+    return output + suffix
+
+
+def _pad_cells(text: str, width: int) -> str:
+    return text + " " * max(0, width - _display_width(text))
+
+
+def _display_width(text: str) -> int:
+    clean = ANSI_RE.sub("", text)
+    width = 0
+    for char in clean:
+        if unicodedata.combining(char):
+            continue
+        if unicodedata.category(char) in {"Cc", "Cf"}:
+            continue
+        width += 2 if unicodedata.east_asian_width(char) in {"F", "W"} else 1
+    return width
 
 
 def compact_event_time(record: dict[str, object]) -> str:
