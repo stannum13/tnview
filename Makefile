@@ -1,4 +1,4 @@
-.PHONY: setup install test compile check smoke validate replay replay-interactive runlog-demo quimb-demo compare clean
+.PHONY: setup install test compile check smoke validate replay replay-interactive runlog-demo quimb-demo compare ui-snapshots clean
 
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
 PIP ?= $(PYTHON) -m pip
@@ -36,6 +36,9 @@ quimb-demo:
 compare:
 	$(TNVIEW) compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
 
+ui-snapshots:
+	TNVIEW="$(TNVIEW)" ./scripts/ui_snapshots.sh
+
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
-	rm -rf .pytest_cache .mypy_cache .ruff_cache build dist *.egg-info
+	rm -rf .pytest_cache .mypy_cache .ruff_cache .artifacts build dist *.egg-info
