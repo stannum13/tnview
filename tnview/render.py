@@ -45,6 +45,7 @@ class RenderOptions:
     bond_limit: int | None = None
     history_time_min: float | None = None
     history_time_max: float | None = None
+    pulse_phase: int | None = None
 
 
 def render_run(state: RunState, options: RenderOptions | None = None) -> str:
@@ -157,7 +158,12 @@ def _topology_link(status: str, options: RenderOptions) -> str:
 def _topology_marker(active: bool, options: RenderOptions) -> str:
     if not active:
         return "  "
-    marker = "^^" if not options.unicode else "▲▲"
+    if options.pulse_phase is None:
+        marker = "^^" if not options.unicode else "▲▲"
+    elif options.unicode:
+        marker = "△△" if options.pulse_phase % 2 else "▲▲"
+    else:
+        marker = "<>" if options.pulse_phase % 2 else "^^"
     return _style(marker, "info", options, bold=True)
 
 

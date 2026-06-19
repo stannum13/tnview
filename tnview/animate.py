@@ -133,6 +133,7 @@ def render_animation_frame(
             show_updates=style == "report",
             show_inspector=style == "report",
             show_diagnostics=style == "report",
+            pulse_phase=frame_number if style == "instrument" else None,
         ),
     )
     header = (
@@ -145,6 +146,9 @@ def render_animation_frame(
             header=header,
             signal_panel=signal_panel,
             body=body,
+            points=points,
+            frame_number=frame_number,
+            frame_count=frame_count,
             width=render_width,
             unicode=unicode,
             color=color,
@@ -167,6 +171,9 @@ def _instrument_frame_text(
     header: str,
     signal_panel: str,
     body: str,
+    points: list[SignalPoint],
+    frame_number: int,
+    frame_count: int,
     width: int,
     unicode: bool,
     color: bool,
@@ -175,6 +182,7 @@ def _instrument_frame_text(
         _fit(header.replace("oscilloscope frame", "instrument frame"), width),
         _instrument_status_panel(state, width=width, unicode=unicode, color=color),
         _instrument_signal_panel(signal_panel, width=width, unicode=unicode) if signal_panel else "",
+        _motion_panel(state, points, frame_number=frame_number, frame_count=frame_count, width=width, unicode=unicode),
         _focus_panel(state, width=width, unicode=unicode, color=color),
         body,
     ]
@@ -207,6 +215,22 @@ def _instrument_signal_panel(signal_panel: str, *, width: int, unicode: bool) ->
     return render_panel("SIGNALS", lines, width=width, unicode=unicode)
 
 
+def _motion_panel(
+    state: RunState,
+    points: list[SignalPoint],
+    *,
+    frame_number: int,
+    frame_count: int,
+    width: int,
+    unicode: bool,
+) -> str:
+    lines = [
+        _time_cursor_line(points, frame_number=frame_number, frame_count=frame_count, unicode=unicode),
+        _sweep_cursor_line(state, frame_number=frame_number, unicode=unicode),
+    ]
+    return render_panel("MOTION", lines, width=width, unicode=unicode)
+
+
 def _focus_panel(state: RunState, *, width: int, unicode: bool, color: bool) -> str:
     bond = state.selected
     if bond is None:
@@ -222,6 +246,51 @@ def _focus_panel(state: RunState, *, width: int, unicode: bool, color: bool) -> 
         ),
     ]
     return render_panel("FOCUS", lines, width=width, unicode=unicode)
+
+
+def _time_cursor_line(
+    points: list[SignalPoint],
+    *,
+    frame_number: int,
+    frame_count: int,
+    unicode: bool,
+) -> str:
+    cells = _cursor_cells(len(points), frame_number=frame_number, frame_count=frame_count, unicode=unicode)
+    if not points:
+        return f"time  {cells}  no checkpoints in window"
+    active = min(len(points) - 1, max(0, round((frame_number - 1) / max(1, frame_count - 1) * (len(points) - 1))))
+    point = points[active]
+    return f"time  {cells}  T={point.time:g} step={point.step}"
+
+
+def _sweep_cursor_line(state: RunState, *, frame_number: int, unicode: bool) -> str:
+    bonds = state.ordered_bonds
+    if not bonds:
+        return "sweep no bond telemetry"
+    active_index = (frame_number - 1) % len(bonds)
+    selected = state.selected_bond
+    cells = []
+    for index, bond in enumerate(bonds):
+        if index == active_index:
+            cells.append("◆" if unicode else ">")
+        elif bond.bond == selected:
+            cells.append("◇" if unicode else "^")
+        elif bond.saturated:
+            cells.append("■" if unicode else "!")
+        elif bond.chi_pressure >= 0.75:
+            cells.append("▲" if unicode else "+")
+        else:
+            cells.append("·" if unicode else ".")
+    return f"sweep {' '.join(cells)}  active=b{bonds[active_index].bond}"
+
+
+def _cursor_cells(count: int, *, frame_number: int, frame_count: int, unicode: bool) -> str:
+    if count <= 0:
+        return ""
+    active = min(count - 1, max(0, round((frame_number - 1) / max(1, frame_count - 1) * (count - 1))))
+    on = "●" if unicode else "o"
+    off = "─" if unicode else "-"
+    return "".join(on if index == active else off for index in range(count))
 
 
 def _next_action(state: RunState, risk: str) -> str:

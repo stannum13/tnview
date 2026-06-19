@@ -90,11 +90,40 @@ class AnimateTests(unittest.TestCase):
         self.assertIn("TNView instrument frame 1/1", frame.text)
         self.assertIn("+ STATUS ", frame.text)
         self.assertIn("+ SIGNALS ", frame.text)
+        self.assertIn("+ MOTION ", frame.text)
         self.assertIn("+ FOCUS ", frame.text)
         self.assertIn("next:", frame.text)
+        self.assertIn("time", frame.text)
+        self.assertIn("sweep", frame.text)
         self.assertIn("MPS topology", frame.text)
         self.assertNotIn("TEBD brick-wall updates", frame.text)
         self.assertNotIn("Selected bond b", frame.text)
+
+    def test_instrument_style_pulses_selected_marker_by_frame(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
+        first = render_animation_frame(
+            events,
+            checkpoint_index=1,
+            frame_number=1,
+            frame_count=2,
+            window_radius=0.3,
+            width=100,
+            unicode=False,
+            style="instrument",
+        )
+        second = render_animation_frame(
+            events,
+            checkpoint_index=1,
+            frame_number=2,
+            frame_count=2,
+            window_radius=0.3,
+            width=100,
+            unicode=False,
+            style="instrument",
+        )
+
+        self.assertIn("focus:         <>", first.text)
+        self.assertIn("focus:         ^^", second.text)
 
     def test_render_animation_frame_rejects_invalid_inputs(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())

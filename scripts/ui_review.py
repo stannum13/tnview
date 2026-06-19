@@ -14,12 +14,12 @@ ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 EXPECTED = {
     "instrument.txt": {
         "width": 100,
-        "required": ("STATUS", "SIGNALS", "FOCUS", "MPS topology", "Complexity rows"),
+        "required": ("STATUS", "SIGNALS", "MOTION", "FOCUS", "MPS topology", "Complexity rows"),
         "forbidden": ("Selected bond b",),
     },
     "instrument-ascii-80.txt": {
         "width": 80,
-        "required": ("STATUS", "SIGNALS", "FOCUS", "MPS topology", "Complexity rows"),
+        "required": ("STATUS", "SIGNALS", "MOTION", "FOCUS", "MPS topology", "Complexity rows"),
         "forbidden": ("Selected bond b",),
     },
     "replay-focus.txt": {
