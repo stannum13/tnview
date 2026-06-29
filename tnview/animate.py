@@ -227,6 +227,7 @@ def _motion_panel(
     lines = [
         _time_cursor_line(points, frame_number=frame_number, frame_count=frame_count, unicode=unicode),
         _sweep_cursor_line(state, frame_number=frame_number, unicode=unicode),
+        _motion_legend_line(unicode=unicode),
     ]
     return render_panel("MOTION", lines, width=width, unicode=unicode)
 
@@ -240,10 +241,10 @@ def _focus_panel(state: RunState, *, width: int, unicode: bool, color: bool) -> 
     lines = [
         _fit(
             f"  {dot} b{bond.bond} sites {bond.site_left}|{bond.site_right}  "
-            f"S={bond.entropy:.4g}  chi={bond.chi}/{bond.chi_max}  "
-            f"eps={bond.trunc_error:.2e}  {diagnose_bond(bond)}",
+            f"S={bond.entropy:.4g}  chi={bond.chi}/{bond.chi_max}  eps={bond.trunc_error:.2e}",
             max(16, width - 4),
         ),
+        _fit(f"  diagnosis: {diagnose_bond(bond)}", max(16, width - 4)),
     ]
     return render_panel("FOCUS", lines, width=width, unicode=unicode)
 
@@ -282,6 +283,12 @@ def _sweep_cursor_line(state: RunState, *, frame_number: int, unicode: bool) -> 
         else:
             cells.append("·" if unicode else ".")
     return f"sweep {' '.join(cells)}  active=b{bonds[active_index].bond}"
+
+
+def _motion_legend_line(*, unicode: bool) -> str:
+    if unicode:
+        return "legend ◆ active  ◇ selected  ■ saturated  ▲ pressure"
+    return "legend > active  ^ selected  ! saturated  + pressure"
 
 
 def _cursor_cells(count: int, *, frame_number: int, frame_count: int, unicode: bool) -> str:

@@ -40,6 +40,10 @@ snapshot instrument-ascii-80.txt \
 	animate examples/tebd_run.jsonl \
 	--style instrument --frames 1 --window 0.3 --interval 0 --no-clear --ascii --width 80
 
+snapshot instrument-ascii-72.txt \
+	animate examples/tebd_run.jsonl \
+	--style instrument --frames 1 --window 1 --interval 0 --no-clear --ascii --no-color --width 72
+
 snapshot replay-focus.txt \
 	replay examples/tebd_run.jsonl \
 	--focus bottleneck --width 100 --no-color

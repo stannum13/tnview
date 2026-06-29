@@ -22,6 +22,11 @@ EXPECTED = {
         "required": ("STATUS", "SIGNALS", "MOTION", "FOCUS", "MPS topology", "Complexity rows"),
         "forbidden": ("Selected bond b",),
     },
+    "instrument-ascii-72.txt": {
+        "width": 72,
+        "required": ("STATUS", "SIGNALS", "MOTION", "FOCUS", "legend > active", "diagnosis:", "MPS topology"),
+        "forbidden": ("Selected bond b",),
+    },
     "replay-focus.txt": {
         "width": 100,
         "required": ("MPS topology", "Entanglement heatmap", "Complexity rows", "Selected bond"),
