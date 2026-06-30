@@ -65,6 +65,7 @@ Try individual commands:
 
 ```bash
 tnview demo
+tnview demo --animate
 tnview tour
 tnview recipes
 tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
@@ -139,6 +140,7 @@ For a visual MPS/TEBD replay demo:
 
 ```bash
 tnview demo
+tnview demo --animate
 tnview demo --style report
 tnview demo --interactive
 tnview sketch --wizard
@@ -266,7 +268,8 @@ tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generate
 `demo` generates an in-memory MPS/TEBD-style replay and renders it immediately.
 Use this first to see the terminal instrument without preparing data. The default
 view is the denser instrument layout; add `--style report` for the full static
-report or `--interactive` for keyboard navigation.
+report, `--animate` for moving frames, or `--interactive` for keyboard
+navigation.
 
 `recipes` prints runnable workflows for common tasks: watching a job, comparing
 baseline/candidate logs, inspecting oscilloscope signals, and building a

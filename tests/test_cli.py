@@ -821,6 +821,56 @@ class CliTests(unittest.TestCase):
         self.assertIn("Diagnostics", result.stdout)
         self.assertIn("Selected bond", result.stdout)
 
+    def test_demo_command_can_animate_generated_replay(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "demo",
+                "--sites",
+                "12",
+                "--checkpoints",
+                "4",
+                "--chi-max",
+                "32",
+                "--animate",
+                "--frames",
+                "2",
+                "--interval",
+                "0",
+                "--no-clear",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView demo | generated hard MPS/TEBD replay", result.stdout)
+        self.assertIn("TNView instrument frame 1/2", result.stdout)
+        self.assertIn("TNView instrument frame 2/2", result.stdout)
+        self.assertIn("+ MOTION ", result.stdout)
+
+    def test_demo_command_rejects_animate_interactive_conflict(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "demo",
+                "--animate",
+                "--interactive",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("demo --animate cannot be combined with --interactive", result.stderr)
+
     def test_sketch_command_lists_supported_prompts(self) -> None:
         result = subprocess.run(
             [

@@ -286,6 +286,13 @@ def _parser() -> argparse.ArgumentParser:
     demo.add_argument("--chi-max", type=int, default=128, help="maximum bond dimension")
     demo.add_argument("--profile", choices=["easy", "hard"], default="hard", help="demo complexity profile")
     demo.add_argument("--interactive", action="store_true", help="open the generated replay in the interactive shell")
+    demo.add_argument("--animate", action="store_true", help="play the generated replay as instrument frames")
+    demo.add_argument("--frames", type=int, help="number of generated checkpoint frames to animate")
+    demo.add_argument("--interval", type=float, default=0.2, help="sleep interval between demo animation frames")
+    demo.add_argument("--fps", type=float, help="frames per second for demo animation; overrides --interval")
+    demo.add_argument("--reverse", action="store_true", help="play generated demo frames from latest to earliest")
+    demo.add_argument("--bounce", action="store_true", help="play generated demo frames forward then back")
+    demo.add_argument("--no-clear", action="store_true", help="do not clear the terminal between demo frames")
     demo.add_argument("--ascii", action="store_true", help="use ASCII heatmap glyphs")
     demo.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     demo.add_argument("--width", type=int, help="render width in columns")
@@ -683,8 +690,22 @@ def _render_live_lines(lines: Iterable[str], args: argparse.Namespace) -> int:
 
 
 def _demo(args: argparse.Namespace) -> int:
+    if args.animate and args.interactive:
+        raise CliError(
+            code="DEMO_MODE_CONFLICT",
+            message="demo --animate cannot be combined with --interactive",
+            reason="Both modes take over the terminal.",
+            suggestions=("tnview demo --animate", "tnview demo --interactive"),
+            exit_code=2,
+        )
     if args.time_window < 0:
         raise EventParseError("--time-window must be non-negative")
+    if args.interval < 0:
+        raise EventParseError("--interval must be non-negative")
+    if args.fps is not None and args.fps <= 0:
+        raise EventParseError("--fps must be positive")
+    if args.frames is not None and args.frames <= 0:
+        raise EventParseError("--frames must be positive")
     replay = generate_chain_fixture(
         sites=args.sites,
         checkpoints=args.checkpoints,
@@ -703,8 +724,39 @@ def _demo(args: argparse.Namespace) -> int:
         state.select_bond(focus.bond)
     print(f"TNView demo | generated {args.profile} MPS/TEBD replay")
     print("Why: spot entanglement growth, chi pressure, and truncation bottlenecks from the terminal.")
-    print("Tip: `tnview demo --interactive` for navigation; `tnview demo --style report` for full detail.")
+    print("Tip: add `--animate` for motion, `--interactive` to navigate, or `--style report` for detail.")
     print()
+    if args.animate:
+        indices = animation_playback_indices(
+            animation_frame_indices_for_times(events, frames=args.frames),
+            reverse=args.reverse,
+            bounce=args.bounce,
+        )
+        interval = (1.0 / args.fps) if args.fps is not None else args.interval
+        total = len(indices)
+        for position, checkpoint_index in enumerate(indices, start=1):
+            if not args.no_clear and sys.stdout.isatty():
+                print("\033[2J\033[H", end="")
+            frame = render_animation_frame(
+                events,
+                checkpoint_index=checkpoint_index,
+                frame_number=position,
+                frame_count=total,
+                window_radius=args.time_window,
+                width=args.width,
+                unicode=not args.ascii,
+                color=_color_enabled(args),
+                focus="bottleneck",
+                selected_bond=focus.bond,
+                bond_start=focus.bond_start,
+                bond_limit=focus.bond_limit,
+                style=args.style,
+            )
+            print(frame.text)
+            print(flush=True)
+            if position < total and interval:
+                sleep(interval)
+        return 0
     if args.style == "instrument":
         latest_index = max(0, checkpoint_count(events) - 1)
         frame = render_animation_frame(
