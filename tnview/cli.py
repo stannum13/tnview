@@ -290,6 +290,8 @@ def _parser() -> argparse.ArgumentParser:
     demo.add_argument("--no-color", action="store_true", help="disable semantic ANSI color")
     demo.add_argument("--width", type=int, help="render width in columns")
     demo.add_argument("--window", type=int, default=16, help="number of bonds to show around the bottleneck")
+    demo.add_argument("--style", choices=["instrument", "report"], default="instrument", help="demo layout style")
+    demo.add_argument("--time-window", type=float, default=1.0, help="time radius for instrument demo frames")
 
     sketch = subparsers.add_parser("sketch", help="build and render a deterministic tensor-network sketch")
     sketch.add_argument("prompt", nargs="?", help='sketch prompt such as "mps sites=32 chi=128 profile=hard"')
@@ -681,6 +683,8 @@ def _render_live_lines(lines: Iterable[str], args: argparse.Namespace) -> int:
 
 
 def _demo(args: argparse.Namespace) -> int:
+    if args.time_window < 0:
+        raise EventParseError("--time-window must be non-negative")
     replay = generate_chain_fixture(
         sites=args.sites,
         checkpoints=args.checkpoints,
@@ -698,8 +702,28 @@ def _demo(args: argparse.Namespace) -> int:
     if focus.bond is not None:
         state.select_bond(focus.bond)
     print(f"TNView demo | generated {args.profile} MPS/TEBD replay")
-    print("Tip: run `tnview demo --interactive` for keyboard navigation.")
+    print("Why: spot entanglement growth, chi pressure, and truncation bottlenecks from the terminal.")
+    print("Tip: `tnview demo --interactive` for navigation; `tnview demo --style report` for full detail.")
     print()
+    if args.style == "instrument":
+        latest_index = max(0, checkpoint_count(events) - 1)
+        frame = render_animation_frame(
+            events,
+            checkpoint_index=latest_index,
+            frame_number=1,
+            frame_count=1,
+            window_radius=args.time_window,
+            width=args.width,
+            unicode=not args.ascii,
+            color=_color_enabled(args),
+            focus="bottleneck",
+            selected_bond=focus.bond,
+            bond_start=focus.bond_start,
+            bond_limit=focus.bond_limit,
+            style="instrument",
+        )
+        print(frame.text)
+        return 0
     print(
         render_run(
             state,

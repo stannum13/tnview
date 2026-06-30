@@ -34,7 +34,7 @@ EXPECTED = {
     },
     "demo.txt": {
         "width": 100,
-        "required": ("TNView demo", "MPS topology", "Entanglement heatmap", "Complexity rows"),
+        "required": ("TNView demo", "Why:", "STATUS", "MOTION", "FOCUS", "MPS topology", "Entanglement heatmap", "Complexity rows"),
         "forbidden": (),
     },
     "runlog-watch.txt": {

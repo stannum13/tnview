@@ -786,8 +786,39 @@ class CliTests(unittest.TestCase):
         )
 
         self.assertIn("TNView demo | generated hard MPS/TEBD replay", result.stdout)
-        self.assertIn("TNView", result.stdout)
+        self.assertIn("Why: spot entanglement growth", result.stdout)
+        self.assertIn("TNView instrument frame", result.stdout)
+        self.assertIn("+ STATUS ", result.stdout)
+        self.assertIn("+ MOTION ", result.stdout)
         self.assertIn("Entanglement heatmap", result.stdout)
+
+    def test_demo_command_can_render_report_style(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "demo",
+                "--sites",
+                "12",
+                "--checkpoints",
+                "4",
+                "--chi-max",
+                "32",
+                "--style",
+                "report",
+                "--ascii",
+                "--width",
+                "100",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("TNView demo | generated hard MPS/TEBD replay", result.stdout)
+        self.assertNotIn("TNView instrument frame", result.stdout)
+        self.assertIn("Diagnostics", result.stdout)
         self.assertIn("Selected bond", result.stdout)
 
     def test_sketch_command_lists_supported_prompts(self) -> None:

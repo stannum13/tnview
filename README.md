@@ -64,7 +64,9 @@ transcript is available at [docs/demo/runlog-demo.txt](docs/demo/runlog-demo.txt
 Try individual commands:
 
 ```bash
+tnview demo
 tnview tour
+tnview recipes
 tnview sketch "mps sites=48 chi=128 profile=hard" --interactive
 tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
 tnview tail examples/quimb_tnoptimizer_run.jsonl
@@ -137,6 +139,7 @@ For a visual MPS/TEBD replay demo:
 
 ```bash
 tnview demo
+tnview demo --style report
 tnview demo --interactive
 tnview sketch --wizard
 tnview sketch "mps sites=48 chi=128 profile=hard"
@@ -261,7 +264,9 @@ tnview fixture chain --sites 64 --checkpoints 8 --profile hard --output generate
 ## Command Guide
 
 `demo` generates an in-memory MPS/TEBD-style replay and renders it immediately.
-Use this first to see the terminal view without preparing data.
+Use this first to see the terminal instrument without preparing data. The default
+view is the denser instrument layout; add `--style report` for the full static
+report or `--interactive` for keyboard navigation.
 
 `recipes` prints runnable workflows for common tasks: watching a job, comparing
 baseline/candidate logs, inspecting oscilloscope signals, and building a

@@ -17,6 +17,7 @@ This writes:
 ```text
 .artifacts/ui/instrument.txt
 .artifacts/ui/instrument-ascii-80.txt
+.artifacts/ui/instrument-ascii-72.txt
 .artifacts/ui/replay-focus.txt
 .artifacts/ui/demo.txt
 .artifacts/ui/runlog-watch.txt
@@ -64,4 +65,3 @@ make ui-worktrees BASE_DIR=/tmp/tnview-ui
 4. Inspect `.artifacts/ui/*.txt` and `.artifacts/ui/review.txt`.
 5. Keep, revise, or discard the experiment.
 6. Integrate the smallest successful slice into `main`.
-

@@ -97,6 +97,8 @@ def render_animation_frame(
     color: bool = False,
     focus: str = "bottleneck",
     selected_bond: int | None = None,
+    bond_start: int | None = None,
+    bond_limit: int | None = None,
     signals: tuple[str, ...] = ("entropy", "chi", "trunc", "front"),
     style: str = "report",
 ) -> AnimationFrame:
@@ -133,6 +135,8 @@ def render_animation_frame(
             show_updates=style == "report",
             show_inspector=style == "report",
             show_diagnostics=style == "report",
+            bond_start=bond_start,
+            bond_limit=bond_limit,
             pulse_phase=frame_number if style == "instrument" else None,
         ),
     )
@@ -148,7 +152,6 @@ def render_animation_frame(
             body=body,
             points=points,
             frame_number=frame_number,
-            frame_count=frame_count,
             width=render_width,
             unicode=unicode,
             color=color,
@@ -173,7 +176,6 @@ def _instrument_frame_text(
     body: str,
     points: list[SignalPoint],
     frame_number: int,
-    frame_count: int,
     width: int,
     unicode: bool,
     color: bool,
@@ -182,7 +184,7 @@ def _instrument_frame_text(
         _fit(header.replace("oscilloscope frame", "instrument frame"), width),
         _instrument_status_panel(state, width=width, unicode=unicode, color=color),
         _instrument_signal_panel(signal_panel, width=width, unicode=unicode) if signal_panel else "",
-        _motion_panel(state, points, frame_number=frame_number, frame_count=frame_count, width=width, unicode=unicode),
+        _motion_panel(state, points, frame_number=frame_number, width=width, unicode=unicode),
         _focus_panel(state, width=width, unicode=unicode, color=color),
         body,
     ]
@@ -220,12 +222,13 @@ def _motion_panel(
     points: list[SignalPoint],
     *,
     frame_number: int,
-    frame_count: int,
     width: int,
     unicode: bool,
 ) -> str:
+    checkpoint = state.latest_checkpoint
+    active_time = checkpoint.time if checkpoint is not None else None
     lines = [
-        _time_cursor_line(points, frame_number=frame_number, frame_count=frame_count, unicode=unicode),
+        _time_cursor_line(points, active_time=active_time, unicode=unicode),
         _sweep_cursor_line(state, frame_number=frame_number, unicode=unicode),
         _motion_legend_line(unicode=unicode),
     ]
@@ -252,14 +255,16 @@ def _focus_panel(state: RunState, *, width: int, unicode: bool, color: bool) -> 
 def _time_cursor_line(
     points: list[SignalPoint],
     *,
-    frame_number: int,
-    frame_count: int,
+    active_time: float | None,
     unicode: bool,
 ) -> str:
-    cells = _cursor_cells(len(points), frame_number=frame_number, frame_count=frame_count, unicode=unicode)
     if not points:
-        return f"time  {cells}  no checkpoints in window"
-    active = min(len(points) - 1, max(0, round((frame_number - 1) / max(1, frame_count - 1) * (len(points) - 1))))
+        return "time  no checkpoints in window"
+    if active_time is None:
+        active = len(points) - 1
+    else:
+        active = min(range(len(points)), key=lambda index: abs(points[index].time - active_time))
+    cells = _cursor_cells(len(points), active=active, unicode=unicode)
     point = points[active]
     return f"time  {cells}  T={point.time:g} step={point.step}"
 
@@ -291,10 +296,10 @@ def _motion_legend_line(*, unicode: bool) -> str:
     return "legend > active  ^ selected  ! saturated  + pressure"
 
 
-def _cursor_cells(count: int, *, frame_number: int, frame_count: int, unicode: bool) -> str:
+def _cursor_cells(count: int, *, active: int, unicode: bool) -> str:
     if count <= 0:
         return ""
-    active = min(count - 1, max(0, round((frame_number - 1) / max(1, frame_count - 1) * (count - 1))))
+    active = min(count - 1, max(0, active))
     on = "●" if unicode else "o"
     off = "─" if unicode else "-"
     return "".join(on if index == active else off for index in range(count))

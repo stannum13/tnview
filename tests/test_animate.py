@@ -142,6 +142,22 @@ class AnimateTests(unittest.TestCase):
         self.assertIn("diagnosis: trivial local dynamics", frame.text)
         self.assertNotIn("local dy~", frame.text)
 
+    def test_instrument_time_cursor_tracks_active_checkpoint(self) -> None:
+        events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
+        frame = render_animation_frame(
+            events,
+            checkpoint_index=2,
+            frame_number=1,
+            frame_count=1,
+            window_radius=0.8,
+            width=100,
+            unicode=False,
+            style="instrument",
+        )
+
+        self.assertIn("time  --o  T=0.8 step=80", frame.text)
+        self.assertNotIn("time  o--  T=0", frame.text)
+
     def test_render_animation_frame_rejects_invalid_inputs(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text(encoding="utf-8").splitlines())
 
