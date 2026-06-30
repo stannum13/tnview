@@ -74,6 +74,25 @@ class FixtureGenerationTests(unittest.TestCase):
             self.assertTrue(report.valid)
             self.assertEqual(report.bond_count, 7)
 
+    def test_fixture_cli_rejects_invalid_parameters(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "fixture",
+                "chain",
+                "--checkpoints",
+                "0",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Invalid fixture chain parameters", result.stderr)
+        self.assertIn("--checkpoints must be at least 1", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

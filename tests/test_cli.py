@@ -871,6 +871,24 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("demo --animate cannot be combined with --interactive", result.stderr)
 
+    def test_demo_command_rejects_invalid_generated_chain_parameters(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "tnview.cli",
+                "demo",
+                "--sites",
+                "1",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Invalid demo chain parameters", result.stderr)
+        self.assertIn("--sites must be at least 2", result.stderr)
+
     def test_sketch_command_lists_supported_prompts(self) -> None:
         result = subprocess.run(
             [

@@ -706,6 +706,11 @@ def _demo(args: argparse.Namespace) -> int:
         raise EventParseError("--fps must be positive")
     if args.frames is not None and args.frames <= 0:
         raise EventParseError("--frames must be positive")
+    _validate_chain_fixture_args(
+        args,
+        label="demo",
+        example="tnview demo --sites 32 --checkpoints 8 --chi-max 128",
+    )
     replay = generate_chain_fixture(
         sites=args.sites,
         checkpoints=args.checkpoints,
@@ -1119,6 +1124,11 @@ def _examples(args: argparse.Namespace) -> int:
 
 def _fixture(args: argparse.Namespace) -> int:
     if args.kind == "chain":
+        _validate_chain_fixture_args(
+            args,
+            label="fixture",
+            example="tnview fixture chain --sites 32 --checkpoints 8 --chi-max 128",
+        )
         output = generate_chain_fixture(
             sites=args.sites,
             checkpoints=args.checkpoints,
@@ -1128,6 +1138,28 @@ def _fixture(args: argparse.Namespace) -> int:
         _write_output(output.rstrip("\n"), args.output)
         return 0
     raise EventParseError(f"unsupported fixture kind {args.kind!r}")
+
+
+def _validate_chain_fixture_args(args: argparse.Namespace, *, label: str, example: str) -> None:
+    if args.sites < 2:
+        _raise_chain_fixture_error(label, "--sites must be at least 2", example=example)
+    if args.checkpoints < 1:
+        _raise_chain_fixture_error(label, "--checkpoints must be at least 1", example=example)
+    if args.chi_max < 1:
+        _raise_chain_fixture_error(label, "--chi-max must be positive", example=example)
+
+
+def _raise_chain_fixture_error(label: str, reason: str, *, example: str) -> None:
+    raise CliError(
+        code="INVALID_CHAIN_FIXTURE",
+        message=f"Invalid {label} chain parameters",
+        reason=reason,
+        suggestions=(
+            example,
+            "Use `tnview demo` for a known-good generated replay.",
+        ),
+        exit_code=2,
+    )
 
 
 def _schema(args: argparse.Namespace) -> int:
