@@ -294,6 +294,7 @@ class ReplayController:
             return
         verb = parts[0]
         argument = parts[1] if len(parts) > 1 else None
+        amount = _command_amount(parts, 1, default=10)
         if verb in {"next", "n"}:
             self.next_checkpoint()
         elif verb in {"previous", "prev", "p"}:
@@ -312,6 +313,42 @@ class ReplayController:
             self.toggle_section("scope")
         elif verb in {"diagnostics", "diag"}:
             self.toggle_section("diagnostics")
+        elif verb in {"down", "scroll-down", "pgdn", "pagedown"}:
+            self.scroll_down(amount)
+        elif verb in {"up", "scroll-up", "pgup", "pageup"}:
+            self.scroll_up(amount)
+        elif verb in {"right", "scroll-right"}:
+            self.scroll_right(amount)
+        elif verb in {"left", "scroll-left"}:
+            self.scroll_left(amount)
+        elif verb == "page" and argument in {"down", "next"}:
+            self.scroll_down(_command_amount(parts, 2, default=10))
+        elif verb == "page" and argument in {"up", "prev", "previous"}:
+            self.scroll_up(_command_amount(parts, 2, default=10))
+        elif verb == "scroll" and argument == "down":
+            self.scroll_down(_command_amount(parts, 2, default=10))
+        elif verb == "scroll" and argument == "up":
+            self.scroll_up(_command_amount(parts, 2, default=10))
+        elif verb == "scroll" and argument == "right":
+            self.scroll_right(_command_amount(parts, 2, default=12))
+        elif verb == "scroll" and argument == "left":
+            self.scroll_left(_command_amount(parts, 2, default=12))
+        elif verb == "pan" and argument in {"right", "next"}:
+            self.scroll_right(_command_amount(parts, 2, default=12))
+        elif verb == "pan" and argument in {"left", "prev", "previous"}:
+            self.scroll_left(_command_amount(parts, 2, default=12))
+        elif verb in {"top", "home"}:
+            self.scroll_top()
+        elif verb in {"bottom", "end"}:
+            self.scroll_bottom()
+        elif verb in {"window", "win"} and argument in {"next", "right"}:
+            self.next_bond_window()
+        elif verb in {"window", "win"} and argument in {"previous", "prev", "left"}:
+            self.previous_bond_window()
+        elif verb in {"next-window", "nextwin"}:
+            self.next_bond_window()
+        elif verb in {"previous-window", "prev-window", "prevwin"}:
+            self.previous_bond_window()
         elif verb in {"help", "commands", "?"}:
             self.show_help = True
             self._reset_scroll()
@@ -393,6 +430,16 @@ def _canvas_width(terminal_width: int, controller: ReplayController) -> int:
     return max(120, viewport_width * 2, viewport_width + controller.column_offset + 1)
 
 
+def _command_amount(parts: list[str], index: int, *, default: int) -> int:
+    if len(parts) <= index:
+        return default
+    try:
+        value = int(parts[index])
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
 def _viewport_lines(
     lines: list[str],
     *,
@@ -458,6 +505,10 @@ def _help_text() -> str:
             "  :scope          toggle oscilloscope scope panel",
             "  :diagnostics    toggle diagnostics panel",
             "  :toggle NAME    toggle updates, entropy, pressure, inspector, diagnostics, scope",
+            "  :down N/:up N    scroll rows; also :scroll down N",
+            "  :right N/:left N pan columns; also :scroll right N",
+            "  :top/:bottom    jump to top or bottom of current view",
+            "  :window next    move to next bond viewport; also :window prev",
             "",
             "toggles",
             "  u               TEBD/TDVP updates",

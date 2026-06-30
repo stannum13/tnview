@@ -88,6 +88,50 @@ class ReplayControllerTests(unittest.TestCase):
         controller.execute_command("help")
         self.assertTrue(controller.show_help)
 
+    def test_command_mode_dispatches_scroll_and_window_aliases(self) -> None:
+        events = parse_jsonl(Path("examples/ladder_snake_mismatch.jsonl").read_text().splitlines())
+        controller = ReplayController(events, bond_limit=3)
+
+        controller.execute_command("down 7")
+        self.assertEqual(controller.scroll_offset, 7)
+        controller.execute_command("up 2")
+        self.assertEqual(controller.scroll_offset, 5)
+        controller.execute_command("page down")
+        self.assertEqual(controller.scroll_offset, 15)
+        controller.execute_command("page up 4")
+        self.assertEqual(controller.scroll_offset, 11)
+        controller.execute_command("scroll down 3")
+        self.assertEqual(controller.scroll_offset, 14)
+        controller.execute_command("scroll up 1")
+        self.assertEqual(controller.scroll_offset, 13)
+
+        controller.execute_command("right 9")
+        self.assertEqual(controller.column_offset, 9)
+        controller.execute_command("left 3")
+        self.assertEqual(controller.column_offset, 6)
+        controller.execute_command("scroll right 4")
+        self.assertEqual(controller.column_offset, 10)
+        controller.execute_command("scroll left 2")
+        self.assertEqual(controller.column_offset, 8)
+        controller.execute_command("pan right")
+        self.assertEqual(controller.column_offset, 20)
+        controller.execute_command("pan left 5")
+        self.assertEqual(controller.column_offset, 15)
+
+        controller.execute_command("top")
+        self.assertEqual(controller.scroll_offset, 0)
+        controller.execute_command("bottom")
+        self.assertGreater(controller.scroll_offset, 1000)
+
+        controller.execute_command("window next")
+        self.assertEqual(controller.bond_start, 3)
+        controller.execute_command("window prev")
+        self.assertEqual(controller.bond_start, 0)
+        controller.execute_command("next-window")
+        self.assertEqual(controller.bond_start, 3)
+        controller.execute_command("prev-window")
+        self.assertEqual(controller.bond_start, 0)
+
     def test_colon_key_enters_command_mode(self) -> None:
         events = parse_jsonl(Path("examples/tebd_run.jsonl").read_text().splitlines())
         controller = ReplayController(events)
@@ -233,6 +277,9 @@ class ReplayControllerTests(unittest.TestCase):
         self.assertIn(":toggle", output)
         self.assertIn(":scope", output)
         self.assertIn(":diagnostics", output)
+        self.assertIn(":down", output)
+        self.assertIn(":right", output)
+        self.assertIn(":window next", output)
         self.assertIn("scope panel", output)
 
     def test_command_mode_footer_suggests_help(self) -> None:

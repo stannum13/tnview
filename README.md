@@ -459,6 +459,7 @@ u/e/c/i/d toggle updates, entropy, chi rows, inspector, diagnostics
 s         toggle oscilloscope scope panel
 :time T   jump to nearest checkpoint time
 :focus entropy, :toggle scope, :bond N
+:down 20, :right 40, :top, :window next
 ?         help
 q         quit
 ```
