@@ -18,6 +18,8 @@ It is built for tmux, batch jobs, and crash recovery: record observable run
 state, attach from a terminal while the job is alive, then inspect the same log
 afterward.
 
+![TNView live watch dashboard](docs/demo/watch-dashboard.svg)
+
 ## Install
 
 From this repo:
@@ -42,6 +44,9 @@ python -m pip install -e ".[tenpy]"
 
 ## 30-Second Demo
 
+The demo images in this section are generated from real CLI output. Refresh them
+with `make demo-assets`.
+
 Start with the motivated CLI tour:
 
 ```bash
@@ -60,6 +65,12 @@ specific historical event, diagnoses a stalled DMRG-style run, and compares the
 two run logs. It is intentionally plain terminal output so it works over SSH and
 is easy to record with tools such as `script` or `asciinema`. A checked-in
 transcript is available at [docs/demo/runlog-demo.txt](docs/demo/runlog-demo.txt).
+
+![Generated MPS/TEBD instrument](docs/demo/demo-instrument.svg)
+
+![Diagnostics with recovery hints](docs/demo/diagnostics.svg)
+
+![Baseline vs candidate diagnostics](docs/demo/compare-runs.svg)
 
 Try individual commands:
 
@@ -89,21 +100,7 @@ make quimb-demo
 
 `watch` is the live dashboard: a compact, lazygit-style terminal cockpit for
 the latest run state, pressure signals, diagnostics, and recent events. `tail`
-keeps the plainer one-shot summary for scripts and logs:
-
-```text
-* TNView watch  status=live  events=6  run=quimb-opt  lib=quimb  algo=tnoptimizer  step=4
-
-+ Run -----------------------------------+   + Signals ------------------------------------------+
-| * loss       0.07 was 0.12             |   |   health    [###.......] ok                       |
-| * wall s     2.3 was 1.9               |   |   progress  [###.......] ok                       |
-| * rss MB     526 was 522               |   |   loss      #*+-.  latest=0.07 change=-0.05       |
-+----------------------------------------+   +----------------------------------------------------+
-
-+ Diagnostics --------------------------------------------------------------------------+
-| no warnings                                                                            |
-+---------------------------------------------------------------------------------------+
-```
+keeps the plainer one-shot summary for scripts and logs.
 
 ## Record a Run
 

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="839" height="582" viewBox="0 0 839 582" role="img" aria-labelledby="title desc">
+  <title id="title">Live optimizer watch dashboard</title>
+  <desc id="desc">Terminal screenshot generated from: tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 92 --no-color</desc>
+  <defs>
+    <linearGradient id="bg-watch-dashboard-svg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#071014"/>
+      <stop offset="55%" stop-color="#0f1720"/>
+      <stop offset="100%" stop-color="#15151e"/>
+    </linearGradient>
+    <clipPath id="clip-watch-dashboard-svg">
+      <rect x="0" y="0" width="839" height="582" rx="14"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#clip-watch-dashboard-svg)">
+    <rect width="839" height="582" fill="url(#bg-watch-dashboard-svg)"/>
+    <rect x="0" y="0" width="839" height="40" fill="#111827"/>
+    <circle cx="24" cy="20" r="6" fill="#ff5f57"/>
+    <circle cx="44" cy="20" r="6" fill="#ffbd2e"/>
+    <circle cx="64" cy="20" r="6" fill="#28c840"/>
+    <text x="86" y="25" fill="#d8dee9" font-family="Menlo, Consolas, monospace" font-size="13">Live optimizer watch dashboard</text>
+    <rect x="14" y="58" width="811" height="42" rx="8" fill="#101820" stroke="#243241"/>
+    <text x="24" y="88" fill="#8bd5ca" font-family="Menlo, Consolas, monospace" font-size="13">$ tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 92 --no-color</text>
+    <g fill="#d8dee9" font-family="Menlo, Consolas, monospace" font-size="13">
+      <text x="24" y="122">● TNView watch  status=live  events=6  run=quimb-opt  lib=quimb  algo=tnoptimizer  step=4</text><text x="24" y="140"></text><text x="24" y="158">┌ Run ─────────────────────────────────────┐   ┌ Signals ──────────────────────────────────┐</text><text x="24" y="176">│   loss       0.07                        │   │   health    [████░░░░░░] ok               │</text><text x="24" y="194">│   wall s     2.3                         │   │   memory    [░░░░░░░░░░] ok               │</text><text x="24" y="212">│   rss MB     526                         │   │   progress  [██░░░░░░░░] ok               │</text><text x="24" y="230">└──────────────────────────────────────────┘   │                                           │</text><text x="24" y="248">                                               │   loss     █▄▂▁  latest=0.07 change=-0.11 │</text><text x="24" y="266">                                               │   rss      ▁▄▆█  latest=526 change=3      │</text><text x="24" y="284">                                               └───────────────────────────────────────────┘</text><text x="24" y="302"></text><text x="24" y="320">┌ Diagnostics ─────────────────────────────────────────────────────────────────────────────┐</text><text x="24" y="338">│ no warnings                                                                              │</text><text x="24" y="356">└──────────────────────────────────────────────────────────────────────────────────────────┘</text><text x="24" y="374"></text><text x="24" y="392">┌ Recent events ───────────────────────────────────────────────────────────────────────────┐</text><text x="24" y="410">│   01:00:00  run_start                                                                    │</text><text x="24" y="428">│   01:00:02  optimizer_step  step=1  loss=0.8  rss=512                                    │</text><text x="24" y="446">│   01:00:04  optimizer_step  step=2  loss=0.42  rss=518                                   │</text><text x="24" y="464">│   01:00:07  optimizer_step  step=3  loss=0.18  rss=523                                   │</text><text x="24" y="482">│   01:00:10  optimizer_step  step=4  loss=0.07  rss=526                                   │</text><text x="24" y="500">│   01:00:11  run_end                                                                      │</text><text x="24" y="518">└──────────────────────────────────────────────────────────────────────────────────────────┘</text><text x="24" y="536">q/ctrl-c stop  tail PATH snapshot  diagnose PATH explain warnings</text>
+    </g>
+  </g>
+</svg>

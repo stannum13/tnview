@@ -8,41 +8,39 @@ examples/dmrg_bad_run.jsonl               run-log  7       0      0            e
 examples/easy_chain.jsonl                 replay   15      5      2            healthy growth
 examples/ladder_snake_mismatch.jsonl      replay   12      7      1            chi-limited run
 examples/long_range_chi_limited.jsonl     replay   15      5      2            chi-limited run
+examples/moving_front.jsonl               replay   129     17     7            healthy growth
 examples/quimb_tnoptimizer_run.jsonl      run-log  6       0      0            no warnings
 examples/tebd_run.jsonl                   replay   18      3      3            chi-limited run
+examples/truncation_spike.jsonl           replay   129     17     7            healthy growth
 
-compare replay: tnview compare examples/blocked_ladder.jsonl examples/easy_chain.jsonl examples/ladder_snake_mismatch.jsonl examples/long_range_chi_limited.jsonl
+compare replay: tnview compare examples/blocked_ladder.jsonl examples/easy_chain.jsonl examples/ladder_snake_mismatch.jsonl examples/long_range_chi_limited.jsonl examples/moving_front.jsonl examples/truncation_spike.jsonl
 compare run logs: tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk
 
 .venv/bin/tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear --width 100
-● live  run=quimb-opt  step=4  loss=0.07  rss=526  events=6
-TNView run tail | run_id=quimb-opt library=quimb algorithm=tnoptimizer
-events=6 updated=2026-06-10T01:00:11.000Z
+● TNView watch  status=live  events=6  run=quimb-opt  lib=quimb  algo=tnoptimizer  step=4
 
-Current:
-    step          4
-    loss          0.07
-    wall time     2.3
-    rss           526
+┌ Run ─────────────────────────────────────────┐   ┌ Signals ──────────────────────────────────────┐
+│   loss       0.07                            │   │   health    [████░░░░░░] ok                   │
+│   wall s     2.3                             │   │   memory    [░░░░░░░░░░] ok                   │
+│   rss MB     526                             │   │   progress  [██░░░░░░░░] ok                   │
+└──────────────────────────────────────────────┘   │                                               │
+                                                   │   loss     █▄▂▁  latest=0.07 change=-0.11     │
+                                                   │   rss      ▁▄▆█  latest=526 change=3          │
+                                                   └───────────────────────────────────────────────┘
 
-Diagnostics:
-  no warnings
+┌ Diagnostics ─────────────────────────────────────────────────────────────────────────────────────┐
+│ no warnings                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-Pressure:
-  health    [████░░░░░░] ok
-  memory    [░░░░░░░░░░] ok
-  progress  [██░░░░░░░░] ok
-
-Trends:
-  loss     █▄▂▁  latest=0.07 change=-0.11
-  rss      ▁▄▆█  latest=526 change=3
-
-Events:
-  01:00:02  optimizer_step  step=1  loss=0.8  rss=512
-  01:00:04  optimizer_step  step=2  loss=0.42  rss=518
-  01:00:07  optimizer_step  step=3  loss=0.18  rss=523
-  01:00:10  optimizer_step  step=4  loss=0.07  rss=526
-  01:00:11  run_end
+┌ Recent events ───────────────────────────────────────────────────────────────────────────────────┐
+│   01:00:00  run_start                                                                            │
+│   01:00:02  optimizer_step  step=1  loss=0.8  rss=512                                            │
+│   01:00:04  optimizer_step  step=2  loss=0.42  rss=518                                           │
+│   01:00:07  optimizer_step  step=3  loss=0.18  rss=523                                           │
+│   01:00:10  optimizer_step  step=4  loss=0.07  rss=526                                           │
+│   01:00:11  run_end                                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+q/ctrl-c stop  tail PATH snapshot  diagnose PATH explain warnings
 
 
 .venv/bin/tnview replay-runlog examples/quimb_tnoptimizer_run.jsonl --index 2 --ascii --width 100
@@ -75,14 +73,33 @@ Events:
 
 .venv/bin/tnview diagnose examples/dmrg_bad_run.jsonl
 TNView diagnostics
-WARN energy_plateau: Energy appears plateaued; check truncation error and chi saturation. (recent_delta_energy=[1e-09, 1e-09, 1e-09, 1e-09])
-WARN chi_saturation: Bond dimension has saturated for 3 consecutive progress events. (max_chi=128, chi_max_configured=128)
-WARN truncation_floor: Truncation error remains high while energy improvement is small. (max_trunc_err=2.4e-07, delta_energy=1e-09)
-WARN memory_growth: RSS memory is growing steadily across recent progress events. (rss_mb_start=1000.0, rss_mb_latest=1400.0)
+▲ WARN energy_plateau [convergence]: Energy appears plateaued; check truncation error and chi saturation. (recent_delta_energy=[1e-09, 1e-09, 1e-09, 1e-09])
+  Try:
+    - inspect chi_saturation and truncation_floor diagnostics
+    - compare against a larger chi_max run
+    - stop early if observables are stable
+▲ WARN chi_saturation [capacity]: Bond dimension has saturated for 3 consecutive progress events. (max_chi=128, chi_max_configured=128)
+  Try:
+    - increase chi_max for a short comparison run
+    - check whether the saturated bonds align with the physical cut
+    - try a different site ordering before only increasing chi
+▲ WARN truncation_floor [accuracy]: Truncation error remains high while energy improvement is small. (max_trunc_err=2.4e-07, delta_energy=1e-09)
+  Try:
+    - increase chi_max or reduce truncation tolerance
+    - compare observables against a higher-accuracy run
+    - inspect the bonds with the largest truncation error
+▲ WARN memory_growth [resource]: RSS memory is growing steadily across recent progress events. (rss_mb_start=1000.0, rss_mb_latest=1400.0)
+  Try:
+    - confirm tensors or environments are not being retained accidentally
+    - checkpoint and restart the run if memory pressure is near the job limit
+    - compare RSS growth across parameter variants
 
-.venv/bin/tnview compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk --width 140
-Run-log comparison
-run                     id            lib       alg           sweep   step    energy       dE          loss        chi     trunc       rss ~
-----------------------  ------------  --------  ------------  ------  ------  -----------  ----------  ----------  ------  ----------  ----~
-dmrg_bad_run.jsonl      dmrg-bad      manual    dmrg          5       n/a     -42.1        1e-09       n/a         128     2.4e-07     1400~
-quimb_tnoptimizer_run~  quimb-opt     quimb     tnoptimizer   n/a     4       n/a          n/a         0.07        n/a     n/a         526 ~
+.venv/bin/tnview compare examples/quimb_tnoptimizer_run.jsonl examples/dmrg_bad_run.jsonl --diagnostics --width 116
+Run-log diagnostic comparison
+baseline:  quimb_tnoptimizer_run.jsonl
+candidate: dmrg_bad_run.jsonl
+
+candidate warnings=4 errors=0
+new:       chi_saturation, energy_plateau, memory_growth, truncation_floor
+resolved:  none
+shared:    none

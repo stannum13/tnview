@@ -1,4 +1,4 @@
-.PHONY: setup install test compile check smoke validate replay replay-interactive runlog-demo quimb-demo compare ui-snapshots ui-review ui-worktrees clean
+.PHONY: setup install test compile check smoke validate replay replay-interactive runlog-demo quimb-demo compare demo-assets ui-snapshots ui-review ui-worktrees clean
 
 PYTHON ?= $(shell if [ -x .venv/bin/python ]; then echo .venv/bin/python; else echo python; fi)
 PIP ?= $(PYTHON) -m pip
@@ -36,6 +36,9 @@ quimb-demo:
 
 compare:
 	$(TNVIEW) compare examples/easy_chain.jsonl examples/long_range_chi_limited.jsonl examples/ladder_snake_mismatch.jsonl examples/blocked_ladder.jsonl
+
+demo-assets:
+	$(PYTHON) ./scripts/render_demo_svgs.py
 
 ui-snapshots:
 	PYTHON="$(PYTHON)" ./scripts/ui_snapshots.sh

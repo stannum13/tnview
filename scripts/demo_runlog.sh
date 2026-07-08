@@ -19,5 +19,5 @@ echo "$TNVIEW diagnose examples/dmrg_bad_run.jsonl"
 $TNVIEW diagnose examples/dmrg_bad_run.jsonl
 
 echo
-echo "$TNVIEW compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk --width 140"
-$TNVIEW compare examples/dmrg_bad_run.jsonl examples/quimb_tnoptimizer_run.jsonl --sort risk --width 140
+echo "$TNVIEW compare examples/quimb_tnoptimizer_run.jsonl examples/dmrg_bad_run.jsonl --diagnostics --width 116"
+$TNVIEW compare examples/quimb_tnoptimizer_run.jsonl examples/dmrg_bad_run.jsonl --diagnostics --width 116

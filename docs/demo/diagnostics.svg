@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1045" height="528" viewBox="0 0 1045 528" role="img" aria-labelledby="title desc">
+  <title id="title">Run diagnostics with recovery hints</title>
+  <desc id="desc">Terminal screenshot generated from: tnview diagnose examples/dmrg_bad_run.jsonl</desc>
+  <defs>
+    <linearGradient id="bg-diagnostics-svg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#071014"/>
+      <stop offset="55%" stop-color="#0f1720"/>
+      <stop offset="100%" stop-color="#15151e"/>
+    </linearGradient>
+    <clipPath id="clip-diagnostics-svg">
+      <rect x="0" y="0" width="1045" height="528" rx="14"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#clip-diagnostics-svg)">
+    <rect width="1045" height="528" fill="url(#bg-diagnostics-svg)"/>
+    <rect x="0" y="0" width="1045" height="40" fill="#111827"/>
+    <circle cx="24" cy="20" r="6" fill="#ff5f57"/>
+    <circle cx="44" cy="20" r="6" fill="#ffbd2e"/>
+    <circle cx="64" cy="20" r="6" fill="#28c840"/>
+    <text x="86" y="25" fill="#d8dee9" font-family="Menlo, Consolas, monospace" font-size="13">Run diagnostics with recovery hints</text>
+    <rect x="14" y="58" width="1017" height="42" rx="8" fill="#101820" stroke="#243241"/>
+    <text x="24" y="88" fill="#8bd5ca" font-family="Menlo, Consolas, monospace" font-size="13">$ tnview diagnose examples/dmrg_bad_run.jsonl</text>
+    <g fill="#d8dee9" font-family="Menlo, Consolas, monospace" font-size="13">
+      <text x="24" y="122">TNView diagnostics</text><text x="24" y="140">▲ WARN energy_plateau [convergence]: Energy appears plateaued; check truncation error and chi saturation. (recent_delta_energy=[1e-09, 1e-09, 1e-09, 1e-09])</text><text x="24" y="158">  Try:</text><text x="24" y="176">    - inspect chi_saturation and truncation_floor diagnostics</text><text x="24" y="194">    - compare against a larger chi_max run</text><text x="24" y="212">    - stop early if observables are stable</text><text x="24" y="230">▲ WARN chi_saturation [capacity]: Bond dimension has saturated for 3 consecutive progress events. (max_chi=128, chi_max_configured=128)</text><text x="24" y="248">  Try:</text><text x="24" y="266">    - increase chi_max for a short comparison run</text><text x="24" y="284">    - check whether the saturated bonds align with the physical cut</text><text x="24" y="302">    - try a different site ordering before only increasing chi</text><text x="24" y="320">▲ WARN truncation_floor [accuracy]: Truncation error remains high while energy improvement is small. (max_trunc_err=2.4e-07, delta_energy=1e-09)</text><text x="24" y="338">  Try:</text><text x="24" y="356">    - increase chi_max or reduce truncation tolerance</text><text x="24" y="374">    - compare observables against a higher-accuracy run</text><text x="24" y="392">    - inspect the bonds with the largest truncation error</text><text x="24" y="410">▲ WARN memory_growth [resource]: RSS memory is growing steadily across recent progress events. (rss_mb_start=1000.0, rss_mb_latest=1400.0)</text><text x="24" y="428">  Try:</text><text x="24" y="446">    - confirm tensors or environments are not being retained accidentally</text><text x="24" y="464">    - checkpoint and restart the run if memory pressure is near the job limit</text><text x="24" y="482">    - compare RSS growth across parameter variants</text>
+    </g>
+  </g>
+</svg>

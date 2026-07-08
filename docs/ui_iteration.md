@@ -29,6 +29,27 @@ The review report checks for missing landmarks, excessive body width, likely
 truncation markers, duplicate focus details, and long blank runs. It is a guardrail,
 not a replacement for qualitative inspection.
 
+## Public Demo Assets
+
+Generate committed README-safe SVG cards from real CLI output:
+
+```bash
+make demo-assets
+```
+
+This writes:
+
+```text
+docs/demo/demo-instrument.svg
+docs/demo/watch-dashboard.svg
+docs/demo/diagnostics.svg
+docs/demo/compare-runs.svg
+```
+
+These cards should avoid fitted `~` truncation and should show current command
+output rather than mocked UI. Regenerate them after changing the public terminal
+presentation.
+
 ## Variant Worktrees
 
 Create isolated UI experiment branches:
