@@ -18,6 +18,14 @@ class PackageMetadataTests(unittest.TestCase):
         self.assertIn("physics-tenpy>=1.0", project["optional-dependencies"]["tenpy"])
         self.assertIn("https://github.com/stannum13/tnview", project["urls"]["Repository"])
 
+    def test_setup_uses_development_requirements(self) -> None:
+        dev_requirements = Path("requirements-dev.txt").read_text(encoding="utf-8")
+        setup_script = Path("scripts/setup_env.sh").read_text(encoding="utf-8")
+
+        self.assertIn('-e ".[dev]"', dev_requirements)
+        self.assertIn("requirements-dev.txt", setup_script)
+        self.assertNotIn("pip install -r requirements.txt", setup_script)
+
 
 if __name__ == "__main__":
     unittest.main()

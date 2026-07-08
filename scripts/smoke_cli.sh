@@ -11,6 +11,7 @@ TNVIEW="${TNVIEW:-tnview}"
 "$TNVIEW" focus --list --json >/dev/null
 "$TNVIEW" doctor --json >/dev/null
 "$TNVIEW" schema --json >/dev/null
+"$TNVIEW" demo --animate --frames 2 --interval 0 --no-clear --ascii >/dev/null
 "$TNVIEW" validate examples/tebd_run.jsonl >/dev/null
 "$TNVIEW" validate examples/dmrg_bad_run.jsonl --strict --json >/dev/null
 "$TNVIEW" watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear >/dev/null

@@ -5,11 +5,11 @@ Use this checklist before tagging a public release.
 1. Run local verification:
 
    ```bash
+   make setup
    make check
    make smoke
    make runlog-demo
    make quimb-demo
-   .venv/bin/python -m pip install -e .
    ```
 
 2. Confirm the CLI entry point:
@@ -17,6 +17,7 @@ Use this checklist before tagging a public release.
    ```bash
    tnview --help
    tnview --version
+   tnview demo --animate --frames 2 --interval 0 --no-clear --ascii
    tnview doctor --json
    tnview schema --json
    tnview watch examples/quimb_tnoptimizer_run.jsonl --max-refreshes 1 --no-clear
@@ -36,13 +37,13 @@ Use this checklist before tagging a public release.
 
    ```bash
    rm -rf dist *.egg-info
-   python -m build
+   .venv/bin/python -m build
    ```
 
 6. Inspect artifacts:
 
    ```bash
-   python -m twine check dist/*
+   .venv/bin/python -m twine check dist/*
    ```
 
 7. Tag after verification:

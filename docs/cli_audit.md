@@ -1,5 +1,8 @@
 # CLI Audit
 
+This is a current architecture snapshot for TNView 1.2.0. It should be treated
+as a planning aid, not as a release promise.
+
 ## Current Structure
 
 Entrypoints:
@@ -11,26 +14,37 @@ Commands:
 
 - `replay`: render visual replay telemetry, optionally interactive or snapshot JSON.
 - `replay-runlog`: step through run-log events by event index.
+- `animate`: render replay checkpoints as oscilloscope or instrument frames.
+- `scope`: render a static oscilloscope view of replay signals.
 - `live`: stream replay telemetry and refresh on checkpoints.
-- `tail`: render replay or run-log state; supports `--follow`.
+- `tail`: render replay or run-log state; supports `--follow` and run-log JSON.
+- `watch`: live dashboard for append-only run-log telemetry.
 - `demo`: generate and render synthetic MPS/TEBD replay telemetry.
-- `compare`: compare replay logs or run logs.
+- `sketch`: build deterministic synthetic replay telemetry from a prompt or wizard.
+- `compare`: compare replay logs, run logs, metrics, or diagnostic regressions.
 - `preview`: inspect setup telemetry for complexity risk.
 - `inspect`: choose and render a focused replay view.
-- `search`: search replay bonds/sites/tags/tensors.
+- `focus`: list focus strategies or render a non-interactive focus view.
+- `search`: search replay bonds, sites, tags, tensors, or tensor metadata.
 - `validate`: validate replay and run-log JSONL.
 - `diagnose`: run deterministic diagnostics over run-log JSONL.
 - `export`: export normalized JSONL, manifest JSON, or CSV.
 - `examples`: list built-in example logs.
 - `fixture`: generate synthetic replay fixtures.
+- `schema`: show supported replay and run-log telemetry schemas.
+- `init`: write starter telemetry emitter scripts.
+- `doctor`: check install, examples, optional integrations, and release checks.
+- `tour`: show the motivated first-run tour.
+- `recipes`: show runnable workflow recipes.
 
 Shared utilities:
 
 - Event parsing: `tnview.events`, `tnview.runlog`
-- Rendering: `tnview.render`, `tnview.tail`, `tnview.compare`, `tnview.preview`, `tnview.search`
-- State: `tnview.state`
-- Diagnostics: `tnview.diagnose`
-- Export: `tnview.export`
+- Rendering: `tnview.render`, `tnview.terminal`, `tnview.tail`, `tnview.scope`, `tnview.compare`
+- State and focus: `tnview.state`, `tnview.focus`, `tnview.focus_report`
+- Diagnostics: `tnview.diagnose`, `tnview.commands`
+- Output and errors: `tnview.cli_output`
+- Export and schemas: `tnview.export`, `tnview.schema`
 - Adapters: `tnview.adapters.quimb`, `tnview.adapters.tenpy`
 
 Config and packaging:
@@ -38,31 +52,53 @@ Config and packaging:
 - `pyproject.toml`
 - `requirements.txt`, `requirements-dev.txt`
 - `Makefile`
+- `scripts/setup_env.sh`
 - No runtime config file yet.
 
 Output paths:
 
-- Most commands write directly to stdout with `print`.
-- Error handling is centralized only at the top-level `main`, and prints compact `tnview: ...` messages to stderr for `EventParseError` and `OSError`.
-- `RunLogger` writes JSONL telemetry to user-selected files.
+- Human command output writes to stdout.
+- Expected errors are centralized through `CliError` / `EventParseError` handling
+  in `tnview.cli.main`, with `Path`, `Reason`, and `Try` sections where useful.
+- `--verbose` is global and prints tracebacks for expected CLI errors.
+- Stable JSON output exists for command surfaces intended for scripts, including
+  `tour`, `recipes`, `examples`, `focus --list`, `doctor`, `schema`, `scope`,
+  `tail` for run logs, `diagnose`, `compare`, `validate`, `sketch`, and `export`
+  formats.
+- `RunLogger` writes append-only JSONL telemetry to user-selected files.
 
 ## UX Diagnosis
 
-- Command model is broad but mostly coherent. The biggest naming risk is that `replay` and `replay-runlog` are related but operate on different schemas.
-- Many commands have useful output, but there is no shared section/table/error vocabulary.
-- Errors usually say what failed, but rarely include a clear `Path`, `Reason`, and `Try` section.
-- Machine-readable output exists in places (`--snapshot`, `--csv`, `export --format ...`) but is inconsistent. `diagnose` is a natural first target for `--json`.
-- `tail --follow` gives useful status and trends, but long-running command output still lives directly in command handlers.
-- There is no global `--verbose` yet; stack traces are not dumped by default because only expected exceptions are caught.
+- The command model is broad but coherent around two schemas: visual replay
+  telemetry and run-log telemetry.
+- `demo`, `tour`, and `recipes` now provide a usable first-run path. The most
+  useful command for a lively no-data demo is `tnview demo --animate`.
+- `replay` and `replay-runlog` remain the most likely naming confusion because
+  they operate on different schemas.
+- Human output has a shared diagnostic/error vocabulary, but larger command
+  handlers still mix orchestration and printing.
+- Machine-readable output is much stronger than the first audit, but not every
+  command should grow `--json`; add it only where scripting is a real workflow.
+- Interactive replay has keyboard and command-mode navigation. Future TUI work
+  should preserve non-key alternatives for accessibility and remote terminals.
 
 ## Code Diagnosis
 
-- `tnview/cli.py` is the main knot: argument parsing, command orchestration, user-facing rendering, printing, and error handling are mixed.
-- Print calls are scattered through command handlers.
-- `diagnose`, `tail`, `compare`, and `export` duplicate run-log reading and error handling patterns.
-- Return codes are mostly stable (`0`, `1`, `2`) but not named or documented in code.
-- Tests cover command behavior well, but not a reusable output contract.
-- Adding `--json` command by command is feasible, but should not be implemented as ad hoc print logic each time.
+- `tnview/cli.py` remains the main orchestration knot: parsing, dispatch,
+  validation, and printing are still in one file.
+- The most successful seam so far is:
+
+  ```text
+  command -> core action -> human renderer / json payload -> tests
+  ```
+
+- `cli_output.py` is the reusable error/output primitive.
+- `diagnose`, `tail`, `compare`, `scope`, and `focus` are good examples of
+  command surfaces with stable payload or renderer boundaries.
+- Tests cover command behavior, output snippets, package metadata, and local UI
+  snapshots, but the README command examples are not exhaustively executed.
+- Release hygiene now depends on `make setup`, `make check`, `make smoke`,
+  package build, and `twine check`.
 
 ## Target Architecture
 
@@ -74,25 +110,21 @@ tnview/
   cli_output.py          # human/json output and CLI errors
   commands/              # future home for larger command handlers
   render.py              # replay rendering
-  tail.py                # run-log tail rendering
+  scope.py               # replay signal rendering
+  tail.py                # run-log tail/watch rendering
   diagnose.py            # core diagnostics
   runlog.py              # raw run-log event IO
   events.py              # replay event schema
   adapters/
 ```
 
-The first useful seam is not a command-package rewrite. It is:
+Do not rewrite the CLI wholesale. Migrate one command at a time only when the
+move removes real duplication or makes a public contract easier to test.
 
-```text
-command -> core action -> command result -> human renderer / json renderer -> tests
-```
+Recommended next architecture slice:
 
-Use `diagnose` as the reference slice because it has:
-
-- clear core logic
-- high value for scripts
-- natural success and error JSON
-- existing tests
-- minimal blast radius
-
-Future command migrations should move one command at a time through this seam.
+1. Add curated public-doc command truth tests for the highest-visibility README
+   commands.
+2. Keep all generated UI snapshots and planning artifacts ignored.
+3. Move a single large handler out of `cli.py` only after a test defines its
+   output contract.
