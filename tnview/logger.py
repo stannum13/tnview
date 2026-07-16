@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 import json
-from typing import Any, TextIO
+from typing import Any, Callable, TextIO
 
 
 LEGACY_REPLAY_EVENTS = {
@@ -35,6 +35,7 @@ class RunLogger:
         schema_version: str = "0.1",
         flush: bool = True,
         strict: bool = False,
+        error_callback: Callable[[BaseException], None] | None = None,
     ):
         self._target = path
         self._handle: TextIO | None = path if hasattr(path, "write") else None
@@ -43,6 +44,9 @@ class RunLogger:
         self.schema_version = schema_version
         self.flush = flush
         self.strict = strict
+        self.error_callback = error_callback
+        self.dropped_event_count = 0
+        self.last_error: str | None = None
 
     def __enter__(self) -> RunLogger:
         self.open()
@@ -59,7 +63,8 @@ class RunLogger:
             path.parent.mkdir(parents=True, exist_ok=True)
             self._handle = path.open("a", encoding="utf-8")
             self._owns_handle = True
-        except Exception:
+        except Exception as exc:
+            self._record_error(exc)
             if self.strict:
                 raise
 
@@ -276,15 +281,16 @@ class RunLogger:
         self.emit("heartbeat", **_clean(fields))
 
     def emit_record(self, record: dict[str, Any]) -> None:
+        handle = self._require_handle()
+        if handle is None:
+            return
         try:
-            handle = self._require_handle()
-            if handle is None:
-                return
             prepared = self._prepare_record(record)
             handle.write(json.dumps(prepared, separators=(",", ":")) + "\n")
             if self.flush:
                 handle.flush()
-        except Exception:
+        except Exception as exc:
+            self._record_error(exc)
             if self.strict:
                 raise
 
@@ -470,6 +476,17 @@ class RunLogger:
         if self._handle is None:
             self.open()
         return self._handle
+
+    def _record_error(self, exc: BaseException) -> None:
+        self.dropped_event_count += 1
+        self.last_error = f"{type(exc).__name__}: {exc}"
+        if self.error_callback is not None:
+            try:
+                self.error_callback(exc)
+            except Exception as callback_exc:
+                self.last_error += (
+                    f"; error_callback failed: {type(callback_exc).__name__}: {callback_exc}"
+                )
 
 
 def _utc_timestamp() -> str:

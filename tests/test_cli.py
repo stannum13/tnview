@@ -1984,6 +1984,8 @@ class CliTests(unittest.TestCase):
         self.assertIn("optimizer_step", result.stdout)
         self.assertIn("Replay events", result.stdout)
         self.assertIn("bond_updated", result.stdout)
+        self.assertIn("Compatibility", result.stdout)
+        self.assertIn("schema_version '0.1'", result.stdout)
 
     def test_schema_command_can_emit_json(self) -> None:
         result = subprocess.run(
@@ -2005,6 +2007,8 @@ class CliTests(unittest.TestCase):
         self.assertIn("rss_mb", payload["run_log"]["metrics"])
         self.assertIn("bond_updated", payload["replay"]["events"])
         self.assertIn("trunc_error", payload["replay"]["required_fields"]["bond_updated"])
+        self.assertEqual(payload["compatibility"]["current_run_log_schema_version"], "0.1")
+        self.assertEqual(payload["compatibility"]["strict_run_log_schema_versions"], ["0.1"])
 
     def test_init_command_dry_run_prints_starter(self) -> None:
         result = subprocess.run(

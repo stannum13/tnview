@@ -8,6 +8,7 @@ from typing import Any
 
 from tnview.events import Checkpoint, EventParseError, TelemetryEvent, parse_jsonl_line
 from tnview.runlog import is_run_log_record
+from tnview.schema import SCHEMA_VERSION
 
 
 @dataclass(frozen=True)
@@ -103,8 +104,14 @@ def _warnings(events: list[TelemetryEvent], run_log_records: list[dict[str, Any]
 def _run_log_errors(records: list[dict[str, Any]]) -> list[str]:
     errors: list[str] = []
     for index, record in enumerate(records, start=1):
-        if not isinstance(record.get("schema_version"), str):
+        schema_version = record.get("schema_version")
+        if not isinstance(schema_version, str):
             errors.append(f"run-log event {index}: schema_version must be a string")
+        elif schema_version != SCHEMA_VERSION:
+            errors.append(
+                f"run-log event {index}: unsupported schema_version {schema_version!r}; "
+                f"expected {SCHEMA_VERSION!r}"
+            )
         if not isinstance(record.get("run_id"), str):
             errors.append(f"run-log event {index}: run_id must be a string")
         if not isinstance(record.get("timestamp"), str) and "time" not in record:

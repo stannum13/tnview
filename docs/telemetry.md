@@ -19,6 +19,27 @@ TNView accepts two related JSONL shapes:
 Run-log events should include `schema_version`, `run_id`, and a timestamp-like
 `time` or `timestamp` field. `RunLogger` adds these fields automatically.
 
+## Compatibility
+
+Replay telemetry is the legacy visual event shape: event names such as
+`run_started`, `model_geometry`, `bond_updated`, and `checkpoint` do not require
+`schema_version`.
+
+Run-log telemetry is the diagnostics shape. The current run-log schema version
+is `0.1`. `tnview validate` accepts recognized run-log event names without
+requiring metadata so partially instrumented runs can be inspected. Add
+`--strict` to require `schema_version: "0.1"`, `run_id`, and either `time` or
+`timestamp` on each run-log event.
+
+Mixed JSONL files are valid for `tnview validate`: replay events and run-log
+events are counted separately. Rendering commands consume the event family they
+are designed for, so keeping replay and run-log streams separate is clearer for
+normal workflows.
+
+`watch` and `tail --follow` read appending JSONL files incrementally. An
+incomplete final line is held until the writer finishes the JSON object; invalid
+records in the middle of a file still surface as validation errors.
+
 ## Event Ordering
 
 A useful replay usually emits metadata first, then update/checkpoint events:
@@ -56,10 +77,12 @@ the visual telemetry events below.
 
 Useful run-log metric fields include `energy`, `delta_energy`, `loss`,
 `max_chi`, `chi_max_configured`, `max_trunc_err`, `entropy_max`,
-`canonical_error`, `wall_s`, `step_wall_s`, and `rss_mb`. Diagnostics use these
-fields to detect plateaus, chi saturation, truncation floors, runtime
-regressions, memory growth, optimizer stagnation, non-finite values,
-canonical-form drift, and sustained entropy growth.
+`canonical_error`, `wall_s`, `step_wall_s`, and `rss_mb`. Diagnostics apply
+deterministic heuristics over these fields to flag plateaus, chi saturation,
+truncation floors, runtime regressions, memory growth, optimizer stagnation,
+non-finite values, canonical-form drift, and sustained entropy growth. These
+warnings are triage signals, not a scientific classifier or proof of convergence
+failure.
 
 ## Common Types
 

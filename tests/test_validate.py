@@ -33,6 +33,23 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(report.run_log_count, 2)
         self.assertIn("run-log events:    2", render_validation(report))
 
+    def test_validate_accepts_mixed_replay_and_run_log_events(self) -> None:
+        report = validate_lines(
+            [
+                '{"event":"checkpoint","step":1,"time":0.1}\n',
+                '{"event":"bond_updated","step":1,"time":0.1,"layer":"odd","bond":0,'
+                '"site_left":0,"site_right":1,"entropy_before":0.1,"entropy_after":0.2,'
+                '"chi_before":2,"chi_after":4,"chi_max":8,"trunc_error":1e-9}\n',
+                '{"schema_version":"0.1","run_id":"r1","time":"2026-06-10T00:00:01Z",'
+                '"event":"sweep_end","sweep":1}\n',
+            ]
+        )
+
+        self.assertTrue(report.valid)
+        self.assertEqual(report.event_count, 2)
+        self.assertEqual(report.run_log_count, 1)
+        self.assertEqual(report.warnings, ())
+
     def test_strict_validate_requires_run_log_metadata(self) -> None:
         report = validate_lines(['{"event":"sweep_end","sweep":1}'], strict=True)
 
@@ -40,6 +57,18 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("schema_version must be a string", "\n".join(report.errors))
         self.assertIn("run_id must be a string", "\n".join(report.errors))
         self.assertIn("timestamp or time is required", "\n".join(report.errors))
+
+    def test_strict_validate_rejects_unknown_run_log_schema_version(self) -> None:
+        report = validate_lines(
+            [
+                '{"schema_version":"9.9","run_id":"r1","time":"2026-06-10T00:00:00Z",'
+                '"event":"run_start"}'
+            ],
+            strict=True,
+        )
+
+        self.assertFalse(report.valid)
+        self.assertIn("unsupported schema_version '9.9'; expected '0.1'", "\n".join(report.errors))
 
     def test_validation_payload_is_stable(self) -> None:
         report = validate_lines(

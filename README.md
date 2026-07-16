@@ -318,18 +318,20 @@ machine-readable latest run-log state. Add `--follow` to keep refreshing a file
 as a batch job appends events. For replay logs, it falls back to the same frame
 rendering used by `live`.
 
-`diagnose` prints deterministic warnings for run-log events such as energy
-plateaus, chi saturation, truncation floors, runtime regressions, memory growth,
-optimizer stagnation, non-finite metrics, canonical-form drift, and sustained
-entropy growth. Add `--json` for stable machine-readable diagnostics. Thresholds
-can be adjusted with `--profile strict|default|loose` or explicit flags such as
-`--energy-eps`, `--truncation-floor`, `--memory-factor`, and
-`--canonical-error`. Use repeatable `--suppress CODE` when a known warning is
-expected for a particular run family.
+`diagnose` prints deterministic heuristic warnings for run-log events such as
+energy plateaus, chi saturation, truncation floors, runtime regressions, memory
+growth, optimizer stagnation, non-finite metrics, canonical-form drift, and
+sustained entropy growth. Add `--json` for stable machine-readable diagnostics.
+Thresholds can be adjusted with `--profile strict|default|loose` or explicit
+flags such as `--energy-eps`, `--truncation-floor`, `--memory-factor`, and
+`--canonical-error`. These warnings are triage signals, not a scientific
+classifier. Use repeatable `--suppress CODE` when a known warning is expected
+for a particular run family.
 
 `validate` checks replay and run-log JSONL syntax. Add `--strict` to require
-run-log metadata such as `schema_version`, `run_id`, and timestamp fields. Add
-`--json` for stable machine-readable validation output.
+run-log metadata such as `schema_version: "0.1"`, `run_id`, and timestamp
+fields. Mixed replay and run-log JSONL is accepted and reported with separate
+counts. Add `--json` for stable machine-readable validation output.
 
 `preview` reads setup telemetry such as `model_geometry` and `ansatz_layout` and
 reports interaction range, expected lightcone, early chi-pressure risk,
@@ -353,8 +355,9 @@ state summaries; run logs show latest energy, loss, chi, truncation, memory, and
 diagnostic codes. Add `--metric loss` or another run-log metric to sort the
 table. Add `--json` for stable machine-readable comparison output.
 
-`schema` prints the supported replay and run-log telemetry schemas. Add `--json`
-to feed schema metadata into emitters, tests, or integration tooling.
+`schema` prints the supported replay and run-log telemetry schemas, including
+the strict run-log schema version and mixed-file compatibility notes. Add
+`--json` to feed schema metadata into emitters, tests, or integration tooling.
 
 `init` writes a small starter emitter script. Use `--dry-run` to preview the
 file, `--force` to overwrite, and `--kind quimb` or `--kind tenpy` for adapter

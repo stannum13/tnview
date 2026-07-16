@@ -172,15 +172,57 @@ class RunLoggerTests(unittest.TestCase):
         self.assertEqual(records[1]["run_id"], "second")
 
     def test_non_strict_logger_does_not_raise_on_write_failure(self) -> None:
+        errors = []
         logger = RunLogger(FailingHandle(), strict=False)
+        logger.error_callback = errors.append
 
         logger.emit("run_start")
+
+        self.assertEqual(logger.dropped_event_count, 1)
+        self.assertIn("write failed", logger.last_error or "")
+        self.assertEqual(len(errors), 1)
+
+    def test_non_strict_logger_ignores_callback_failures(self) -> None:
+        def fail_callback(exc: BaseException) -> None:
+            raise RuntimeError("callback failed")
+
+        logger = RunLogger(FailingHandle(), strict=False, error_callback=fail_callback)
+
+        logger.emit("run_start")
+
+        self.assertEqual(logger.dropped_event_count, 1)
+        self.assertIn("error_callback failed", logger.last_error or "")
 
     def test_strict_logger_raises_on_write_failure(self) -> None:
         logger = RunLogger(FailingHandle(), strict=True)
 
         with self.assertRaises(OSError):
             logger.emit("run_start")
+
+        self.assertEqual(logger.dropped_event_count, 1)
+        self.assertIn("write failed", logger.last_error or "")
+
+    def test_non_strict_logger_records_open_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            parent_file = Path(directory) / "not-a-dir"
+            parent_file.write_text("occupied", encoding="utf-8")
+            logger = RunLogger(parent_file / "run.jsonl", strict=False)
+
+            logger.emit("run_start")
+
+        self.assertEqual(logger.dropped_event_count, 1)
+        self.assertIsNotNone(logger.last_error)
+
+    def test_strict_logger_raises_on_open_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            parent_file = Path(directory) / "not-a-dir"
+            parent_file.write_text("occupied", encoding="utf-8")
+            logger = RunLogger(parent_file / "run.jsonl", strict=True)
+
+            with self.assertRaises(OSError):
+                logger.emit("run_start")
+
+        self.assertEqual(logger.dropped_event_count, 1)
 
     def test_observe_mps_records_snapshot_without_setup_by_default(self) -> None:
         handle = StringIO()

@@ -80,6 +80,15 @@ def schema_payload() -> dict[str, Any]:
             "events": list(REPLAY_EVENTS),
             "required_fields": {event: list(fields) for event, fields in REPLAY_REQUIRED.items()},
         },
+        "compatibility": {
+            "current_run_log_schema_version": SCHEMA_VERSION,
+            "strict_run_log_schema_versions": [SCHEMA_VERSION],
+            "replay_schema": "legacy visual telemetry events without schema_version",
+            "mixed_files": (
+                "validate accepts replay and run-log records in the same JSONL file; "
+                "rendering commands consume the event family they are designed for"
+            ),
+        },
     }
 
 
@@ -104,6 +113,21 @@ def render_schema(*, width: int = 100) -> str:
     for event in REPLAY_EVENTS:
         required = ", ".join(REPLAY_REQUIRED.get(event, ()))
         lines.append(_fit(f"  {event:<18} required: {required or 'none'}", width))
+    lines.extend(
+        [
+            "",
+            "Compatibility:",
+            _fit(
+                f"  strict run-log validation accepts schema_version {SCHEMA_VERSION!r}; "
+                "non-strict validation remains permissive.",
+                width,
+            ),
+            _fit(
+                "  validate accepts mixed replay/run-log JSONL and reports separate counts.",
+                width,
+            ),
+        ]
+    )
     return "\n".join(lines)
 
 

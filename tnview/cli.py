@@ -48,7 +48,7 @@ from tnview.preview import complexity_preview, render_preview
 from tnview.recipes import recipes_payload, render_recipes
 from tnview.render import RenderOptions, render_run
 from tnview.runreplay import render_run_log_replay, run_interactive_run_log
-from tnview.runlog import RUN_LOG_EVENTS, read_jsonl_records
+from tnview.runlog import RUN_LOG_EVENTS, JsonlFollower, read_jsonl_records
 from tnview.schema import render_schema, schema_payload
 from tnview.search import is_tensor_query, render_search, render_tensor_search, search_bonds, search_tensors
 from tnview.scope import render_scope
@@ -632,9 +632,15 @@ def _tail_follow(args: argparse.Namespace, *, live: bool = False) -> int:
 
     refreshes = 0
     status = 0
+    lines: list[str] = []
+    follower = JsonlFollower(args.path)
     try:
         while args.max_refreshes is None or refreshes < args.max_refreshes:
-            output, status = _tail_snapshot(args, live=live)
+            update = follower.read_new_lines()
+            if update.reset:
+                lines = []
+            lines.extend(update.lines)
+            output, status = _tail_snapshot_from_lines(args, lines, live=live)
             if not args.no_clear and sys.stdout.isatty():
                 print("\033[2J\033[H", end="")
             print(output)
@@ -650,7 +656,16 @@ def _tail_follow(args: argparse.Namespace, *, live: bool = False) -> int:
 
 def _tail_snapshot(args: argparse.Namespace, *, live: bool = False) -> tuple[str, int]:
     lines = list(_iter_lines(args.path))
-    report = read_jsonl_records(lines)
+    return _tail_snapshot_from_lines(args, lines, live=live)
+
+
+def _tail_snapshot_from_lines(
+    args: argparse.Namespace,
+    lines: list[str],
+    *,
+    live: bool = False,
+) -> tuple[str, int]:
+    report = read_jsonl_records(lines, allow_partial_final=live or getattr(args, "follow", False))
     run_records = [record for record in report.records if record.get("event") in RUN_LOG_EVENTS]
     if run_records:
         renderer = render_run_log_dashboard if live else render_run_log_tail
