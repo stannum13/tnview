@@ -36,3 +36,6 @@ tnview = "tnview.cli:main"
 Homepage = "https://github.com/stannum13/tnview"
 Repository = "https://github.com/stannum13/tnview"
 Issues = "https://github.com/stannum13/tnview/issues"
+
+[tool.setuptools.packages.find]
+include = ["tnview*"]

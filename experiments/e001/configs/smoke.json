@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "mode": "smoke",
+  "status": "fixture_smoke_not_canonical_evidence",
+  "fixture_logs": [
+    {
+      "path": "examples/quimb_tnoptimizer_run.jsonl",
+      "role": "healthy_reference_like",
+      "commands": ["validate_strict", "tail_json"]
+    },
+    {
+      "path": "examples/dmrg_bad_run.jsonl",
+      "role": "diagnostic_positive_fixture",
+      "commands": ["validate_strict", "diagnose_json"]
+    }
+  ],
+  "compare": {
+    "baseline": "examples/quimb_tnoptimizer_run.jsonl",
+    "candidate": "examples/dmrg_bad_run.jsonl",
+    "diagnostics": true
+  },
+  "logger_overhead": {
+    "events": 1000,
+    "output": ".artifacts/e001/logger-overhead-smoke.json"
+  }
+}

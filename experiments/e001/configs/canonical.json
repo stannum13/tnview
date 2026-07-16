@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "mode": "canonical",
+  "status": "preregistered_not_run",
+  "upstream": {
+    "quimb_commit": "3c89529fe0a3487133a3928201691161e110abdf",
+    "tenpy_optional_commit": "416043deb0145f22e97fd881fe469956279b99d2"
+  },
+  "model_families": ["transverse_field_ising", "heisenberg_chain"],
+  "geometries_or_orderings": ["chain", "alternate_ordering"],
+  "system_sizes": [32, 64, 96],
+  "chi_max_values": [32, 64, 128, 256],
+  "truncation_tolerances": [1e-06, 1e-08, 1e-10],
+  "early_fractions": [0.1, 0.25, 0.5],
+  "seeds": [17, 23, 31],
+  "false_stop_rate_max": 0.05,
+  "paired_reference_rule": "pair each candidate with a higher chi_max or tighter truncation tolerance run before labels are computed",
+  "controls": [
+    "held_out_model_family_or_geometry",
+    "held_out_system_size",
+    "time_shuffled_telemetry",
+    "exclude_energy_or_loss_features",
+    "exclude_memory_and_runtime_features"
+  ],
+  "required_outputs": [
+    "results/e001/manifest.json",
+    "results/e001/summary.json",
+    "results/e001/confusion_by_family.csv",
+    "results/e001/compute_saved_vs_false_stop.csv"
+  ]
+}
